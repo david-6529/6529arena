@@ -1,0 +1,294 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Agent {
+  id              String   @id @default(cuid())
+  name            String
+  slug            String   @unique
+  ownerIdentityId String?
+  ownerHandle     String?
+  ownerWallet     String?
+  category        String
+  description     String?
+  provider        String
+  modelName       String
+  systemPrompt    String
+  isPublic        Boolean  @default(false)
+  isActive        Boolean  @default(true)
+  maxCostUsd      Float?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  owner         Identity?      @relation(fields: [ownerIdentityId], references: [id], onDelete: SetNull)
+  versions      AgentVersion[]
+  runs          AgentRun[]
+  battleEntries BattleEntry[]
+  approvedSubmission AgentSubmission? @relation("SubmissionApprovedAgent")
+
+  @@index([category, isActive])
+  @@index([ownerIdentityId])
+}
+
+model AgentSubmission {
+  id                String   @id @default(cuid())
+  status            String   @default("pending")
+  approvedAgentId   String?  @unique
+  name              String
+  slug              String?
+  ownerHandle       String?
+  ownerWallet       String?
+  category          String
+  description       String?
+  provider          String
+  modelName         String
+  systemPrompt      String
+  maxCostUsd        Float?
+  maxOutputLength   Int?
+  endpointUrl       String?
+  apiKeyHandling    String?
+  submitterEmail    String?
+  submitterIdentity String?
+  reviewerNotes     String?
+  reviewedBy        String?
+  reviewedAt        DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  approvedAgent     Agent?   @relation("SubmissionApprovedAgent", fields: [approvedAgentId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([ownerWallet])
+  @@index([ownerHandle])
+  @@index([approvedAgentId])
+}
+
+model Identity {
+  id          String   @id @default(cuid())
+  wallet      String   @unique
+  handle      String?
+  displayName String?
+  pfp         String?
+  repScore    Float?
+  source      String   @default("wallet")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  agents Agent[]
+  votes  Vote[]
+  challenges IdentityChallenge[]
+
+  @@index([handle])
+}
+
+model IdentityChallenge {
+  id        String    @id @default(cuid())
+  wallet    String
+  nonce     String    @unique
+  message   String
+  status    String    @default("pending")
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  identity Identity? @relation(fields: [wallet], references: [wallet], onDelete: Cascade)
+
+  @@index([wallet, status])
+  @@index([expiresAt])
+}
+
+model AgentVersion {
+  id           String   @id @default(cuid())
+  agentId      String
+  version      Int
+  provider     String
+  modelName    String
+  systemPrompt String
+  maxCostUsd   Float?
+  description  String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  agent         Agent         @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  runs          AgentRun[]
+  battleEntries BattleEntry[]
+
+  @@unique([agentId, version])
+  @@index([agentId, isActive])
+}
+
+model Battle {
+  id             String   @id @default(cuid())
+  waveId         String
+  triggerDropId  String?
+  idempotencyKey String?  @unique
+  requestText    String
+  category       String
+  source         String   @default("manual")
+  battleType     String   @default("official")
+  isOfficial     Boolean  @default(true)
+  status         String   @default("pending")
+  postDropId     String?
+  votingMethod   String?
+  winnerEntryId  String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  entries   BattleEntry[]
+  votes     Vote[]
+  runs      AgentRun[]
+  jobs      BattleJob[]
+  snapshots WaveSnapshot[]
+
+  @@index([category, status])
+  @@index([waveId])
+  @@index([isOfficial, category])
+}
+
+model BattleJob {
+  id          String    @id @default(cuid())
+  battleId    String
+  dedupeKey   String?   @unique
+  type        String
+  status      String    @default("pending")
+  payloadJson Json?
+  attempts    Int       @default(0)
+  maxAttempts Int       @default(3)
+  runAfter    DateTime  @default(now())
+  lockedAt    DateTime?
+  lockedBy    String?
+  startedAt   DateTime?
+  finishedAt  DateTime?
+  error       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  battle Battle @relation(fields: [battleId], references: [id], onDelete: Cascade)
+
+  @@index([status, runAfter])
+  @@index([battleId])
+}
+
+model BattleEntry {
+  id             String   @id @default(cuid())
+  battleId       String
+  agentId        String
+  agentVersionId String?
+  label          String
+  output         String
+  citationsJson  Json?
+  costUsd        Float?
+  latencyMs      Int?
+  autoScore      Float?
+  humanScore     Float?
+  finalScore     Float?
+  createdAt      DateTime @default(now())
+
+  battle       Battle        @relation(fields: [battleId], references: [id], onDelete: Cascade)
+  agent        Agent         @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  agentVersion AgentVersion? @relation(fields: [agentVersionId], references: [id], onDelete: SetNull)
+  votes        Vote[]
+
+  @@unique([battleId, label])
+  @@unique([battleId, agentId])
+  @@index([agentId])
+  @@index([agentVersionId])
+}
+
+model AgentRun {
+  id               String   @id @default(cuid())
+  agentId          String
+  agentVersionId   String?
+  battleId         String?
+  inputJson        Json
+  output           String?
+  status           String
+  runType          String   @default("official")
+  provider         String
+  modelName        String
+  promptTokens     Int?
+  completionTokens Int?
+  costUsd          Float?
+  latencyMs        Int?
+  error            String?
+  createdAt        DateTime @default(now())
+
+  agent        Agent         @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  agentVersion AgentVersion? @relation(fields: [agentVersionId], references: [id], onDelete: SetNull)
+  battle       Battle?       @relation(fields: [battleId], references: [id], onDelete: SetNull)
+
+  @@index([agentId, status])
+  @@index([agentVersionId])
+  @@index([battleId])
+}
+
+model Vote {
+  id              String   @id @default(cuid())
+  battleId        String
+  voterIdentityId String?
+  dedupeKey       String?  @unique
+  voterHandle     String?
+  voterWallet     String?
+  selectedLabel   String
+  selectedEntryId String?
+  source          String
+  weight          Float    @default(1)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  battle        Battle       @relation(fields: [battleId], references: [id], onDelete: Cascade)
+  voterIdentity Identity?    @relation(fields: [voterIdentityId], references: [id], onDelete: SetNull)
+  selectedEntry BattleEntry? @relation(fields: [selectedEntryId], references: [id], onDelete: SetNull)
+
+  @@index([battleId])
+  @@index([voterIdentityId])
+  @@index([selectedEntryId])
+}
+
+model RateLimitBucket {
+  key       String   @id
+  count     Int      @default(0)
+  resetAt   DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([resetAt])
+}
+
+model AppEvent {
+  id         String   @id @default(cuid())
+  type       String
+  severity   String   @default("info")
+  message    String?
+  entityType String?
+  entityId   String?
+  battleId   String?
+  actor      String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([type, createdAt])
+  @@index([battleId, createdAt])
+  @@index([entityType, entityId])
+  @@index([severity, createdAt])
+}
+
+model WaveSnapshot {
+  id         String   @id @default(cuid())
+  battleId   String?
+  waveId     String
+  fromDropId String?
+  toDropId   String?
+  dropsJson  Json
+  createdAt  DateTime @default(now())
+
+  battle Battle? @relation(fields: [battleId], references: [id], onDelete: SetNull)
+
+  @@index([battleId])
+  @@index([waveId])
+}

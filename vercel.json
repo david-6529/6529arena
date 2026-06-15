@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/admin/jobs/process?limit=2",
+      "schedule": "*/5 * * * *"
+    }
+  ]
+}

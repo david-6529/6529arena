@@ -1,0 +1,94 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DATABASE_URL: ""
+      NEXT_PUBLIC_APP_URL: "http://localhost:3000"
+      NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID: ""
+      6529_API_BASE_URL: "https://api.6529.io"
+      6529_BOT_WALLET_ADDRESS: ""
+      6529_BOT_PRIVATE_KEY: ""
+      6529_BOT_HANDLE: "AgentArena"
+      OPENAI_API_KEY: ""
+      ANTHROPIC_API_KEY: ""
+      GOOGLE_API_KEY: ""
+      AI_PROVIDER_TIMEOUT_MS: "45000"
+      AI_PROVIDER_RETRIES: "1"
+      ADMIN_API_KEY: ""
+      CRON_SECRET: ""
+      RATE_LIMIT_SALT: "ci"
+      VOTE_RATE_LIMIT_PER_HOUR: "30"
+      SELF_TEST_ENABLED: "false"
+      PUBLIC_AGENT_SUBMISSIONS_ENABLED: "false"
+      EXTERNAL_AGENT_ENDPOINT_SUBMISSIONS_ENABLED: "false"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Validate Prisma schema
+        run: npx prisma validate
+
+      - name: Generate Prisma client
+        run: npm run prisma:generate
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Check disallowed punctuation
+        run: npm run lint:no-em-dash
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm run test
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Browser smoke tests
+        run: npm run test:e2e
+
+      - name: Build
+        run: npm run build
+
+      - name: Upload Playwright artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-artifacts
+          path: |
+            playwright-report
+            test-results
+          if-no-files-found: ignore
+          retention-days: 7

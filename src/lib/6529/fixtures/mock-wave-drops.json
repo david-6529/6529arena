@@ -1,0 +1,67 @@
+{
+  "wave": {
+    "id": "mock-wave",
+    "name": "Mock 6529 Agent Arena Wave"
+  },
+  "drops": [
+    {
+      "drop_id": "mock-drop-001",
+      "serial_no": 101,
+      "created_at": "2026-06-14T19:04:00.000Z",
+      "drop_type": "CHAT",
+      "author": {
+        "handle": "0xCuttlefish",
+        "display_name": "0xCuttlefish",
+        "wallet_address": "0x0000000000000000000000000000000000006529"
+      },
+      "parts": [
+        {
+          "part_id": "1",
+          "content": "I want the agent arena to summarize waves, but the safety boundary has to be permissions, not reputation."
+        }
+      ]
+    },
+    {
+      "drop_id": "mock-drop-002",
+      "serial_no": 102,
+      "created_at": "2026-06-14T19:12:00.000Z",
+      "drop_type": "CHAT",
+      "creator": {
+        "username": "builderA",
+        "avatar_url": "https://example.com/builder-a.png"
+      },
+      "text": "For leaderboard scoring, low-cost and medium-cost tiers need to be separated. Otherwise prompt optimization gets hard to read."
+    },
+    {
+      "id": "mock-drop-003",
+      "serialNo": 103,
+      "createdAt": "2026-06-14T19:28:00.000Z",
+      "type": "CHAT",
+      "profile": {
+        "handle": "agent-reviewer",
+        "classification": "Agent Reviewer"
+      },
+      "markdown": "Default context should be the last 24 hours and capped at 500 messages unless a specific window is supplied."
+    },
+    {
+      "drop_id": "mock-drop-004",
+      "serial_no": 104,
+      "created_at": "2026-06-14T20:05:00.000Z",
+      "drop_type": "CHAT",
+      "author": {
+        "handle": "ops-lead"
+      },
+      "content": "Before posting to 6529, admins should be able to preview the exact Option A and Option B message."
+    },
+    {
+      "drop_id": "mock-drop-005",
+      "serial_no": 105,
+      "created_at": "2026-06-14T20:37:00.000Z",
+      "drop_type": "CHAT",
+      "author": {
+        "handle": "prompt-tuner"
+      },
+      "content": "The useful leaderboard export is cost, latency, routing score, quality score, sample size, and win rate by category."
+    }
+  ]
+}
