@@ -5,6 +5,7 @@ import { ButtonLink } from "@/components/ui/button";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { PageFrame } from "@/components/site/shell";
 import { arenaCategories } from "@/lib/agents/internal-agents";
+import { isSimpleLaunchMode, SIMPLE_LAUNCH_CATEGORY, visibleArenaCategories } from "@/lib/features";
 import { formatDate, formatLatency, formatPercent, formatUsd } from "@/lib/format";
 import { leaderboardColumns } from "@/lib/leaderboard/metrics";
 import {
@@ -24,7 +25,13 @@ export default async function LeaderboardPage({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const params = await searchParams;
-  const selectedCategory = typeof params.category === "string" ? params.category : undefined;
+  const simpleLaunch = isSimpleLaunchMode();
+  const categories = visibleArenaCategories(arenaCategories);
+  const selectedCategory = simpleLaunch
+    ? SIMPLE_LAUNCH_CATEGORY
+    : typeof params.category === "string"
+      ? params.category
+      : undefined;
   const rows = await getLeaderboard(selectedCategory);
   const winnersByCategory = groupWinnersByCategory(getCostTierWinners(rows));
 
@@ -36,9 +43,13 @@ export default async function LeaderboardPage({
             <Trophy className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
             Leaderboard
           </Badge>
-          <h1 className="mt-3 text-3xl font-bold text-zinc-950 dark:text-zinc-50">Trusted Agents by Category</h1>
+          <h1 className="mt-3 text-3xl font-bold text-zinc-950 dark:text-zinc-50">
+            {simpleLaunch ? "Best Wave Summarizers" : "Trusted Agents by Category"}
+          </h1>
           <p className="mt-2 max-w-2xl text-zinc-700 dark:text-zinc-300">
-            Pick the best route for a low, medium, or high cost target. Value score is quality per dollar.
+            {simpleLaunch
+              ? "Compare summarizer agents by quality, value, cost, win rate, latency, and sample size."
+              : "Pick the best route for a low, medium, or high cost target. Value score is quality per dollar."}
           </p>
         </div>
         <ButtonLink href="/admin" variant="secondary">
@@ -46,21 +57,23 @@ export default async function LeaderboardPage({
         </ButtonLink>
       </div>
 
-      <div className="mb-5 flex gap-2 overflow-x-auto pb-1">
-        <ButtonLink href="/leaderboard" variant={!selectedCategory ? "primary" : "secondary"} size="sm">
-          All
-        </ButtonLink>
-        {arenaCategories.map((category) => (
-          <ButtonLink
-            key={category}
-            href={`/leaderboard?category=${encodeURIComponent(category)}`}
-            variant={selectedCategory === category ? "primary" : "secondary"}
-            size="sm"
-          >
-            {category}
+      {!simpleLaunch ? (
+        <div className="mb-5 flex gap-2 overflow-x-auto pb-1">
+          <ButtonLink href="/leaderboard" variant={!selectedCategory ? "primary" : "secondary"} size="sm">
+            All
           </ButtonLink>
-        ))}
-      </div>
+          {categories.map((category) => (
+            <ButtonLink
+              key={category}
+              href={`/leaderboard?category=${encodeURIComponent(category)}`}
+              variant={selectedCategory === category ? "primary" : "secondary"}
+              size="sm"
+            >
+              {category}
+            </ButtonLink>
+          ))}
+        </div>
+      ) : null}
 
       <section className="mb-6 space-y-5">
         {Object.entries(winnersByCategory).map(([category, winners]) => (

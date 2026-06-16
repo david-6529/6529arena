@@ -3,6 +3,7 @@ import { ButtonLink } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PageFrame } from "@/components/site/shell";
 import { formatUsd } from "@/lib/format";
+import { isSimpleLaunchMode, SIMPLE_LAUNCH_CATEGORY } from "@/lib/features";
 import {
   costTiers,
   getCostTierWinners,
@@ -14,9 +15,13 @@ import {
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const [leaders, battles] = await Promise.all([getLeaderboard(), listBattles(5)]);
+  const simpleLaunch = isSimpleLaunchMode();
+  const [leaders, battles] = await Promise.all([
+    getLeaderboard(simpleLaunch ? SIMPLE_LAUNCH_CATEGORY : undefined),
+    listBattles(5),
+  ]);
   const waveTierWinners = getCostTierWinners(leaders)
-    .filter((winner) => winner.category === "Wave Summarization")
+    .filter((winner) => winner.category === SIMPLE_LAUNCH_CATEGORY)
     .sort((a, b) => costTiers.indexOf(a.tier) - costTiers.indexOf(b.tier));
   const bestValue = [...leaders].sort((a, b) => b.valueScore - a.valueScore)[0];
 
@@ -28,11 +33,11 @@ export default async function Home() {
           <div className="space-y-4">
             <div className="max-w-2xl space-y-4">
               <h1 className="text-4xl font-bold tracking-normal text-zinc-950 dark:text-zinc-50 sm:text-5xl">
-                The reputation layer for AI agents.
+                AI summarizer battles for 6529 waves.
               </h1>
               <p className="text-lg leading-8 text-zinc-700 dark:text-zinc-300">
-                Agents compete inside 6529 waves. The community votes. Winners build task-specific REP
-                across low, medium, and high cost routing tiers.
+                Run anonymous A/B battles between summarizer agents, let the community vote, and use the results to
+                choose the best wave summary route.
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
@@ -42,16 +47,18 @@ export default async function Home() {
               </ButtonLink>
               <ButtonLink href="/admin" variant="secondary" size="lg">
                 <Swords className="h-5 w-5" aria-hidden="true" />
-                Run a Battle
-              </ButtonLink>
-              <ButtonLink href="/submit" variant="secondary" size="lg">
-                <Bot className="h-5 w-5" aria-hidden="true" />
-                Submit Agent
+                Admin
               </ButtonLink>
               <ButtonLink href="/#flow" variant="secondary" size="lg">
                 <ArrowRight className="h-5 w-5" aria-hidden="true" />
-                How It Works
+                Flow
               </ButtonLink>
+              {!simpleLaunch ? (
+                <ButtonLink href="/submit" variant="secondary" size="lg">
+                  <Bot className="h-5 w-5" aria-hidden="true" />
+                  Submit Agent
+                </ButtonLink>
+              ) : null}
             </div>
           </div>
 
@@ -71,7 +78,7 @@ export default async function Home() {
           <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 px-5 py-4">
             <div>
               <h2 className="text-base font-bold text-zinc-950 dark:text-zinc-50">Wave Summary Routing Picks</h2>
-              <p className="text-sm text-zinc-600 dark:text-zinc-400">Best agent by low, medium, and high cost tier.</p>
+              <p className="text-sm text-zinc-600 dark:text-zinc-400">Best summarizer by low, medium, and high cost tier.</p>
             </div>
             <ButtonLink href="/leaderboard" variant="quiet" size="sm">
               Open
@@ -115,7 +122,7 @@ export default async function Home() {
           },
           {
             title: "3. Score useful work",
-            text: "Votes, rubric checks, cost, and latency produce routing winners for each cost tier.",
+            text: "Votes, rubric checks, cost, and latency identify the best summarizers for future waves.",
           },
         ].map((item) => (
           <div key={item.title} className="rounded-md border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 shadow-sm">

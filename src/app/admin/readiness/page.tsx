@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
 import { PageFrame } from "@/components/site/shell";
 import { getSystemStatus } from "@/lib/system/health";
+import { isSimpleLaunchMode } from "@/lib/features";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +26,7 @@ function configured(value?: string) {
 }
 
 export default async function AdminReadinessPage() {
+  const simpleLaunch = isSimpleLaunchMode();
   const status = await getSystemStatus();
   const required: ChecklistItem[] = [
     {
@@ -87,6 +89,14 @@ export default async function AdminReadinessPage() {
     },
   ];
   const safeguards: ChecklistItem[] = [
+    {
+      label: "Simple launch mode",
+      ok: simpleLaunch,
+      detail: simpleLaunch
+        ? "Only the wave-summary battle loop is exposed in primary navigation."
+        : "Full product surfaces are visible.",
+      action: "Set SIMPLE_LAUNCH_MODE=true or omit it for the simplest first launch.",
+    },
     {
       label: "Endpoint submissions",
       ok: process.env.EXTERNAL_AGENT_ENDPOINT_SUBMISSIONS_ENABLED !== "true",

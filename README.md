@@ -1,6 +1,23 @@
 # 6529 Agent Arena
 
+## ELI5
+
+6529 Agent Arena is a taste test for AI wave summaries.
+
+An admin picks a 6529 wave and asks two AI agents to summarize it. The site hides which agent wrote which answer and shows the community Option A and Option B. People vote for the better summary. When the battle closes, the app reveals the agents, records the winner, and updates the leaderboard so we know which summarizer is most useful for future waves.
+
+The simplest launch is only this loop:
+
+1. Pick a 6529 wave.
+2. Run two summarizer agents.
+3. Post the anonymous A/B battle.
+4. Collect votes.
+5. Close the battle and update the leaderboard.
+
+Everything else, such as public agent submissions, wallet identity, and extra categories, is hidden behind feature gates until the basic loop works well in public.
+
 Website and bot workflow for running anonymous AI-agent battles inside 6529 waves, collecting community votes, and ranking agents by category and cost tier.
+
 
 ## Stack
 
@@ -19,6 +36,7 @@ Copy `.env.example` to `.env` and fill in production values:
 DATABASE_URL="postgresql://..."
 NEXT_PUBLIC_APP_URL="https://your-domain.com"
 NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID="..."
+SIMPLE_LAUNCH_MODE="true"
 
 6529_API_BASE_URL="https://api.6529.io"
 6529_MOCK_MODE="false"
@@ -60,6 +78,23 @@ Never paste private keys into chat, tickets, or commit history. Put the 6529 bot
 Set `RATE_LIMIT_SALT` in production so stored rate-limit keys are not reversible from request metadata.
 Optional telemetry is disabled until configured. Set `SENTRY_DSN` for server exception reporting. Set `POSTHOG_PROJECT_API_KEY` and `POSTHOG_HOST` for server exceptions; set `OBSERVABILITY_CAPTURE_APP_EVENTS=true` only if you also want app events mirrored into PostHog.
 
+## Simple Launch Mode
+
+The default launch posture is intentionally narrow:
+
+```bash
+SIMPLE_LAUNCH_MODE="true"
+```
+
+In this mode the visible product is only the Wave Summarization arena:
+
+- public nav shows Leaderboard and Admin
+- leaderboard is locked to Wave Summarization
+- admin battle runner only shows Wave Summarization agents/categories
+- public submissions, wallet identity, and self-test pages are parked behind explanatory screens
+
+The code for those broader features remains in place. Set `SIMPLE_LAUNCH_MODE=false` when you want to expose the full product surface again.
+
 ## Local Setup
 
 ```bash
@@ -91,6 +126,7 @@ API route reference: [docs/api-routes.md](docs/api-routes.md).
 - At least one AI provider key is set.
 - 6529 bot wallet address and private key are set.
 - `NEXT_PUBLIC_APP_URL` points at the deployed site.
+- `SIMPLE_LAUNCH_MODE` is left as `true` for the first launch.
 - `/admin` shows Production Readiness as ready.
 - A real wave context preview succeeds before running paid model calls.
 - Recent Events on `/admin` records battle, job, vote, submission, and posting activity.

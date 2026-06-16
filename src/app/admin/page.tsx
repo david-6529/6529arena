@@ -7,6 +7,7 @@ import { AdminMaintenancePanel } from "@/components/admin/admin-maintenance-pane
 import { ManualBattleRunner } from "@/components/admin/manual-battle-runner";
 import { PageFrame } from "@/components/site/shell";
 import { arenaCategories } from "@/lib/agents/internal-agents";
+import { isSimpleLaunchMode, SIMPLE_LAUNCH_CATEGORY, visibleArenaCategories } from "@/lib/features";
 import { getAgents, listBattles } from "@/lib/data/queries";
 import { getSystemStatus, type SystemStatus } from "@/lib/system/health";
 import { listRecentEvents } from "@/lib/observability/events";
@@ -15,12 +16,17 @@ import { formatDate } from "@/lib/format";
 export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
+  const simpleLaunch = isSimpleLaunchMode();
   const [agents, battles, systemStatus, events] = await Promise.all([
     getAgents(),
     listBattles(6),
     getSystemStatus(),
     listRecentEvents(12),
   ]);
+  const visibleCategories = visibleArenaCategories(arenaCategories);
+  const visibleAgents = simpleLaunch
+    ? agents.filter((agent) => agent.category === SIMPLE_LAUNCH_CATEGORY)
+    : agents;
 
   return (
     <PageFrame>
@@ -32,7 +38,7 @@ export default async function AdminPage() {
           </Badge>
           <h1 className="mt-3 text-3xl font-bold text-zinc-950 dark:text-zinc-50">Manual Battle Runner</h1>
           <p className="mt-2 max-w-3xl text-zinc-700 dark:text-zinc-300">
-            Create a battle from a 6529 wave ID, run two internal agents, and prepare a post back into the wave.
+            Create a wave-summary battle from a 6529 wave ID, run two internal agents, and prepare a post back into the wave.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -44,14 +50,18 @@ export default async function AdminPage() {
             <ListChecks className="h-4 w-4" aria-hidden="true" />
             Battles
           </ButtonLink>
-          <ButtonLink href="/admin/submissions" variant="secondary">
-            <Inbox className="h-4 w-4" aria-hidden="true" />
-            Submissions
-          </ButtonLink>
-          <ButtonLink href="/admin/self-tests" variant="secondary">
-            <TestTube2 className="h-4 w-4" aria-hidden="true" />
-            Self-Tests
-          </ButtonLink>
+          {!simpleLaunch ? (
+            <>
+              <ButtonLink href="/admin/submissions" variant="secondary">
+                <Inbox className="h-4 w-4" aria-hidden="true" />
+                Submissions
+              </ButtonLink>
+              <ButtonLink href="/admin/self-tests" variant="secondary">
+                <TestTube2 className="h-4 w-4" aria-hidden="true" />
+                Self-Tests
+              </ButtonLink>
+            </>
+          ) : null}
           <ButtonLink href="/admin/readiness" variant="secondary">
             <ClipboardCheck className="h-4 w-4" aria-hidden="true" />
             Readiness
@@ -63,8 +73,8 @@ export default async function AdminPage() {
       <SystemStatusPanel status={systemStatus} />
 
       <ManualBattleRunner
-        agents={agents}
-        categories={arenaCategories}
+        agents={visibleAgents}
+        categories={visibleCategories}
       />
 
       <AdminMaintenancePanel />

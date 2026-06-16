@@ -4,7 +4,7 @@ test.describe("public pages", () => {
   test("homepage presents the arena and routing score concept", async ({ page }) => {
     await page.goto("/");
 
-    await expect(page.getByRole("heading", { name: "The reputation layer for AI agents." })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "AI summarizer battles for 6529 waves." })).toBeVisible();
     await expect(page.getByRole("link", { name: /View Leaderboard/i })).toBeVisible();
     await expect(page.getByText("Wave Summary Routing Picks")).toBeVisible();
   });
@@ -12,7 +12,7 @@ test.describe("public pages", () => {
   test("leaderboard shows cost-tier winners and metric tooltips", async ({ page }) => {
     await page.goto("/leaderboard");
 
-    await expect(page.getByRole("heading", { name: "Trusted Agents by Category" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Best Wave Summarizers" })).toBeVisible();
     await expect(page.getByText("Wave Summarization Cost-Tier Winners")).toBeVisible();
 
     await page.getByRole("button", { name: "About Quality" }).first().focus();
@@ -32,12 +32,11 @@ test.describe("public pages", () => {
     await expect(page.getByText("The actual safety boundary is permissions")).toBeVisible();
   });
 
-  test("identity page exposes signed wallet linking", async ({ page }) => {
+  test("identity page is parked in simple launch mode", async ({ page }) => {
     await page.goto("/identity");
 
-    await expect(page.getByRole("heading", { name: "Link Your Wallet" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Link Wallet" })).toBeVisible();
-    await expect(page.getByText("No wallet is linked in this browser session.")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Wallet Linking Is Hidden" })).toBeVisible();
+    await expect(page.getByText("The first launch does not need wallet identity")).toBeVisible();
   });
 });
 
@@ -74,12 +73,11 @@ test.describe("admin and submission flows", () => {
     await expect(page.getByRole("button", { name: "Post to 6529" })).toBeVisible();
   });
 
-  test("submit page shows the gated public submission workflow", async ({ page }) => {
+  test("submit page is parked in simple launch mode", async ({ page }) => {
     await page.goto("/submit");
 
-    await expect(page.getByRole("heading", { name: "Submit a Summarizer Agent" })).toBeVisible();
-    await expect(page.getByText("Public submissions are currently closed.")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Submit for Review" })).toBeDisabled();
+    await expect(page.getByRole("heading", { name: "Agent Submissions Are Hidden" })).toBeVisible();
+    await expect(page.getByText("The first launch uses a fixed internal summarizer pool.")).toBeVisible();
   });
 
   test("submission review has status, category, and provider filters", async ({ page }) => {

@@ -22,6 +22,7 @@ Required for first production:
 
 - `DATABASE_URL`: Neon or Supabase Postgres connection string.
 - `NEXT_PUBLIC_APP_URL`: production URL, for example `https://agentarena.example.com`.
+- `SIMPLE_LAUNCH_MODE`: keep `true` or omit for the first launch. Set `false` only when you want public submissions, identity, self-tests, and multi-category surfaces visible again.
 - `ADMIN_API_KEY`: long random secret for admin login and admin API routes.
 - `ADMIN_LOGIN_RATE_LIMIT_PER_HOUR`: login attempts per request fingerprint, default `10`.
 - `CRON_SECRET`: long random secret for worker/cron route.
@@ -82,6 +83,8 @@ npm run db:seed
 13. Inspect the battle page.
 14. Use Preview Post to inspect the exact 6529 reply body.
 15. Post to 6529 only after the output is acceptable.
+
+For the simplest launch, keep the public product to the wave-summary loop: `/`, `/leaderboard`, `/battles/:id`, and admin battle operations. Public submissions, wallet identity, builder self-tests, and multi-category navigation are hidden when `SIMPLE_LAUNCH_MODE` is enabled.
 
 Use `/api/health` for public uptime checks. It returns only service health and coarse database status; detailed readiness stays behind `/admin`.
 

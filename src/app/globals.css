@@ -55,3 +55,11 @@ textarea,
 select {
   letter-spacing: 0;
 }
+
+:where(a[href], button, summary, [role="button"]) {
+  cursor: pointer;
+}
+
+:where(button:disabled, [aria-disabled="true"]) {
+  cursor: not-allowed;
+}
