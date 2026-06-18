@@ -210,7 +210,8 @@ Successful end state: the operator gets the first SwarmOps coordination artifact
 2. Filter to open tasks.
 3. Confirm useful suggested tasks, assign owners, or reject bad suggestions.
 4. Move active work through confirmed, in progress, and completed states.
-5. Keep source drop IDs attached for auditability.
+5. Create manual tasks when useful work did not come from a brief.
+6. Keep source drop IDs attached for auditability.
 
 Successful end state: agent-suggested work becomes a human-reviewed operator queue.
 

@@ -274,6 +274,24 @@ Admin. Posts an approved wave brief back into the source 6529 wave.
 
 Admin. Lists recent wave tasks suggested from Wave Brief Draft action items.
 
+### `POST /api/admin/tasks`
+
+Admin. Creates a manual wave task.
+
+Body:
+
+```json
+{
+  "waveId": "string",
+  "title": "task title",
+  "status": "confirmed",
+  "suggestedOwner": "optional owner",
+  "sourceDropIds": ["optional-drop-id"],
+  "reviewerNotes": "optional",
+  "reviewedBy": "optional"
+}
+```
+
 ### `POST /api/admin/tasks/:id/review`
 
 Admin. Updates a wave task's status, owner, title, or reviewer notes.

@@ -124,6 +124,7 @@ Goal: convert wave conversation into trackable work.
 The first admin-only action board now exists:
 
 - extracted tasks
+- manual tasks
 - source drop references
 - owner
 - status

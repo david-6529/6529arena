@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, ClipboardCheck, KeyRound, ListTodo, Play, Save, XCircle } from "lucide-react";
+import { CheckCircle2, ClipboardCheck, KeyRound, ListTodo, Play, Plus, Save, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -81,6 +81,12 @@ export function WaveTaskAdmin({ tasks }: { tasks: WaveTaskRow[] }) {
   const [adminKey, setAdminKey] = useState("");
   const [reviewedBy, setReviewedBy] = useState("");
   const [statusFilter, setStatusFilter] = useState("open");
+  const [newWaveId, setNewWaveId] = useState("");
+  const [newTitle, setNewTitle] = useState("");
+  const [newOwner, setNewOwner] = useState("");
+  const [newSourceDropIds, setNewSourceDropIds] = useState("");
+  const [newStatus, setNewStatus] = useState("confirmed");
+  const [newNotes, setNewNotes] = useState("");
   const [state, setState] = useState<ApiState>({});
   const [edits, setEdits] = useState<Record<string, TaskEdit>>(() =>
     Object.fromEntries(tasks.map((task) => [task.id, defaultEdit(task)])),
@@ -113,6 +119,44 @@ export function WaveTaskAdmin({ tasks }: { tasks: WaveTaskRow[] }) {
         ...patch,
       },
     }));
+  }
+
+  function parseSourceDropIds(value: string) {
+    return [...new Set(value.split(/[\s,]+/).map((dropId) => dropId.trim()).filter(Boolean))];
+  }
+
+  async function createTask() {
+    setState({ loading: "create" });
+
+    try {
+      const response = await fetch("/api/admin/tasks", {
+        method: "POST",
+        headers: headers(),
+        body: JSON.stringify({
+          waveId: newWaveId,
+          title: newTitle,
+          status: newStatus,
+          suggestedOwner: newOwner || undefined,
+          sourceDropIds: parseSourceDropIds(newSourceDropIds),
+          reviewerNotes: newNotes || undefined,
+          reviewedBy: reviewedBy || undefined,
+        }),
+      });
+      const json = await response.json();
+
+      if (!response.ok) {
+        throw new Error(errorMessage(json));
+      }
+
+      setNewTitle("");
+      setNewOwner("");
+      setNewSourceDropIds("");
+      setNewNotes("");
+      setState({ message: `Created task ${json.task.id.slice(0, 8)}.` });
+      router.refresh();
+    } catch (error) {
+      setState({ error: error instanceof Error ? error.message : "Task creation failed." });
+    }
   }
 
   async function saveTask(task: WaveTaskRow, status?: string) {
@@ -159,7 +203,7 @@ export function WaveTaskAdmin({ tasks }: { tasks: WaveTaskRow[] }) {
             </p>
           </div>
           <label className="block text-sm font-semibold text-zinc-800 dark:text-zinc-200">
-            <span className="mb-1 block">Status</span>
+            <span className="mb-1 block">Filter status</span>
             <Select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
               <option value="open">Open</option>
               <option value="all">All</option>
@@ -199,6 +243,57 @@ export function WaveTaskAdmin({ tasks }: { tasks: WaveTaskRow[] }) {
             {state.message}
           </p>
         ) : null}
+      </section>
+
+      <section className="rounded-md border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+        <div className="mb-4 border-b border-zinc-200 pb-4 dark:border-zinc-800">
+          <h2 className="font-bold text-zinc-950 dark:text-zinc-50">Create Manual Task</h2>
+          <p className="mt-1 text-sm leading-6 text-zinc-600 dark:text-zinc-400">
+            Add operator-known work directly when it does not need a fresh brief generation pass.
+          </p>
+        </div>
+        <div className="grid gap-4 lg:grid-cols-[0.5fr_1fr_0.5fr]">
+          <label className="block text-sm font-semibold text-zinc-800 dark:text-zinc-200">
+            <span className="mb-1 block">Wave ID</span>
+            <Input value={newWaveId} onChange={(event) => setNewWaveId(event.target.value)} />
+          </label>
+          <label className="block text-sm font-semibold text-zinc-800 dark:text-zinc-200">
+            <span className="mb-1 block">Task title</span>
+            <Input value={newTitle} onChange={(event) => setNewTitle(event.target.value)} />
+          </label>
+          <label className="block text-sm font-semibold text-zinc-800 dark:text-zinc-200">
+            <span className="mb-1 block">Initial status</span>
+            <Select value={newStatus} onChange={(event) => setNewStatus(event.target.value)}>
+              {statusOptions.map((status) => (
+                <option key={status} value={status}>
+                  {status}
+                </option>
+              ))}
+            </Select>
+          </label>
+          <label className="block text-sm font-semibold text-zinc-800 dark:text-zinc-200">
+            <span className="mb-1 block">Owner</span>
+            <Input value={newOwner} onChange={(event) => setNewOwner(event.target.value)} placeholder="optional" />
+          </label>
+          <label className="block text-sm font-semibold text-zinc-800 dark:text-zinc-200 lg:col-span-2">
+            <span className="mb-1 block">Source drop IDs</span>
+            <Input
+              value={newSourceDropIds}
+              onChange={(event) => setNewSourceDropIds(event.target.value)}
+              placeholder="drop-1, drop-2"
+            />
+          </label>
+          <label className="block text-sm font-semibold text-zinc-800 dark:text-zinc-200 lg:col-span-3">
+            <span className="mb-1 block">Notes</span>
+            <Textarea className="min-h-20" value={newNotes} onChange={(event) => setNewNotes(event.target.value)} />
+          </label>
+        </div>
+        <div className="mt-4">
+          <Button type="button" onClick={createTask} disabled={state.loading !== undefined || !newWaveId.trim() || !newTitle.trim()}>
+            <Plus className="h-4 w-4" aria-hidden="true" />
+            Create Task
+          </Button>
+        </div>
       </section>
 
       <section className="grid gap-4">

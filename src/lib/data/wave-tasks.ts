@@ -102,6 +102,45 @@ export async function listWaveTasks(limit = 100) {
   });
 }
 
+export async function createManualWaveTask(params: {
+  waveId: string;
+  title: string;
+  status?: WaveTaskStatus;
+  suggestedOwner?: string;
+  sourceDropIds?: string[];
+  reviewerNotes?: string;
+  reviewedBy?: string;
+}) {
+  const db = getPrisma();
+  const sourceDropIds = [...new Set((params.sourceDropIds ?? []).map((dropId) => dropId.trim()).filter(Boolean))];
+  const task = await db.waveTask.create({
+    data: {
+      waveId: params.waveId,
+      title: compactText(params.title, 240),
+      status: params.status ?? "confirmed",
+      suggestedOwner: params.suggestedOwner ? compactText(params.suggestedOwner, 120) : undefined,
+      sourceDropIdsJson: toInputJson(sourceDropIds),
+      reviewerNotes: params.reviewerNotes,
+      reviewedBy: params.reviewedBy,
+    },
+  });
+
+  await logEvent({
+    type: "wave_task.created_manual",
+    entityType: "wave_task",
+    entityId: task.id,
+    actor: params.reviewedBy ?? "admin",
+    message: "Manual wave task created by an admin.",
+    metadata: {
+      waveId: task.waveId,
+      status: task.status,
+      sourceDropCount: sourceDropIds.length,
+    },
+  });
+
+  return task;
+}
+
 export async function updateWaveTask(params: {
   taskId: string;
   status?: WaveTaskStatus;

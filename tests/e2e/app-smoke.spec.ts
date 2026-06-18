@@ -88,7 +88,10 @@ test.describe("admin and submission flows", () => {
 
     await expect(page.getByRole("heading", { name: "Wave Tasks" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Task Review Queue" })).toBeVisible();
-    await expect(page.getByLabel("Status")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Create Manual Task" })).toBeVisible();
+    await expect(page.getByLabel("Filter status")).toBeVisible();
+    await expect(page.getByLabel("Task title")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Create Task" })).toBeDisabled();
     await expect(page.getByText("No tasks match this filter.")).toBeVisible();
   });
 

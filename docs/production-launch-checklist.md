@@ -123,6 +123,7 @@ Use a real test wave where posting is acceptable.
 18. Save an edit, approve the brief, preview the 6529 post, and post only if acceptable.
 19. Open `/admin/tasks` and confirm suggested tasks appear for brief action items.
 20. Confirm, edit, complete, and reject at least one test task.
+21. Create one manual task and delete or reject it after the smoke test.
 
 ## First Official Battle
 
