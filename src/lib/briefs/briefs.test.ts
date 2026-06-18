@@ -3,7 +3,7 @@ import { buildWaveBriefPrompts } from "@/lib/briefs/prompts";
 import { renderWaveBrief, renderWaveBriefPost } from "@/lib/briefs/render";
 import { parseWaveBrief } from "@/lib/briefs/schema";
 import { validateWaveBriefSources } from "@/lib/briefs/source-validation";
-import { extractWaveTasksFromBriefJson, getWaveTaskDedupeKey } from "@/lib/data/wave-tasks";
+import { extractWaveTasksFromBriefJson, getWaveTaskDedupeKey, normalizeWaveTaskOutcome } from "@/lib/data/wave-tasks";
 import type { WaveDrop } from "@/lib/6529/types";
 
 describe("buildWaveBriefPrompts", () => {
@@ -155,5 +155,37 @@ describe("extractWaveTasksFromBriefJson", () => {
 describe("getWaveTaskDedupeKey", () => {
   it("normalizes case, spacing, and punctuation", () => {
     expect(getWaveTaskDedupeKey(" Draft: the NEXT wave update! ")).toBe("draft the next wave update");
+  });
+});
+
+describe("normalizeWaveTaskOutcome", () => {
+  it("treats blank outcome evidence as empty", () => {
+    expect(
+      normalizeWaveTaskOutcome({
+        outcomeDropId: "   ",
+        outcomeUrl: "",
+        outcomeSummary: "\n\t",
+      }),
+    ).toEqual({
+      outcomeDropId: null,
+      outcomeUrl: null,
+      outcomeSummary: null,
+      hasOutcome: false,
+    });
+  });
+
+  it("trims and compacts real outcome evidence", () => {
+    expect(
+      normalizeWaveTaskOutcome({
+        outcomeDropId: " drop-1 ",
+        outcomeUrl: " https://example.com/outcome ",
+        outcomeSummary: "  Posted   the final update. ",
+      }),
+    ).toEqual({
+      outcomeDropId: "drop-1",
+      outcomeUrl: "https://example.com/outcome",
+      outcomeSummary: "Posted the final update.",
+      hasOutcome: true,
+    });
   });
 });

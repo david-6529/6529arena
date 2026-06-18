@@ -13,6 +13,12 @@ export type SuggestedWaveTask = {
   sourceDropIds: string[];
 };
 
+export type WaveTaskOutcomeInput = {
+  outcomeDropId?: string | null;
+  outcomeUrl?: string | null;
+  outcomeSummary?: string | null;
+};
+
 function toInputJson(value: unknown): Prisma.InputJsonValue {
   return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
 }
@@ -25,6 +31,19 @@ function compactText(value: string, maxLength: number) {
 
 export function getWaveTaskDedupeKey(title: string) {
   return title.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+export function normalizeWaveTaskOutcome(input: WaveTaskOutcomeInput) {
+  const outcomeDropId = input.outcomeDropId ? compactText(input.outcomeDropId, 120) || null : null;
+  const outcomeUrl = input.outcomeUrl ? compactText(input.outcomeUrl, 500) || null : null;
+  const outcomeSummary = input.outcomeSummary ? compactText(input.outcomeSummary, 1000) || null : null;
+
+  return {
+    outcomeDropId,
+    outcomeUrl,
+    outcomeSummary,
+    hasOutcome: Boolean(outcomeDropId || outcomeUrl || outcomeSummary),
+  };
 }
 
 function dedupeSuggestedTasks(tasks: SuggestedWaveTask[]) {
@@ -156,7 +175,7 @@ export async function createManualWaveTask(params: {
 }) {
   const db = getPrisma();
   const sourceDropIds = [...new Set((params.sourceDropIds ?? []).map((dropId) => dropId.trim()).filter(Boolean))];
-  const hasOutcome = Boolean(params.outcomeDropId || params.outcomeUrl || params.outcomeSummary);
+  const outcome = normalizeWaveTaskOutcome(params);
   const task = await db.waveTask.create({
     data: {
       waveId: params.waveId,
@@ -166,10 +185,10 @@ export async function createManualWaveTask(params: {
       sourceDropIdsJson: toInputJson(sourceDropIds),
       reviewerNotes: params.reviewerNotes,
       reviewedBy: params.reviewedBy,
-      outcomeDropId: params.outcomeDropId ? compactText(params.outcomeDropId, 120) : undefined,
-      outcomeUrl: params.outcomeUrl ? compactText(params.outcomeUrl, 500) : undefined,
-      outcomeSummary: params.outcomeSummary ? compactText(params.outcomeSummary, 1000) : undefined,
-      outcomeRecordedAt: hasOutcome ? new Date() : undefined,
+      outcomeDropId: outcome.outcomeDropId ?? undefined,
+      outcomeUrl: outcome.outcomeUrl ?? undefined,
+      outcomeSummary: outcome.outcomeSummary ?? undefined,
+      outcomeRecordedAt: outcome.hasOutcome ? new Date() : undefined,
     },
   });
 
@@ -183,7 +202,7 @@ export async function createManualWaveTask(params: {
       waveId: task.waveId,
       status: task.status,
       sourceDropCount: sourceDropIds.length,
-      hasOutcome,
+      hasOutcome: outcome.hasOutcome,
     },
   });
 
@@ -212,21 +231,19 @@ export async function updateWaveTask(params: {
     params.outcomeDropId !== undefined ||
     params.outcomeUrl !== undefined ||
     params.outcomeSummary !== undefined;
-  const nextOutcomeDropId =
-    params.outcomeDropId === undefined ? existing.outcomeDropId : compactText(params.outcomeDropId, 120) || null;
-  const nextOutcomeUrl =
-    params.outcomeUrl === undefined ? existing.outcomeUrl : compactText(params.outcomeUrl, 500) || null;
-  const nextOutcomeSummary =
-    params.outcomeSummary === undefined ? existing.outcomeSummary : compactText(params.outcomeSummary, 1000) || null;
-  const hasOutcome = Boolean(nextOutcomeDropId || nextOutcomeUrl || nextOutcomeSummary);
+  const outcome = normalizeWaveTaskOutcome({
+    outcomeDropId: params.outcomeDropId === undefined ? existing.outcomeDropId : params.outcomeDropId,
+    outcomeUrl: params.outcomeUrl === undefined ? existing.outcomeUrl : params.outcomeUrl,
+    outcomeSummary: params.outcomeSummary === undefined ? existing.outcomeSummary : params.outcomeSummary,
+  });
   const data: Prisma.WaveTaskUpdateInput = {
     title: params.title === undefined ? undefined : compactText(params.title, 240),
     suggestedOwner: params.suggestedOwner === undefined ? undefined : compactText(params.suggestedOwner, 120) || null,
     reviewerNotes: params.reviewerNotes,
     reviewedBy: params.reviewedBy,
-    outcomeDropId: params.outcomeDropId === undefined ? undefined : nextOutcomeDropId,
-    outcomeUrl: params.outcomeUrl === undefined ? undefined : nextOutcomeUrl,
-    outcomeSummary: params.outcomeSummary === undefined ? undefined : nextOutcomeSummary,
+    outcomeDropId: params.outcomeDropId === undefined ? undefined : outcome.outcomeDropId,
+    outcomeUrl: params.outcomeUrl === undefined ? undefined : outcome.outcomeUrl,
+    outcomeSummary: params.outcomeSummary === undefined ? undefined : outcome.outcomeSummary,
   };
 
   if (params.status) {
@@ -235,7 +252,7 @@ export async function updateWaveTask(params: {
   }
 
   if (outcomePatchProvided) {
-    data.outcomeRecordedAt = hasOutcome ? new Date() : null;
+    data.outcomeRecordedAt = outcome.hasOutcome ? new Date() : null;
   }
 
   const task = await db.waveTask.update({
@@ -254,7 +271,7 @@ export async function updateWaveTask(params: {
       status: task.status,
       previousStatus: existing.status,
       waveBriefId: task.waveBriefId,
-      hasOutcome,
+      hasOutcome: outcome.hasOutcome,
     },
   });
 
