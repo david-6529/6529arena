@@ -150,9 +150,13 @@ export async function createManualWaveTask(params: {
   sourceDropIds?: string[];
   reviewerNotes?: string;
   reviewedBy?: string;
+  outcomeDropId?: string;
+  outcomeUrl?: string;
+  outcomeSummary?: string;
 }) {
   const db = getPrisma();
   const sourceDropIds = [...new Set((params.sourceDropIds ?? []).map((dropId) => dropId.trim()).filter(Boolean))];
+  const hasOutcome = Boolean(params.outcomeDropId || params.outcomeUrl || params.outcomeSummary);
   const task = await db.waveTask.create({
     data: {
       waveId: params.waveId,
@@ -162,6 +166,10 @@ export async function createManualWaveTask(params: {
       sourceDropIdsJson: toInputJson(sourceDropIds),
       reviewerNotes: params.reviewerNotes,
       reviewedBy: params.reviewedBy,
+      outcomeDropId: params.outcomeDropId ? compactText(params.outcomeDropId, 120) : undefined,
+      outcomeUrl: params.outcomeUrl ? compactText(params.outcomeUrl, 500) : undefined,
+      outcomeSummary: params.outcomeSummary ? compactText(params.outcomeSummary, 1000) : undefined,
+      outcomeRecordedAt: hasOutcome ? new Date() : undefined,
     },
   });
 
@@ -175,6 +183,7 @@ export async function createManualWaveTask(params: {
       waveId: task.waveId,
       status: task.status,
       sourceDropCount: sourceDropIds.length,
+      hasOutcome,
     },
   });
 
@@ -188,6 +197,9 @@ export async function updateWaveTask(params: {
   suggestedOwner?: string;
   reviewerNotes?: string;
   reviewedBy?: string;
+  outcomeDropId?: string;
+  outcomeUrl?: string;
+  outcomeSummary?: string;
 }) {
   const db = getPrisma();
   const existing = await db.waveTask.findUnique({ where: { id: params.taskId } });
@@ -196,16 +208,27 @@ export async function updateWaveTask(params: {
     throw Object.assign(new Error("Wave task not found."), { status: 404 });
   }
 
+  const outcomePatchProvided =
+    params.outcomeDropId !== undefined ||
+    params.outcomeUrl !== undefined ||
+    params.outcomeSummary !== undefined;
   const data: Prisma.WaveTaskUpdateInput = {
     title: params.title === undefined ? undefined : compactText(params.title, 240),
     suggestedOwner: params.suggestedOwner === undefined ? undefined : compactText(params.suggestedOwner, 120) || null,
     reviewerNotes: params.reviewerNotes,
     reviewedBy: params.reviewedBy,
+    outcomeDropId: params.outcomeDropId === undefined ? undefined : compactText(params.outcomeDropId, 120) || null,
+    outcomeUrl: params.outcomeUrl === undefined ? undefined : compactText(params.outcomeUrl, 500) || null,
+    outcomeSummary: params.outcomeSummary === undefined ? undefined : compactText(params.outcomeSummary, 1000) || null,
   };
 
   if (params.status) {
     data.status = params.status;
-    data.completedAt = params.status === "completed" ? new Date() : null;
+    data.completedAt = params.status === "completed" ? existing.completedAt ?? new Date() : null;
+  }
+
+  if (outcomePatchProvided) {
+    data.outcomeRecordedAt = new Date();
   }
 
   const task = await db.waveTask.update({
@@ -224,6 +247,7 @@ export async function updateWaveTask(params: {
       status: task.status,
       previousStatus: existing.status,
       waveBriefId: task.waveBriefId,
+      hasOutcome: Boolean(task.outcomeDropId || task.outcomeUrl || task.outcomeSummary),
     },
   });
 

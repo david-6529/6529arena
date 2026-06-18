@@ -288,13 +288,16 @@ Body:
   "suggestedOwner": "optional owner",
   "sourceDropIds": ["optional-drop-id"],
   "reviewerNotes": "optional",
-  "reviewedBy": "optional"
+  "reviewedBy": "optional",
+  "outcomeDropId": "optional 6529 drop id",
+  "outcomeUrl": "optional evidence URL",
+  "outcomeSummary": "optional outcome summary"
 }
 ```
 
 ### `POST /api/admin/tasks/:id/review`
 
-Admin. Updates a wave task's status, owner, title, or reviewer notes.
+Admin. Updates a wave task's status, owner, title, reviewer notes, or outcome evidence.
 
 Body:
 
@@ -304,7 +307,10 @@ Body:
   "title": "optional edited task title",
   "suggestedOwner": "optional owner",
   "reviewerNotes": "optional",
-  "reviewedBy": "optional"
+  "reviewedBy": "optional",
+  "outcomeDropId": "optional 6529 drop id",
+  "outcomeUrl": "optional evidence URL",
+  "outcomeSummary": "optional outcome summary"
 }
 ```
 

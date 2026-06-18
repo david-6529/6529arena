@@ -20,6 +20,10 @@ export type WaveTaskRow = {
   sourceDropIds: string[];
   reviewerNotes: string | null;
   reviewedBy: string | null;
+  outcomeDropId: string | null;
+  outcomeUrl: string | null;
+  outcomeSummary: string | null;
+  outcomeRecordedAt: string | null;
   completedAt: string | null;
   createdAt: string;
   updatedAt: string;
@@ -43,6 +47,9 @@ type TaskEdit = {
   status: string;
   suggestedOwner: string;
   reviewerNotes: string;
+  outcomeDropId: string;
+  outcomeUrl: string;
+  outcomeSummary: string;
 };
 
 const statusOptions = ["suggested", "confirmed", "in_progress", "completed", "rejected"];
@@ -53,6 +60,9 @@ function defaultEdit(task: WaveTaskRow): TaskEdit {
     status: task.status,
     suggestedOwner: task.suggestedOwner ?? "",
     reviewerNotes: task.reviewerNotes ?? "",
+    outcomeDropId: task.outcomeDropId ?? "",
+    outcomeUrl: task.outcomeUrl ?? "",
+    outcomeSummary: task.outcomeSummary ?? "",
   };
 }
 
@@ -174,6 +184,9 @@ export function WaveTaskAdmin({ tasks }: { tasks: WaveTaskRow[] }) {
           suggestedOwner: edit.suggestedOwner || undefined,
           reviewerNotes: edit.reviewerNotes || undefined,
           reviewedBy: reviewedBy || undefined,
+          outcomeDropId: edit.outcomeDropId,
+          outcomeUrl: edit.outcomeUrl,
+          outcomeSummary: edit.outcomeSummary,
         }),
       });
       const json = await response.json();
@@ -312,6 +325,7 @@ export function WaveTaskAdmin({ tasks }: { tasks: WaveTaskRow[] }) {
                   <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
                     Suggested {formatDate(task.createdAt)}
                     {task.completedAt ? ` · completed ${formatDate(task.completedAt)}` : ""}
+                    {task.outcomeRecordedAt ? ` · outcome ${formatDate(task.outcomeRecordedAt)}` : ""}
                   </p>
                 </div>
                 {task.brief ? (
@@ -357,6 +371,30 @@ export function WaveTaskAdmin({ tasks }: { tasks: WaveTaskRow[] }) {
                     onChange={(event) => updateEdit(task.id, { reviewerNotes: event.target.value })}
                   />
                 </label>
+                <label className="block text-sm font-semibold text-zinc-800 dark:text-zinc-200">
+                  <span className="mb-1 block">Outcome drop ID</span>
+                  <Input
+                    value={edit.outcomeDropId}
+                    onChange={(event) => updateEdit(task.id, { outcomeDropId: event.target.value })}
+                    placeholder="optional 6529 drop"
+                  />
+                </label>
+                <label className="block text-sm font-semibold text-zinc-800 dark:text-zinc-200 lg:col-span-2">
+                  <span className="mb-1 block">Outcome URL</span>
+                  <Input
+                    value={edit.outcomeUrl}
+                    onChange={(event) => updateEdit(task.id, { outcomeUrl: event.target.value })}
+                    placeholder="https://..."
+                  />
+                </label>
+                <label className="block text-sm font-semibold text-zinc-800 dark:text-zinc-200 lg:col-span-3">
+                  <span className="mb-1 block">Outcome summary</span>
+                  <Textarea
+                    className="min-h-20"
+                    value={edit.outcomeSummary}
+                    onChange={(event) => updateEdit(task.id, { outcomeSummary: event.target.value })}
+                  />
+                </label>
               </div>
 
               <div className="mt-4 flex flex-wrap gap-2">
@@ -386,6 +424,14 @@ export function WaveTaskAdmin({ tasks }: { tasks: WaveTaskRow[] }) {
                 <p className="mt-4 rounded-md border border-zinc-200 bg-zinc-50 p-3 text-xs leading-5 text-zinc-700 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300">
                   Source drops: {task.sourceDropIds.join(", ")}
                 </p>
+              ) : null}
+              {task.outcomeDropId || task.outcomeUrl || task.outcomeSummary ? (
+                <div className="mt-4 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-xs leading-5 text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200">
+                  <p className="font-semibold">Recorded outcome</p>
+                  {task.outcomeSummary ? <p className="mt-1">{task.outcomeSummary}</p> : null}
+                  {task.outcomeDropId ? <p className="mt-1">Drop: {task.outcomeDropId}</p> : null}
+                  {task.outcomeUrl ? <p className="mt-1">URL: {task.outcomeUrl}</p> : null}
+                </div>
               ) : null}
             </article>
           );

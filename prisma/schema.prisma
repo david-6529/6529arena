@@ -335,6 +335,10 @@ model WaveTask {
   sourceDropIdsJson Json?
   reviewerNotes     String?
   reviewedBy        String?
+  outcomeDropId     String?
+  outcomeUrl        String?
+  outcomeSummary    String?
+  outcomeRecordedAt DateTime?
   completedAt       DateTime?
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt

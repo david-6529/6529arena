@@ -13,6 +13,9 @@ const createTaskSchema = z.object({
   sourceDropIds: z.array(z.string().trim().min(1)).max(50).optional(),
   reviewerNotes: z.string().trim().max(2000).optional(),
   reviewedBy: z.string().trim().max(120).optional(),
+  outcomeDropId: z.string().trim().max(120).optional(),
+  outcomeUrl: z.string().trim().max(500).optional(),
+  outcomeSummary: z.string().trim().max(1000).optional(),
 });
 
 export async function GET(request: Request) {

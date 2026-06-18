@@ -124,6 +124,7 @@ Use a real test wave where posting is acceptable.
 19. Open `/admin/tasks` and confirm suggested tasks appear for brief action items.
 20. Confirm, edit, complete, and reject at least one test task.
 21. Create one manual task and delete or reject it after the smoke test.
+22. Add outcome evidence to one completed test task and confirm it renders on the task card.
 
 ## First Official Battle
 

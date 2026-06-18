@@ -11,6 +11,9 @@ const reviewTaskSchema = z.object({
   suggestedOwner: z.string().trim().max(120).optional(),
   reviewerNotes: z.string().trim().max(2000).optional(),
   reviewedBy: z.string().trim().max(120).optional(),
+  outcomeDropId: z.string().trim().max(120).optional(),
+  outcomeUrl: z.string().trim().max(500).optional(),
+  outcomeSummary: z.string().trim().max(1000).optional(),
 });
 
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {

@@ -130,11 +130,12 @@ The first admin-only action board now exists:
 - owner
 - status
 - human reviewer
+- outcome evidence links
 
 Next additions:
 
 - agent-assist history
-- posted outcome
+- task merge history across brief cycles
 
 Tasks can be created by agents but should require human confirmation before becoming official.
 
