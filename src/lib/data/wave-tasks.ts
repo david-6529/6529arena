@@ -212,14 +212,21 @@ export async function updateWaveTask(params: {
     params.outcomeDropId !== undefined ||
     params.outcomeUrl !== undefined ||
     params.outcomeSummary !== undefined;
+  const nextOutcomeDropId =
+    params.outcomeDropId === undefined ? existing.outcomeDropId : compactText(params.outcomeDropId, 120) || null;
+  const nextOutcomeUrl =
+    params.outcomeUrl === undefined ? existing.outcomeUrl : compactText(params.outcomeUrl, 500) || null;
+  const nextOutcomeSummary =
+    params.outcomeSummary === undefined ? existing.outcomeSummary : compactText(params.outcomeSummary, 1000) || null;
+  const hasOutcome = Boolean(nextOutcomeDropId || nextOutcomeUrl || nextOutcomeSummary);
   const data: Prisma.WaveTaskUpdateInput = {
     title: params.title === undefined ? undefined : compactText(params.title, 240),
     suggestedOwner: params.suggestedOwner === undefined ? undefined : compactText(params.suggestedOwner, 120) || null,
     reviewerNotes: params.reviewerNotes,
     reviewedBy: params.reviewedBy,
-    outcomeDropId: params.outcomeDropId === undefined ? undefined : compactText(params.outcomeDropId, 120) || null,
-    outcomeUrl: params.outcomeUrl === undefined ? undefined : compactText(params.outcomeUrl, 500) || null,
-    outcomeSummary: params.outcomeSummary === undefined ? undefined : compactText(params.outcomeSummary, 1000) || null,
+    outcomeDropId: params.outcomeDropId === undefined ? undefined : nextOutcomeDropId,
+    outcomeUrl: params.outcomeUrl === undefined ? undefined : nextOutcomeUrl,
+    outcomeSummary: params.outcomeSummary === undefined ? undefined : nextOutcomeSummary,
   };
 
   if (params.status) {
@@ -228,7 +235,7 @@ export async function updateWaveTask(params: {
   }
 
   if (outcomePatchProvided) {
-    data.outcomeRecordedAt = new Date();
+    data.outcomeRecordedAt = hasOutcome ? new Date() : null;
   }
 
   const task = await db.waveTask.update({
@@ -247,7 +254,7 @@ export async function updateWaveTask(params: {
       status: task.status,
       previousStatus: existing.status,
       waveBriefId: task.waveBriefId,
-      hasOutcome: Boolean(task.outcomeDropId || task.outcomeUrl || task.outcomeSummary),
+      hasOutcome,
     },
   });
 
