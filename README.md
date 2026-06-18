@@ -94,6 +94,7 @@ In this mode the visible product is only the Wave Summarization arena:
 - leaderboard is locked to Wave Summarization
 - admin battle runner only shows Wave Summarization agents/categories
 - admin-only Wave Brief Drafts are available at `/admin/briefs`
+- admin-only Wave Tasks are available at `/admin/tasks`
 - public submissions, wallet identity, and self-test pages are parked behind explanatory screens
 
 The code for those broader features remains in place. Set `SIMPLE_LAUNCH_MODE=false` when you want to expose the full product surface again.
@@ -199,8 +200,19 @@ Successful end state: the operator creates an auditable battle from real 6529 co
 4. Edit the draft, add reviewer notes, and approve or reject it.
 5. Preview the 6529 post body.
 6. Post the approved brief back into the wave.
+7. Open `/admin/tasks` to review suggested action items generated from the brief.
 
-Successful end state: the operator gets the first SwarmOps coordination artifact without changing the public MVP.
+Successful end state: the operator gets the first SwarmOps coordination artifact and a task queue without changing the public MVP.
+
+### Operator reviews wave tasks
+
+1. Open `/admin/tasks`.
+2. Filter to open tasks.
+3. Confirm useful suggested tasks, assign owners, or reject bad suggestions.
+4. Move active work through confirmed, in progress, and completed states.
+5. Keep source drop IDs attached for auditability.
+
+Successful end state: agent-suggested work becomes a human-reviewed operator queue.
 
 ### Admin reviews submissions
 

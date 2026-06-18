@@ -268,6 +268,30 @@ Admin. Dry-run render of the 6529 wave brief post body.
 
 Admin. Posts an approved wave brief back into the source 6529 wave.
 
+## Wave Tasks
+
+### `GET /api/admin/tasks`
+
+Admin. Lists recent wave tasks suggested from Wave Brief Draft action items.
+
+### `POST /api/admin/tasks/:id/review`
+
+Admin. Updates a wave task's status, owner, title, or reviewer notes.
+
+Body:
+
+```json
+{
+  "status": "confirmed",
+  "title": "optional edited task title",
+  "suggestedOwner": "optional owner",
+  "reviewerNotes": "optional",
+  "reviewedBy": "optional"
+}
+```
+
+`status` can be `suggested`, `confirmed`, `in_progress`, `completed`, or `rejected`.
+
 ## Admin
 
 ### `POST /api/admin/session`

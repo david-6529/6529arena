@@ -3,6 +3,7 @@ import { buildWaveBriefPrompts } from "@/lib/briefs/prompts";
 import { renderWaveBrief, renderWaveBriefPost } from "@/lib/briefs/render";
 import { parseWaveBrief } from "@/lib/briefs/schema";
 import { validateWaveBriefSources } from "@/lib/briefs/source-validation";
+import { extractWaveTasksFromBriefJson } from "@/lib/data/wave-tasks";
 import type { WaveDrop } from "@/lib/6529/types";
 
 describe("buildWaveBriefPrompts", () => {
@@ -102,5 +103,29 @@ describe("validateWaveBriefSources", () => {
       referencedDropIds: ["drop-1", "drop-2", "missing-drop"],
       missingDropIds: ["missing-drop"],
     });
+  });
+});
+
+describe("extractWaveTasksFromBriefJson", () => {
+  it("turns brief action items into deduped suggested tasks", () => {
+    const tasks = extractWaveTasksFromBriefJson({
+      title: "Ops brief",
+      executive_summary: "Operators need follow-up.",
+      action_items: [
+        {
+          task: "  Draft the next wave update   ",
+          suggested_owner: "  alice  ",
+          source_drop_ids: ["drop-1", "drop-1", "drop-2"],
+        },
+      ],
+    });
+
+    expect(tasks).toEqual([
+      {
+        title: "Draft the next wave update",
+        suggestedOwner: "alice",
+        sourceDropIds: ["drop-1", "drop-2"],
+      },
+    ]);
   });
 });

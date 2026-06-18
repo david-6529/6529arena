@@ -83,6 +83,15 @@ test.describe("admin and submission flows", () => {
     await expect(page.getByRole("button", { name: "Generate Brief" })).toBeDisabled();
   });
 
+  test("wave task admin exposes the review queue", async ({ page }) => {
+    await page.goto("/admin/tasks");
+
+    await expect(page.getByRole("heading", { name: "Wave Tasks" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Task Review Queue" })).toBeVisible();
+    await expect(page.getByLabel("Status")).toBeVisible();
+    await expect(page.getByText("No tasks match this filter.")).toBeVisible();
+  });
+
   test("submit page is parked in simple launch mode", async ({ page }) => {
     await page.goto("/submit");
 

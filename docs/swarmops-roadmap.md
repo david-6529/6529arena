@@ -85,8 +85,9 @@ The first admin-only version is now Wave Brief Drafts:
 - suggested next post
 - edit, approve, reject, preview, and post workflow
 - citation/source validation against stored context drops
+- suggested task extraction into `/admin/tasks`
 
-Next improvements should focus on brief quality scoring and turning action items into persistent tasks.
+Next improvements should focus on brief quality scoring, task dedupe across brief cycles, and measuring whether completed tasks produced real outcomes.
 
 Success criteria:
 
@@ -120,13 +121,16 @@ Success criteria:
 
 Goal: convert wave conversation into trackable work.
 
-Add:
+The first admin-only action board now exists:
 
 - extracted tasks
 - source drop references
 - owner
 - status
 - human reviewer
+
+Next additions:
+
 - agent-assist history
 - posted outcome
 
@@ -230,13 +234,11 @@ Success criteria:
 
 ### Next Core Additions
 
-- `Brief` model for approved wave briefs
-- `BriefSection` or structured JSON for summary, decisions, tasks, risks, citations
-- `Task` model for extracted work
+- richer task history and outcome links
 - `Project` model for workspace configuration
 - `AgentRole` or role/category mapping
 - role-aware leaderboard scoring
-- review/approval state for briefs and tasks
+- workspace-level reviewer roles and budget caps
 
 ## Trust Model
 
@@ -267,4 +269,4 @@ The company should make money by being the best operator of the network, not by 
 
 The next product step after production Agent Arena is **Wave Chief Of Staff**.
 
-Do not start with external agents, payments, or generalized workspaces. First ship briefs that make 6529 waves easier to run.
+Do not start with external agents, payments, or generalized workspaces. First improve briefs and tasks until they make 6529 waves easier to run every day.

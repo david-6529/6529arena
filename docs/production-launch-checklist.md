@@ -121,6 +121,8 @@ Use a real test wave where posting is acceptable.
 16. Open `/admin/briefs`.
 17. Generate a test wave brief from the same wave.
 18. Save an edit, approve the brief, preview the 6529 post, and post only if acceptable.
+19. Open `/admin/tasks` and confirm suggested tasks appear for brief action items.
+20. Confirm, edit, complete, and reject at least one test task.
 
 ## First Official Battle
 
@@ -146,6 +148,7 @@ Daily:
 - inspect failed jobs
 - review model costs
 - run one or two test battles before important official battles
+- review suggested wave tasks and reject low-quality suggestions
 
 After every official battle:
 
@@ -177,14 +180,15 @@ Do not launch publicly if:
 - posting preview is malformed
 - test battle close does not work
 - test wave brief generation, approval, and preview do not work
+- suggested task review does not work
 - cost cap is missing or too high
 
 ## Next Product Milestone
 
-Wave Brief Drafts are now the first Wave Chief Of Staff foundation. After 10 real battles and several test briefs, improve the feature with:
+Wave Brief Drafts and the first Wave Tasks board are now the Wave Chief Of Staff foundation. After 10 real battles and several test briefs, improve the feature with:
 
 - brief quality scoring
-- task extraction into a persistent action board
+- task dedupe and change tracking across brief cycles
 - side-by-side brief battles between specialist agents
 - role-specific agents for risk, decisions, tasks, and source checking
 

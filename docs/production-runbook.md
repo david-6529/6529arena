@@ -86,6 +86,7 @@ npm run db:seed
 14. Use Preview Post to inspect the exact 6529 reply body.
 15. Post to 6529 only after the output is acceptable.
 16. Open `/admin/briefs`, generate a test wave brief, edit it, approve it, preview it, and post only after the content is acceptable.
+17. Open `/admin/tasks`, review suggested tasks from the brief, and confirm that edit, confirm, complete, and reject actions work.
 
 For the simplest launch, keep the public product to the wave-summary loop: `/`, `/leaderboard`, `/battles/:id`, and admin battle operations. Public submissions, wallet identity, builder self-tests, and multi-category navigation are hidden when `SIMPLE_LAUNCH_MODE` is enabled.
 

@@ -4,6 +4,7 @@ import { fetchWaveContext } from "@/lib/6529/wave-context";
 import { renderWaveBriefPost } from "@/lib/briefs/render";
 import { runWaveBrief } from "@/lib/briefs/runBrief";
 import { getPrisma, prisma } from "@/lib/db/prisma";
+import { createSuggestedTasksForBrief } from "@/lib/data/wave-tasks";
 import { logEvent } from "@/lib/observability/events";
 
 function toInputJson(value: unknown): Prisma.InputJsonValue {
@@ -85,6 +86,11 @@ export async function createWaveBriefDraft(params: {
       latencyMs: run.latencyMs,
     },
   });
+  const suggestedTasks = await createSuggestedTasksForBrief({
+    briefId: brief.id,
+    waveId: brief.waveId,
+    briefJson: run.structured,
+  });
 
   await logEvent({
     type: "wave_brief.created",
@@ -97,6 +103,7 @@ export async function createWaveBriefDraft(params: {
       provider: brief.provider,
       modelName: brief.modelName,
       dropCount: waveContext.drops.length,
+      suggestedTaskCount: suggestedTasks.createdCount,
       context: waveContext.context,
       costUsd: brief.costUsd,
       latencyMs: brief.latencyMs,

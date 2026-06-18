@@ -319,6 +319,29 @@ model WaveBrief {
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
+  tasks WaveTask[]
+
   @@index([waveId, createdAt])
+  @@index([status, createdAt])
+}
+
+model WaveTask {
+  id                String    @id @default(cuid())
+  waveBriefId       String?
+  waveId            String
+  title             String
+  status            String    @default("suggested")
+  suggestedOwner    String?
+  sourceDropIdsJson Json?
+  reviewerNotes     String?
+  reviewedBy        String?
+  completedAt       DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  brief WaveBrief? @relation(fields: [waveBriefId], references: [id], onDelete: SetNull)
+
+  @@index([waveId, status])
+  @@index([waveBriefId])
   @@index([status, createdAt])
 }
