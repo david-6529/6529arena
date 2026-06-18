@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildWaveBriefPrompts } from "@/lib/briefs/prompts";
+import { scoreWaveBriefQuality } from "@/lib/briefs/quality";
 import { renderWaveBrief, renderWaveBriefPost } from "@/lib/briefs/render";
 import { parseWaveBrief } from "@/lib/briefs/schema";
 import { validateWaveBriefSources } from "@/lib/briefs/source-validation";
@@ -102,6 +103,54 @@ describe("validateWaveBriefSources", () => {
       totalDrops: 2,
       referencedDropIds: ["drop-1", "drop-2", "missing-drop"],
       missingDropIds: ["missing-drop"],
+    });
+  });
+});
+
+describe("scoreWaveBriefQuality", () => {
+  it("marks a source-linked actionable brief as ready", () => {
+    const quality = scoreWaveBriefQuality(
+      {
+        title: "Ops brief",
+        executive_summary: "The team has next steps.",
+        decisions_needed: [{ title: "Pick owner", why: "Work needs an owner", source_drop_ids: ["drop-1"] }],
+        action_items: [{ task: "Post update", suggested_owner: "admin", source_drop_ids: ["drop-2"] }],
+        risks: [{ risk: "Timeline can slip", severity: "medium", source_drop_ids: ["drop-1"] }],
+        suggested_post: "Here is the plan.",
+        citations: [{ drop_id: "drop-1", reason: "Decision source" }],
+        confidence: 0.82,
+      },
+      { drops: [{ id: "drop-1" }, { id: "drop-2" }] },
+    );
+
+    expect(quality.label).toBe("ready");
+    expect(quality.score).toBe(100);
+    expect(quality.blockers).toEqual([]);
+  });
+
+  it("penalizes missing sources and missing operator follow-up", () => {
+    const quality = scoreWaveBriefQuality(
+      {
+        title: "Thin brief",
+        executive_summary: "Not much happened.",
+        citations: [{ drop_id: "missing-drop", reason: "Only source" }],
+        confidence: 0.4,
+      },
+      { drops: [{ id: "drop-1" }] },
+    );
+
+    expect(quality.label).toBe("weak");
+    expect(quality.blockers).toContain("1 cited source drops are missing.");
+    expect(quality.blockers).toContain("No decisions, tasks, or questions were extracted.");
+    expect(quality.blockers).toContain("Model confidence is low.");
+  });
+
+  it("marks malformed brief JSON as weak", () => {
+    expect(scoreWaveBriefQuality({ title: "" }, { drops: [] })).toEqual({
+      score: 0,
+      label: "weak",
+      blockers: ["Brief JSON does not match the expected shape."],
+      strengths: [],
     });
   });
 });

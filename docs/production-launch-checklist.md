@@ -120,11 +120,12 @@ Use a real test wave where posting is acceptable.
 15. Confirm test battles do not affect the official leaderboard.
 16. Open `/admin/briefs`.
 17. Generate a test wave brief from the same wave.
-18. Save an edit, approve the brief, preview the 6529 post, and post only if acceptable.
-19. Open `/admin/tasks` and confirm suggested tasks appear for brief action items.
-20. Confirm, edit, complete, and reject at least one test task.
-21. Create one manual task and delete or reject it after the smoke test.
-22. Add outcome evidence to one completed test task and confirm it renders on the task card.
+18. Confirm the quality badge and review notes match the generated brief.
+19. Save an edit, approve the brief, preview the 6529 post, and post only if acceptable.
+20. Open `/admin/tasks` and confirm suggested tasks appear for brief action items.
+21. Confirm, edit, complete, and reject at least one test task.
+22. Create one manual task and delete or reject it after the smoke test.
+23. Add outcome evidence to one completed test task and confirm it renders on the task card.
 
 ## First Official Battle
 
@@ -189,7 +190,7 @@ Do not launch publicly if:
 
 Wave Brief Drafts and the first Wave Tasks board are now the Wave Chief Of Staff foundation. After 10 real battles and several test briefs, improve the feature with:
 
-- brief quality scoring
+- human quality scoring
 - task merge history and change tracking across brief cycles
 - side-by-side brief battles between specialist agents
 - role-specific agents for risk, decisions, tasks, and source checking

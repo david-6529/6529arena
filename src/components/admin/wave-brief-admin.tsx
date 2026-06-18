@@ -36,6 +36,12 @@ export type WaveBriefRow = {
     referencedDropIds: string[];
     missingDropIds: string[];
   };
+  quality: {
+    score: number;
+    label: "ready" | "review" | "weak";
+    blockers: string[];
+    strengths: string[];
+  };
 };
 
 type ApiState = {
@@ -77,6 +83,18 @@ function statusClass(status: string) {
   }
 
   if (status === "rejected") {
+    return "border-red-800 bg-red-950/40 text-red-200";
+  }
+
+  return "border-amber-800 bg-amber-950/40 text-amber-200";
+}
+
+function qualityClass(label: WaveBriefRow["quality"]["label"]) {
+  if (label === "ready") {
+    return "border-emerald-800 bg-emerald-950/40 text-emerald-200";
+  }
+
+  if (label === "weak") {
     return "border-red-800 bg-red-950/40 text-red-200";
   }
 
@@ -335,6 +353,9 @@ export function WaveBriefAdmin({ briefs }: { briefs: WaveBriefRow[] }) {
                         ? `${brief.sourceCheck.missingDropIds.length} missing sources`
                         : "sources ok"}
                     </Badge>
+                    <Badge className={qualityClass(brief.quality.label)}>
+                      quality {brief.quality.score}
+                    </Badge>
                   </div>
                   <h2 className="mt-3 text-xl font-bold text-zinc-950 dark:text-zinc-50">{brief.title}</h2>
                   <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
@@ -397,6 +418,20 @@ export function WaveBriefAdmin({ briefs }: { briefs: WaveBriefRow[] }) {
                   ) : (
                     <p className="text-sm text-zinc-600 dark:text-zinc-400">
                       {brief.sourceCheck.referencedDropIds.length} cited drops found in {brief.sourceCheck.totalDrops} stored context drops.
+                    </p>
+                  )}
+                  {brief.quality.blockers.length ? (
+                    <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
+                      <p className="font-semibold">Review notes</p>
+                      <ul className="mt-1 list-inside list-disc space-y-1">
+                        {brief.quality.blockers.map((blocker) => (
+                          <li key={blocker}>{blocker}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : (
+                    <p className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200">
+                      Brief quality checks are ready for human review.
                     </p>
                   )}
                 </div>

@@ -86,8 +86,9 @@ The first admin-only version is now Wave Brief Drafts:
 - edit, approve, reject, preview, and post workflow
 - citation/source validation against stored context drops
 - suggested task extraction into `/admin/tasks`
+- deterministic brief quality checks for admin review
 
-Next improvements should focus on brief quality scoring, task merge history across brief cycles, and measuring whether completed tasks produced real outcomes.
+Next improvements should focus on human quality scoring, task merge history across brief cycles, and measuring whether completed tasks produced real outcomes.
 
 Success criteria:
 
