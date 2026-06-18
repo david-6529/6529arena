@@ -84,8 +84,9 @@ The first admin-only version is now Wave Brief Drafts:
 - source drops
 - suggested next post
 - edit, approve, reject, preview, and post workflow
+- citation/source validation against stored context drops
 
-Next improvements should focus on brief quality scoring, citation validation, and turning action items into persistent tasks.
+Next improvements should focus on brief quality scoring and turning action items into persistent tasks.
 
 Success criteria:
 

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { buildWaveBriefPrompts } from "@/lib/briefs/prompts";
 import { renderWaveBrief, renderWaveBriefPost } from "@/lib/briefs/render";
 import { parseWaveBrief } from "@/lib/briefs/schema";
+import { validateWaveBriefSources } from "@/lib/briefs/source-validation";
 import type { WaveDrop } from "@/lib/6529/types";
 
 describe("buildWaveBriefPrompts", () => {
@@ -81,5 +82,25 @@ describe("renderWaveBriefPost", () => {
     expect(output).toContain("Agent-assisted wave brief:");
     expect(output).toContain("Approved content");
     expect(output).not.toContain("/admin/briefs");
+  });
+});
+
+describe("validateWaveBriefSources", () => {
+  it("finds cited drop IDs missing from the stored context", () => {
+    const result = validateWaveBriefSources(
+      {
+        decisions_needed: [{ source_drop_ids: ["drop-1", "missing-drop"] }],
+        citations: [{ drop_id: "drop-2", reason: "Evidence" }],
+      },
+      {
+        drops: [{ id: "drop-1" }, { id: "drop-2" }],
+      },
+    );
+
+    expect(result).toEqual({
+      totalDrops: 2,
+      referencedDropIds: ["drop-1", "drop-2", "missing-drop"],
+      missingDropIds: ["missing-drop"],
+    });
   });
 });

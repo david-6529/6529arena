@@ -31,6 +31,11 @@ export type WaveBriefRow = {
   postDropId: string | null;
   postedAt: string | null;
   createdAt: string;
+  sourceCheck: {
+    totalDrops: number;
+    referencedDropIds: string[];
+    missingDropIds: string[];
+  };
 };
 
 type ApiState = {
@@ -319,6 +324,17 @@ export function WaveBriefAdmin({ briefs }: { briefs: WaveBriefRow[] }) {
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge className={statusClass(brief.status)}>{brief.status}</Badge>
                     <Badge>{brief.provider}/{brief.modelName}</Badge>
+                    <Badge
+                      className={
+                        brief.sourceCheck.missingDropIds.length
+                          ? "border-red-800 bg-red-950/40 text-red-200"
+                          : "border-emerald-800 bg-emerald-950/40 text-emerald-200"
+                      }
+                    >
+                      {brief.sourceCheck.missingDropIds.length
+                        ? `${brief.sourceCheck.missingDropIds.length} missing sources`
+                        : "sources ok"}
+                    </Badge>
                   </div>
                   <h2 className="mt-3 text-xl font-bold text-zinc-950 dark:text-zinc-50">{brief.title}</h2>
                   <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
@@ -374,6 +390,15 @@ export function WaveBriefAdmin({ briefs }: { briefs: WaveBriefRow[] }) {
                       Posted as drop {brief.postDropId}{brief.postedAt ? ` on ${formatDate(brief.postedAt)}` : ""}.
                     </p>
                   ) : null}
+                  {brief.sourceCheck.missingDropIds.length ? (
+                    <p className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-950/30 dark:text-red-200">
+                      Missing source drops: {brief.sourceCheck.missingDropIds.join(", ")}
+                    </p>
+                  ) : (
+                    <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                      {brief.sourceCheck.referencedDropIds.length} cited drops found in {brief.sourceCheck.totalDrops} stored context drops.
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-3">

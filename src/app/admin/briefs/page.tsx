@@ -4,6 +4,7 @@ import { WaveBriefAdmin, type WaveBriefRow } from "@/components/admin/wave-brief
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
 import { PageFrame } from "@/components/site/shell";
+import { validateWaveBriefSources } from "@/lib/briefs/source-validation";
 import { listWaveBriefs } from "@/lib/data/wave-briefs";
 
 export const dynamic = "force-dynamic";
@@ -31,6 +32,7 @@ export default async function AdminBriefsPage() {
     postDropId: brief.postDropId,
     postedAt: brief.postedAt?.toISOString() ?? null,
     createdAt: brief.createdAt.toISOString(),
+    sourceCheck: validateWaveBriefSources(brief.briefJson, brief.dropsJson),
   }));
 
   return (

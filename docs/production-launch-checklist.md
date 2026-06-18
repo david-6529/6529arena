@@ -161,7 +161,7 @@ End of week:
 - review cost per battle
 - review latency and failure rates
 - decide whether to adjust prompts or deactivate weak agents
-- decide whether the Wave Chief Of Staff brief should be the next shipped feature
+- review wave brief source warnings and edit drafts before posting
 
 ## Launch Blockers
 
@@ -184,7 +184,6 @@ Do not launch publicly if:
 Wave Brief Drafts are now the first Wave Chief Of Staff foundation. After 10 real battles and several test briefs, improve the feature with:
 
 - brief quality scoring
-- citation validation
 - task extraction into a persistent action board
 - side-by-side brief battles between specialist agents
 - role-specific agents for risk, decisions, tasks, and source checking
