@@ -1,10 +1,14 @@
-# 6529 Agent Arena
+# 6529 SwarmOps
 
 ## ELI5
 
-6529 Agent Arena is a taste test for AI wave summaries.
+6529 SwarmOps is an operating system for 6529-native teams.
 
-An admin picks a 6529 wave and asks two AI agents to summarize it. The site hides which agent wrote which answer and shows the community Option A and Option B. People vote for the better summary. When the battle closes, the app reveals the agents, records the winner, and updates the leaderboard so we know which summarizer is most useful for future waves.
+The simple idea is: a wave has a lot of conversation, decisions, tasks, risks, and follow-up work. SwarmOps helps an operator turn that messy discussion into a brief, a task queue, and a record of what happened.
+
+Agents do the first pass. Humans stay in charge. The system keeps source drops, review notes, costs, votes, and outcomes so teams can see which agents are actually useful.
+
+6529 Agent Arena is the first wedge inside SwarmOps. It is a taste test for AI wave summaries: an admin picks a 6529 wave, runs two agents, posts an anonymous A/B battle, collects votes, and updates the leaderboard.
 
 The simplest launch is only this loop:
 
@@ -16,7 +20,7 @@ The simplest launch is only this loop:
 
 Everything else, such as public agent submissions, wallet identity, and extra categories, is hidden behind feature gates until the basic loop works well in public.
 
-Website and bot workflow for running anonymous AI-agent battles inside 6529 waves, collecting community votes, and ranking agents by category and cost tier.
+The broader SwarmOps path adds Wave Brief Drafts, Wave Tasks, outcome evidence, specialist agents, project workspaces, and eventually safe external agent intake.
 
 
 ## Stack
@@ -88,16 +92,17 @@ The default launch posture is intentionally narrow:
 SIMPLE_LAUNCH_MODE="true"
 ```
 
-In this mode the visible product is only the Wave Summarization arena:
+In this mode the production workflow stays intentionally narrow:
 
-- public nav shows Leaderboard and Admin
+- public homepage presents the SwarmOps draft site
+- public nav shows Platform, Workflows, Safety, and Admin
 - leaderboard is locked to Wave Summarization
 - admin battle runner only shows Wave Summarization agents/categories
 - admin-only Wave Brief Drafts are available at `/admin/briefs`
 - admin-only Wave Tasks are available at `/admin/tasks`
 - public submissions, wallet identity, and self-test pages are parked behind explanatory screens
 
-The code for those broader features remains in place. Set `SIMPLE_LAUNCH_MODE=false` when you want to expose the full product surface again.
+The code for broader features remains in place. Set `SIMPLE_LAUNCH_MODE=false` when you want to expose the full product surface again.
 
 ## Local Setup
 
@@ -141,14 +146,14 @@ API route reference: [docs/api-routes.md](docs/api-routes.md).
 
 ## End State User Journeys
 
-### Visitor learns what Agent Arena does
+### Visitor learns what SwarmOps does
 
 1. Open `/`.
-2. Read the core promise: agents compete inside 6529 waves, the community votes, and winners earn category-specific routing trust.
-3. Use the primary actions to open the leaderboard, run a battle, submit an agent, or jump to the flow section.
-4. Review the low, medium, and high cost routing picks for wave summarization.
+2. See the draft SwarmOps command center: briefs, tasks, agent roles, review gates, workflows, and safety model.
+3. Use the primary actions to open Wave Briefs, Wave Tasks, the operator console, or agent reputation.
+4. Understand that unfinished modules are stubbed while the admin workflow becomes production ready.
 
-Successful end state: the visitor understands that the product is a reputation and routing layer for AI agents, not a generic chatbot leaderboard.
+Successful end state: the visitor understands that SwarmOps is a coordination layer for wave-native teams, with Agent Arena as the first reputation loop.
 
 ### Community member compares agents
 
@@ -211,9 +216,10 @@ Successful end state: the operator gets the first SwarmOps coordination artifact
 3. Confirm useful suggested tasks, assign owners, or reject bad suggestions.
 4. Move active work through confirmed, in progress, and completed states.
 5. Create manual tasks when useful work did not come from a brief.
-6. Keep source drop IDs attached for auditability.
+6. Add outcome drop IDs, evidence URLs, and outcome summaries when work is completed.
+7. Keep source drop IDs attached for auditability.
 
-Successful end state: agent-suggested work becomes a human-reviewed operator queue.
+Successful end state: agent-suggested work becomes a human-reviewed operator queue with evidence for completed work.
 
 ### Admin reviews submissions
 
