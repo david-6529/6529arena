@@ -218,6 +218,56 @@ Admin or cron. Same as GET, with JSON body:
 
 Admin. Runs cleanup without processing model jobs: stale job recovery, expired rate-limit cleanup, old job cleanup, and old event cleanup.
 
+## Wave Briefs
+
+### `GET /api/admin/briefs`
+
+Admin. Lists recent wave brief drafts.
+
+### `POST /api/admin/briefs`
+
+Admin. Generates a draft operator brief from 6529 wave context.
+
+Body:
+
+```json
+{
+  "waveId": "string",
+  "requestText": "optional operator request",
+  "contextFrom": "optional ISO date",
+  "contextTo": "optional ISO date",
+  "maxMessages": 500,
+  "provider": "openai",
+  "modelName": "optional model override"
+}
+```
+
+### `POST /api/admin/briefs/:id/review`
+
+Admin. Updates, approves, or rejects a wave brief draft.
+
+Body:
+
+```json
+{
+  "action": "approve",
+  "title": "optional edited title",
+  "content": "optional edited markdown",
+  "reviewerNotes": "optional",
+  "reviewedBy": "optional"
+}
+```
+
+`action` can be `update`, `approve`, or `reject`.
+
+### `GET /api/admin/briefs/:id/post-to-6529`
+
+Admin. Dry-run render of the 6529 wave brief post body.
+
+### `POST /api/admin/briefs/:id/post-to-6529`
+
+Admin. Posts an approved wave brief back into the source 6529 wave.
+
 ## Admin
 
 ### `POST /api/admin/session`

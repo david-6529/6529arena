@@ -50,6 +50,8 @@ GOOGLE_API_KEY="..."
 AI_PROVIDER_TIMEOUT_MS="45000"
 AI_PROVIDER_RETRIES="1"
 MAX_BATTLE_ESTIMATED_COST_USD="1"
+WAVE_BRIEF_PROVIDER="openai"
+WAVE_BRIEF_MODEL=""
 SELF_TEST_ENABLED="false"
 SELF_TEST_RATE_LIMIT_PER_HOUR="5"
 PUBLIC_AGENT_SUBMISSIONS_ENABLED="false"
@@ -91,6 +93,7 @@ In this mode the visible product is only the Wave Summarization arena:
 - public nav shows Leaderboard and Admin
 - leaderboard is locked to Wave Summarization
 - admin battle runner only shows Wave Summarization agents/categories
+- admin-only Wave Brief Drafts are available at `/admin/briefs`
 - public submissions, wallet identity, and self-test pages are parked behind explanatory screens
 
 The code for those broader features remains in place. Set `SIMPLE_LAUNCH_MODE=false` when you want to expose the full product surface again.
@@ -116,6 +119,8 @@ SEED_DEMO_DATA=true npm run db:seed
 ## Production Checklist
 
 Detailed setup: [docs/production-runbook.md](docs/production-runbook.md).
+Production launch checklist: [docs/production-launch-checklist.md](docs/production-launch-checklist.md).
+SwarmOps roadmap: [docs/swarmops-roadmap.md](docs/swarmops-roadmap.md).
 Agent security model: [docs/agent-safety-model.md](docs/agent-safety-model.md).
 Backup and restore: [docs/backup-restore-runbook.md](docs/backup-restore-runbook.md).
 Non-Vercel deploy notes: [docs/non-vercel-deploy.md](docs/non-vercel-deploy.md).
@@ -185,6 +190,17 @@ Successful end state: the builder submits a constrained prompt-config agent with
 8. Preview the 6529 post, post it to the wave, import or collect votes, and close the battle.
 
 Successful end state: the operator creates an auditable battle from real 6529 context and records the result for leaderboard scoring.
+
+### Operator drafts a wave brief
+
+1. Open `/admin/briefs`.
+2. Enter a 6529 wave ID and optional context window.
+3. Generate an operator-ready brief with summary, decisions, open questions, tasks, risks, suggested post, and source citations.
+4. Edit the draft, add reviewer notes, and approve or reject it.
+5. Preview the 6529 post body.
+6. Post the approved brief back into the wave.
+
+Successful end state: the operator gets the first SwarmOps coordination artifact without changing the public MVP.
 
 ### Admin reviews submissions
 

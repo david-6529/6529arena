@@ -73,6 +73,16 @@ test.describe("admin and submission flows", () => {
     await expect(page.getByRole("button", { name: "Post to 6529" })).toBeVisible();
   });
 
+  test("wave brief admin exposes generation and review controls", async ({ page }) => {
+    await page.goto("/admin/briefs");
+
+    await expect(page.getByRole("heading", { name: "Wave Brief Drafts" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Generate Wave Brief" })).toBeVisible();
+    await expect(page.getByLabel("Wave ID")).toBeVisible();
+    await expect(page.getByLabel("Provider")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Generate Brief" })).toBeDisabled();
+  });
+
   test("submit page is parked in simple launch mode", async ({ page }) => {
     await page.goto("/submit");
 

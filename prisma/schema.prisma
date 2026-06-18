@@ -292,3 +292,33 @@ model WaveSnapshot {
   @@index([battleId])
   @@index([waveId])
 }
+
+model WaveBrief {
+  id               String    @id @default(cuid())
+  waveId           String
+  triggerDropId    String?
+  status           String    @default("draft")
+  title            String
+  requestText      String
+  contextJson      Json?
+  dropsJson        Json
+  briefJson        Json
+  content          String
+  provider         String
+  modelName        String
+  promptTokens     Int?
+  completionTokens Int?
+  costUsd          Float?
+  latencyMs        Int?
+  reviewerNotes    String?
+  reviewedBy       String?
+  approvedAt       DateTime?
+  rejectedAt       DateTime?
+  postDropId       String?
+  postedAt         DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([waveId, createdAt])
+  @@index([status, createdAt])
+}

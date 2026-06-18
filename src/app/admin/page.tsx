@@ -1,4 +1,4 @@
-import { Bot, CheckCircle2, ClipboardCheck, Inbox, ListChecks, Swords, TestTube2, XCircle } from "lucide-react";
+import { Bot, CheckCircle2, ClipboardCheck, FileText, Inbox, ListChecks, Swords, TestTube2, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
 import { AdminLogoutButton } from "@/components/admin/admin-logout-button";
@@ -49,6 +49,10 @@ export default async function AdminPage() {
           <ButtonLink href="/admin/battles" variant="secondary">
             <ListChecks className="h-4 w-4" aria-hidden="true" />
             Battles
+          </ButtonLink>
+          <ButtonLink href="/admin/briefs" variant="secondary">
+            <FileText className="h-4 w-4" aria-hidden="true" />
+            Briefs
           </ButtonLink>
           {!simpleLaunch ? (
             <>

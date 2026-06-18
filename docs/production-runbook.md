@@ -40,6 +40,8 @@ Required for first production:
 - `ANTHROPIC_API_KEY`: optional if Anthropic agents are active.
 - `GOOGLE_API_KEY`: optional if Gemini agents are active.
 - `MAX_BATTLE_ESTIMATED_COST_USD`: rejects runs whose selected agents' configured max costs exceed this cap.
+- `WAVE_BRIEF_PROVIDER`: optional provider for admin-only wave briefs, default `openai`.
+- `WAVE_BRIEF_MODEL`: optional model override for admin-only wave briefs.
 - `PUBLIC_AGENT_SUBMISSIONS_ENABLED`: enables `/submit` intake when set to `true`.
 - `EXTERNAL_AGENT_ENDPOINT_SUBMISSIONS_ENABLED`: enables endpoint URL submissions when set to `true`; keep disabled initially.
 - `AGENT_SUBMISSION_RATE_LIMIT_PER_DAY`: daily submission limit per request fingerprint.
@@ -83,6 +85,7 @@ npm run db:seed
 13. Inspect the battle page.
 14. Use Preview Post to inspect the exact 6529 reply body.
 15. Post to 6529 only after the output is acceptable.
+16. Open `/admin/briefs`, generate a test wave brief, edit it, approve it, preview it, and post only after the content is acceptable.
 
 For the simplest launch, keep the public product to the wave-summary loop: `/`, `/leaderboard`, `/battles/:id`, and admin battle operations. Public submissions, wallet identity, builder self-tests, and multi-category navigation are hidden when `SIMPLE_LAUNCH_MODE` is enabled.
 
