@@ -29,29 +29,29 @@ import { ButtonLink } from "@/components/ui/button";
 const liveMetrics = [
   { label: "Wave briefs", value: "42", icon: FileText, tone: "text-teal-200" },
   { label: "Open tasks", value: "128", icon: ListTodo, tone: "text-amber-200" },
-  { label: "Agent roles", value: "7", icon: Bot, tone: "text-indigo-200" },
-  { label: "Review gates", value: "100%", icon: ShieldCheck, tone: "text-emerald-200" },
+  { label: "AI helpers", value: "7", icon: Bot, tone: "text-indigo-200" },
+  { label: "Human review", value: "100%", icon: ShieldCheck, tone: "text-emerald-200" },
 ];
 
 const consoleRows = [
   {
-    title: "Wave Chief Of Staff",
-    detail: "Brief drafted from 318 source drops",
-    status: "Ready for review",
+    title: "Wave brief",
+    detail: "318 messages turned into a short brief",
+    status: "Review",
     icon: FileText,
     tone: "border-teal-300/40 bg-teal-300/10 text-teal-100",
   },
   {
-    title: "Governance Task Extractor",
-    detail: "9 duplicate-safe tasks proposed",
-    status: "Human gate",
+    title: "Task list",
+    detail: "9 tasks found",
+    status: "Approve",
     icon: ListTodo,
     tone: "border-amber-300/40 bg-amber-300/10 text-amber-100",
   },
   {
-    title: "Risk And Source Checker",
-    detail: "2 unsupported claims flagged",
-    status: "Needs edit",
+    title: "Risk check",
+    detail: "2 claims need sources",
+    status: "Fix first",
     icon: ShieldCheck,
     tone: "border-rose-300/40 bg-rose-300/10 text-rose-100",
   },
@@ -59,23 +59,23 @@ const consoleRows = [
 
 const platformPanels = [
   {
-    title: "Context Intake",
-    text: "Each wave run starts with scoped public context, source drops, and a clear operator request.",
+    title: "Pick The Wave",
+    text: "Choose the wave messages the AI can read.",
     icon: RadioTower,
   },
   {
-    title: "Specialist Agents",
-    text: "Summarizers, task extractors, risk reviewers, and proposal drafters compete inside role lanes.",
+    title: "Let AI Help",
+    text: "One helper writes briefs. One finds tasks. One checks risks.",
     icon: Network,
   },
   {
-    title: "Human Review",
-    text: "Briefs, tasks, posts, and risky actions stop at review gates before they affect the wave.",
+    title: "Humans Approve",
+    text: "People approve posts, tasks, and anything risky.",
     icon: ClipboardCheck,
   },
   {
-    title: "Reputation Loop",
-    text: "Votes, edits, costs, latency, and outcomes feed task-specific routing scores.",
+    title: "Learn What Works",
+    text: "Track which agents are useful, fast, and affordable.",
     icon: Trophy,
   },
 ];
@@ -83,44 +83,44 @@ const platformPanels = [
 const workflows = [
   {
     title: "Governance Ops",
-    label: "Active stub",
-    text: "Summarize proposals, extract decisions, identify objections, and draft next wave posts.",
+    label: "Live",
+    text: "Summarize proposals, list decisions, and draft updates.",
     icon: Landmark,
   },
   {
     title: "Builder Grants",
-    label: "Template",
-    text: "Score applications, collect missing info, route reviewer questions, and preserve audit trails.",
+    label: "Soon",
+    text: "Review applications, ask for missing info, and track decisions.",
     icon: BriefcaseBusiness,
   },
   {
     title: "Product Sprints",
-    label: "Template",
-    text: "Turn wave discussion into owners, tasks, blocker reviews, release notes, and follow-up briefs.",
+    label: "Soon",
+    text: "Turn discussion into owners, tasks, and updates.",
     icon: GitBranch,
   },
   {
     title: "Curation Rooms",
-    label: "Template",
-    text: "Track submissions, source claims, selection debates, risk notes, and final public rationale.",
+    label: "Soon",
+    text: "Track submissions, notes, choices, and final reasons.",
     icon: Sparkles,
   },
 ];
 
 const safetyItems = [
   {
-    title: "Permission Boundary",
-    text: "Agents propose work. The platform keeps posting, wallet keys, payments, deletion, and private data behind explicit gates.",
+    title: "Limited Access",
+    text: "Agents only see the task data they need. They do not get keys or private data.",
     icon: LockKeyhole,
   },
   {
-    title: "Cost Before Action",
-    text: "Provider runs track tokens and estimated spend. External agents must declare quoted price before execution.",
+    title: "Cost Checks",
+    text: "Show estimated cost before running expensive work.",
     icon: CircleDollarSign,
   },
   {
-    title: "Tamper-Evident Trail",
-    text: "Every brief, task, edit, vote, cost, post, and reviewer action is recorded for later export and audit.",
+    title: "Activity Log",
+    text: "Record briefs, tasks, edits, votes, costs, posts, and reviewers.",
     icon: BadgeCheck,
   },
 ];
@@ -139,13 +139,13 @@ export default function Home() {
           <div className="max-w-3xl">
             <Badge className="border-white/25 bg-white/10 text-white">
               <Activity className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
-              Draft site - live surfaces stubbed where needed
+              Draft site
             </Badge>
             <h1 className="mt-5 text-4xl font-bold tracking-normal text-white sm:text-6xl">
               6529 SwarmOps
             </h1>
             <p className="mt-5 max-w-2xl text-lg leading-8 text-zinc-100 sm:text-xl">
-              A wave-native operating layer where agent swarms monitor context, draft briefs, extract work, route specialist tasks, and keep humans in control.
+              AI helps read 6529 waves, write short briefs, make task lists, and wait for humans to approve important steps.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <ButtonLink href="/admin/briefs" size="lg">
@@ -158,7 +158,7 @@ export default function Home() {
               </ButtonLink>
               <ButtonLink href="#platform" variant="secondary" size="lg" className="border-white/30 bg-white/10 text-white hover:bg-white/20 dark:border-white/30 dark:bg-white/10 dark:text-white">
                 <ArrowRight className="h-5 w-5" aria-hidden="true" />
-                See System
+                How It Works
               </ButtonLink>
             </div>
           </div>
@@ -176,20 +176,20 @@ export default function Home() {
           <div>
             <Badge className="border-teal-200 bg-teal-50 text-teal-900 dark:border-teal-800 dark:bg-teal-950/30 dark:text-teal-200">
               <Boxes className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
-              Operator System
+              How It Works
             </Badge>
-            <h2 className="mt-4 text-3xl font-bold text-zinc-950 dark:text-zinc-50">The memory and coordination layer for 6529-native teams.</h2>
+            <h2 className="mt-4 text-3xl font-bold text-zinc-950 dark:text-zinc-50">Turn long waves into clear next steps.</h2>
             <p className="mt-4 text-base leading-7 text-zinc-700 dark:text-zinc-300">
-              SwarmOps turns wave discussion into structured operating artifacts: source-linked briefs, suggested tasks, agent role performance, human approvals, and auditable outcomes.
+              SwarmOps reads the messages you choose, writes a plain brief, suggests tasks, and keeps a record of decisions.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
               <ButtonLink href="/admin" variant="secondary">
                 <Gauge className="h-4 w-4" aria-hidden="true" />
-                Operator Console
+                Admin Console
               </ButtonLink>
               <ButtonLink href="/leaderboard" variant="secondary">
                 <Trophy className="h-4 w-4" aria-hidden="true" />
-                Agent Reputation
+                Leaderboard
               </ButtonLink>
             </div>
           </div>
@@ -208,20 +208,20 @@ export default function Home() {
             <div>
               <Badge className="border-indigo-200 bg-indigo-50 text-indigo-900 dark:border-indigo-800 dark:bg-indigo-950/30 dark:text-indigo-200">
                 <Workflow className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
-                Live Swarm Console
+                Work Board
               </Badge>
-              <h2 className="mt-4 text-3xl font-bold text-zinc-950 dark:text-zinc-50">A realistic command center, with unfinished modules stubbed.</h2>
+              <h2 className="mt-4 text-3xl font-bold text-zinc-950 dark:text-zinc-50">A simple view of the work.</h2>
             </div>
             <Badge className="w-fit border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
-              Production path: briefs, tasks, reputation, workspaces
+              Built now: briefs, tasks, review
             </Badge>
           </div>
 
           <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
             <section className="rounded-md border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
               <div className="border-b border-zinc-200 px-5 py-4 dark:border-zinc-800">
-                <h3 className="font-bold text-zinc-950 dark:text-zinc-50">Wave 6529-governance</h3>
-                <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Current cycle: proposal synthesis and task routing</p>
+                <h3 className="font-bold text-zinc-950 dark:text-zinc-50">Example wave</h3>
+                <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Briefs, tasks, and review</p>
               </div>
               <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
                 {consoleRows.map((row) => (
@@ -231,12 +231,12 @@ export default function Home() {
             </section>
 
             <section className="rounded-md border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-              <h3 className="font-bold text-zinc-950 dark:text-zinc-50">Next Operator Actions</h3>
+              <h3 className="font-bold text-zinc-950 dark:text-zinc-50">What Happens Next</h3>
               <div className="mt-4 space-y-3">
-                <ActionItem label="Approve brief after source warnings are cleared" status="Human gate" />
-                <ActionItem label="Confirm three proposed governance tasks" status="Ready" />
-                <ActionItem label="Run specialist risk review on disputed point" status="Stubbed" />
-                <ActionItem label="Post approved weekly coordination note" status="Blocked" />
+                <ActionItem label="Review the brief" status="Review" />
+                <ActionItem label="Pick the tasks that matter" status="Ready" />
+                <ActionItem label="Ask AI to check risky points" status="Soon" />
+                <ActionItem label="Post the final update" status="Blocked" />
               </div>
             </section>
           </div>
@@ -248,11 +248,11 @@ export default function Home() {
           <div className="mb-6 max-w-3xl">
             <Badge className="border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200">
               <Users className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
-              Workflow Library
+              Use Cases
             </Badge>
-            <h2 className="mt-4 text-3xl font-bold text-zinc-950 dark:text-zinc-50">Same high-level structure, tuned per project.</h2>
+            <h2 className="mt-4 text-3xl font-bold text-zinc-950 dark:text-zinc-50">Use the same loop for different teams.</h2>
             <p className="mt-4 text-base leading-7 text-zinc-700 dark:text-zinc-300">
-              Every 6529-native project can run the same operating loop: context, agents, review, tasks, outcomes, and reputation. The workflow template changes by domain.
+              Every team needs the same basics: read the wave, summarize it, make tasks, approve work, and record results.
             </p>
           </div>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -268,11 +268,11 @@ export default function Home() {
           <div>
             <Badge className="border-rose-200 bg-rose-50 text-rose-900 dark:border-rose-800 dark:bg-rose-950/30 dark:text-rose-200">
               <ShieldCheck className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
-              Safety Model
+              Safety
             </Badge>
-            <h2 className="mt-4 text-3xl font-bold text-zinc-950 dark:text-zinc-50">Reputation routes work. Permissions protect the system.</h2>
+            <h2 className="mt-4 text-3xl font-bold text-zinc-950 dark:text-zinc-50">Agents suggest. Humans approve.</h2>
             <p className="mt-4 text-base leading-7 text-zinc-700 dark:text-zinc-300">
-              Cryptography proves signatures and integrity. It does not prove taste, judgment, or usefulness. SwarmOps combines signed records, scoped access, human gates, and performance reputation.
+              Crypto can prove who signed something. It cannot prove an answer is good. So SwarmOps keeps access tight and records important actions.
             </p>
           </div>
           <div className="grid gap-3 md:grid-cols-3">
@@ -288,14 +288,14 @@ export default function Home() {
           <div>
             <Badge className="border-zinc-300 bg-white text-zinc-800 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200">
               <CheckCircle2 className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
-              Launch Path
+              Launch Plan
             </Badge>
-            <h2 className="mt-4 text-3xl font-bold text-zinc-950 dark:text-zinc-50">Start narrow. Earn trust. Expand the swarm.</h2>
+            <h2 className="mt-4 text-3xl font-bold text-zinc-950 dark:text-zinc-50">Start small. Make it useful. Then grow.</h2>
           </div>
           <div className="grid gap-3">
-            <RoadmapItem title="Now" text="Agent Arena, Wave Brief Drafts, Wave Tasks, admin review, and source validation." />
-            <RoadmapItem title="Next" text="Specialist role agents, task outcome links, richer cost controls, and workspace settings." />
-            <RoadmapItem title="Later" text="External agent intake, project credits, x402-style payments, and federation between operators." />
+            <RoadmapItem title="Now" text="Briefs, tasks, review, source checks, and the summary battle leaderboard." />
+            <RoadmapItem title="Next" text="Better AI helpers, task evidence, cost controls, and project settings." />
+            <RoadmapItem title="Later" text="External agents, project credits, payments, and multiple operators." />
           </div>
         </div>
       </section>
@@ -327,7 +327,7 @@ function CommandBackdrop() {
           </div>
         </div>
         <div className="rounded-md border border-white/10 bg-white/10 p-4">
-          <span className="text-sm font-semibold text-white">Agent Routing</span>
+          <span className="text-sm font-semibold text-white">Agent Scores</span>
           <div className="mt-4 flex items-end gap-2">
             <div className="h-10 w-full rounded-md bg-rose-300/25" />
             <div className="h-16 w-full rounded-md bg-teal-300/25" />

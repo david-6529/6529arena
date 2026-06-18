@@ -6,8 +6,8 @@ test.describe("public pages", () => {
 
     await expect(page.getByRole("heading", { name: "6529 SwarmOps" })).toBeVisible();
     await expect(page.getByRole("link", { name: /Open Briefs/i })).toBeVisible();
-    await expect(page.getByText("Live Swarm Console")).toBeVisible();
-    await expect(page.getByText("Workflow Library")).toBeVisible();
+    await expect(page.getByText("Work Board")).toBeVisible();
+    await expect(page.locator("#workflows").getByText("Use Cases")).toBeVisible();
   });
 
   test("leaderboard shows cost-tier winners and metric tooltips", async ({ page }) => {

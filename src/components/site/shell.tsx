@@ -14,8 +14,8 @@ const fullNav = [
 ];
 
 const simpleNav = [
-  { href: "/#platform", label: "Platform", icon: Boxes },
-  { href: "/#workflows", label: "Workflows", icon: Workflow },
+  { href: "/#platform", label: "How It Works", icon: Boxes },
+  { href: "/#workflows", label: "Use Cases", icon: Workflow },
   { href: "/#safety", label: "Safety", icon: ShieldCheck },
   { href: "/admin", label: "Admin", icon: LockKeyhole },
 ];
