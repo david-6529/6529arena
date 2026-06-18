@@ -87,7 +87,7 @@ The first admin-only version is now Wave Brief Drafts:
 - citation/source validation against stored context drops
 - suggested task extraction into `/admin/tasks`
 
-Next improvements should focus on brief quality scoring, task dedupe across brief cycles, and measuring whether completed tasks produced real outcomes.
+Next improvements should focus on brief quality scoring, task merge history across brief cycles, and measuring whether completed tasks produced real outcomes.
 
 Success criteria:
 
@@ -125,6 +125,7 @@ The first admin-only action board now exists:
 
 - extracted tasks
 - manual tasks
+- basic duplicate suppression for open suggested tasks
 - source drop references
 - owner
 - status

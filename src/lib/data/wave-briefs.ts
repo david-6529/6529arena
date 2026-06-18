@@ -104,6 +104,7 @@ export async function createWaveBriefDraft(params: {
       modelName: brief.modelName,
       dropCount: waveContext.drops.length,
       suggestedTaskCount: suggestedTasks.createdCount,
+      skippedSuggestedTaskCount: suggestedTasks.skippedCount,
       context: waveContext.context,
       costUsd: brief.costUsd,
       latencyMs: brief.latencyMs,

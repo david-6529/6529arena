@@ -3,7 +3,7 @@ import { buildWaveBriefPrompts } from "@/lib/briefs/prompts";
 import { renderWaveBrief, renderWaveBriefPost } from "@/lib/briefs/render";
 import { parseWaveBrief } from "@/lib/briefs/schema";
 import { validateWaveBriefSources } from "@/lib/briefs/source-validation";
-import { extractWaveTasksFromBriefJson } from "@/lib/data/wave-tasks";
+import { extractWaveTasksFromBriefJson, getWaveTaskDedupeKey } from "@/lib/data/wave-tasks";
 import type { WaveDrop } from "@/lib/6529/types";
 
 describe("buildWaveBriefPrompts", () => {
@@ -127,5 +127,33 @@ describe("extractWaveTasksFromBriefJson", () => {
         sourceDropIds: ["drop-1", "drop-2"],
       },
     ]);
+  });
+
+  it("dedupes equivalent task titles inside one brief", () => {
+    const tasks = extractWaveTasksFromBriefJson({
+      title: "Ops brief",
+      executive_summary: "Operators need follow-up.",
+      action_items: [
+        {
+          task: "Draft the next wave update",
+          suggested_owner: "alice",
+          source_drop_ids: ["drop-1"],
+        },
+        {
+          task: "draft   the NEXT wave update!",
+          suggested_owner: "bob",
+          source_drop_ids: ["drop-2"],
+        },
+      ],
+    });
+
+    expect(tasks).toHaveLength(1);
+    expect(tasks[0]?.suggestedOwner).toBe("alice");
+  });
+});
+
+describe("getWaveTaskDedupeKey", () => {
+  it("normalizes case, spacing, and punctuation", () => {
+    expect(getWaveTaskDedupeKey(" Draft: the NEXT wave update! ")).toBe("draft the next wave update");
   });
 });

@@ -189,7 +189,7 @@ Do not launch publicly if:
 Wave Brief Drafts and the first Wave Tasks board are now the Wave Chief Of Staff foundation. After 10 real battles and several test briefs, improve the feature with:
 
 - brief quality scoring
-- task dedupe and change tracking across brief cycles
+- task merge history and change tracking across brief cycles
 - side-by-side brief battles between specialist agents
 - role-specific agents for risk, decisions, tasks, and source checking
 

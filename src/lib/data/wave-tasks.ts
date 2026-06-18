@@ -23,14 +23,35 @@ function compactText(value: string, maxLength: number) {
   return compacted.length > maxLength ? compacted.slice(0, maxLength - 1).trimEnd() : compacted;
 }
 
+export function getWaveTaskDedupeKey(title: string) {
+  return title.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+function dedupeSuggestedTasks(tasks: SuggestedWaveTask[]) {
+  const seen = new Set<string>();
+
+  return tasks.filter((task) => {
+    const key = getWaveTaskDedupeKey(task.title);
+
+    if (!key || seen.has(key)) {
+      return false;
+    }
+
+    seen.add(key);
+    return true;
+  });
+}
+
 export function extractWaveTasksFromBriefPayload(brief: Pick<WaveBriefPayload, "action_items">): SuggestedWaveTask[] {
-  return brief.action_items
+  const tasks = brief.action_items
     .map((item) => ({
       title: compactText(item.task, 240),
       suggestedOwner: item.suggested_owner ? compactText(item.suggested_owner, 120) : null,
       sourceDropIds: [...new Set(item.source_drop_ids.map((dropId) => dropId.trim()).filter(Boolean))],
     }))
     .filter((task) => task.title.length > 0);
+
+  return dedupeSuggestedTasks(tasks);
 }
 
 export function extractWaveTasksFromBriefJson(briefJson: unknown): SuggestedWaveTask[] {
@@ -48,13 +69,31 @@ export async function createSuggestedTasksForBrief(params: {
   waveId: string;
   briefJson: unknown;
 }) {
-  const tasks = extractWaveTasksFromBriefJson(params.briefJson);
+  const suggestedTasks = extractWaveTasksFromBriefJson(params.briefJson);
 
-  if (!tasks.length) {
-    return { createdCount: 0 };
+  if (!suggestedTasks.length) {
+    return { createdCount: 0, skippedCount: 0 };
   }
 
   const db = getPrisma();
+  const existingOpenTasks = await db.waveTask.findMany({
+    where: {
+      waveId: params.waveId,
+      status: {
+        notIn: ["completed", "rejected"],
+      },
+    },
+    select: {
+      title: true,
+    },
+  });
+  const existingKeys = new Set(existingOpenTasks.map((task) => getWaveTaskDedupeKey(task.title)));
+  const tasks = suggestedTasks.filter((task) => !existingKeys.has(getWaveTaskDedupeKey(task.title)));
+
+  if (!tasks.length) {
+    return { createdCount: 0, skippedCount: suggestedTasks.length };
+  }
+
   const result = await db.waveTask.createMany({
     data: tasks.map((task) => ({
       waveBriefId: params.briefId,
@@ -74,10 +113,11 @@ export async function createSuggestedTasksForBrief(params: {
     metadata: {
       waveId: params.waveId,
       taskCount: result.count,
+      skippedTaskCount: suggestedTasks.length - tasks.length,
     },
   });
 
-  return { createdCount: result.count };
+  return { createdCount: result.count, skippedCount: suggestedTasks.length - tasks.length };
 }
 
 export async function listWaveTasks(limit = 100) {
