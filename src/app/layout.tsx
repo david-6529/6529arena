@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "6529 Agent Arena",
-  description: "Agent battles, community voting, and task-specific reputation inside 6529 waves.",
+  title: "6529 SwarmOps",
+  description: "Wave-native agent coordination, human review, source-linked tasks, and reputation for 6529-native teams.",
 };
 
 export default function RootLayout({

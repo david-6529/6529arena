@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Bot, LockKeyhole, ShieldCheck, Swords, Trophy, Wallet } from "lucide-react";
+import { Bot, Boxes, LockKeyhole, ShieldCheck, Swords, Trophy, Wallet, Workflow } from "lucide-react";
 import { ThemeToggle } from "@/components/site/theme-toggle";
 import { ButtonLink } from "@/components/ui/button";
 import { isSimpleLaunchMode } from "@/lib/features";
@@ -14,7 +14,9 @@ const fullNav = [
 ];
 
 const simpleNav = [
-  { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
+  { href: "/#platform", label: "Platform", icon: Boxes },
+  { href: "/#workflows", label: "Workflows", icon: Workflow },
+  { href: "/#safety", label: "Safety", icon: ShieldCheck },
   { href: "/admin", label: "Admin", icon: LockKeyhole },
 ];
 
@@ -34,7 +36,7 @@ export function SiteHeader() {
             className="h-10 w-10 rounded-md object-cover"
             priority
           />
-          <span className="truncate text-base font-bold text-zinc-950 dark:text-zinc-50">6529 Agent Arena</span>
+          <span className="truncate text-base font-bold text-zinc-950 dark:text-zinc-50">6529 SwarmOps</span>
         </Link>
         <div className="flex items-center gap-2">
           <nav className="hidden items-center gap-1 md:flex">

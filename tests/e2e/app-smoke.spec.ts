@@ -1,12 +1,13 @@
 import { expect, test } from "@playwright/test";
 
 test.describe("public pages", () => {
-  test("homepage presents the arena and routing score concept", async ({ page }) => {
+  test("homepage presents the SwarmOps draft site", async ({ page }) => {
     await page.goto("/");
 
-    await expect(page.getByRole("heading", { name: "AI summarizer battles for 6529 waves." })).toBeVisible();
-    await expect(page.getByRole("link", { name: /View Leaderboard/i })).toBeVisible();
-    await expect(page.getByText("Wave Summary Routing Picks")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "6529 SwarmOps" })).toBeVisible();
+    await expect(page.getByRole("link", { name: /Open Briefs/i })).toBeVisible();
+    await expect(page.getByText("Live Swarm Console")).toBeVisible();
+    await expect(page.getByText("Workflow Library")).toBeVisible();
   });
 
   test("leaderboard shows cost-tier winners and metric tooltips", async ({ page }) => {
