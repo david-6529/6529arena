@@ -200,6 +200,10 @@ export async function createWaveBriefDraft(params: {
   contextFrom?: string;
   contextTo?: string;
   maxMessages?: number;
+  relatedWaves?: Array<{
+    waveId: string;
+    label?: string;
+  }>;
   provider?: string;
   modelName?: string;
 }) {
@@ -210,6 +214,7 @@ export async function createWaveBriefDraft(params: {
     contextFrom: params.contextFrom,
     contextTo: params.contextTo,
     maxMessages: params.maxMessages,
+    relatedWaves: params.relatedWaves,
   });
 
   if (!waveContext.drops.length) {
@@ -278,6 +283,7 @@ export async function createWaveBriefDraft(params: {
       requestText,
       contextJson: toInputJson({
         wave: waveContext.wave ?? null,
+        relatedWaves: waveContext.relatedWaves ?? [],
         context: waveContext.context,
       }),
       dropsJson: toInputJson({
@@ -311,6 +317,7 @@ export async function createWaveBriefDraft(params: {
       modelName: brief.modelName,
       previousBriefId: brief.previousBriefId,
       dropCount: waveContext.drops.length,
+      relatedWaveCount: params.relatedWaves?.length ?? 0,
       suggestedTaskCount: suggestedTasks.createdCount,
       rementionedSuggestedTaskCount: suggestedTasks.rementionedCount,
       skippedSuggestedTaskCount: suggestedTasks.skippedCount,

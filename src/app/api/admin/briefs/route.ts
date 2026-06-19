@@ -15,6 +15,15 @@ const createBriefSchema = z.object({
   contextFrom: z.string().trim().min(1).optional(),
   contextTo: z.string().trim().min(1).optional(),
   maxMessages: z.number().int().min(1).max(5000).optional(),
+  relatedWaves: z
+    .array(
+      z.object({
+        waveId: z.string().trim().min(1),
+        label: z.string().trim().min(1).max(80).optional(),
+      }),
+    )
+    .max(8)
+    .optional(),
   provider: z.enum(["openai", "anthropic", "google"]).optional(),
   modelName: z.string().trim().min(1).max(120).optional(),
 });

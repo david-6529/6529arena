@@ -11,6 +11,15 @@ const previewSchema = z.object({
   maxMessages: z.number().int().min(1).max(5000).optional(),
   contextFrom: z.string().min(1).optional(),
   contextTo: z.string().min(1).optional(),
+  relatedWaves: z
+    .array(
+      z.object({
+        waveId: z.string().trim().min(1),
+        label: z.string().trim().min(1).max(80).optional(),
+      }),
+    )
+    .max(8)
+    .optional(),
 });
 
 export async function POST(request: Request) {
@@ -30,6 +39,7 @@ export async function POST(request: Request) {
         maxMessages: body.maxMessages,
         contextFrom: body.contextFrom,
         contextTo: body.contextTo,
+        relatedWaveCount: body.relatedWaves?.length ?? 0,
       },
     });
 

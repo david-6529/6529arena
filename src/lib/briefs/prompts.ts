@@ -47,9 +47,12 @@ function formatDrop(drop: WaveDrop) {
   const createdAt = dropCreatedAtMs(drop);
   const created = createdAt ? new Date(createdAt).toISOString() : "unknown time";
   const title = drop.title ? ` title="${drop.title}"` : "";
+  const sourceWave = drop.source_wave_id
+    ? ` source_wave=${drop.source_wave_name ?? drop.source_wave_id} source_wave_id=${drop.source_wave_id} source_role=${drop.source_wave_role ?? "wave"}`
+    : "";
   const content = truncateText((drop.content ?? "").replace(/\s+/g, " ").trim(), MAX_DROP_CONTENT_CHARS);
 
-  return `drop_id=${drop.id} serial=${drop.serial_no ?? "n/a"} author=${authorName(drop)} created=${created}${title}\n${content}`;
+  return `drop_id=${drop.id} serial=${drop.serial_no ?? "n/a"} author=${authorName(drop)} created=${created}${sourceWave}${title}\n${content}`;
 }
 
 function buildContext(drops: WaveDrop[]) {
@@ -72,6 +75,55 @@ function buildContext(drops: WaveDrop[]) {
   }
 
   return chunks.join("\n\n---\n\n");
+}
+
+function sortDropsChronologically(drops: WaveDrop[]) {
+  return [...drops].sort((a, b) => {
+    const aCreated = dropCreatedAtMs(a) ?? 0;
+    const bCreated = dropCreatedAtMs(b) ?? 0;
+
+    if (aCreated !== bCreated) {
+      return aCreated - bCreated;
+    }
+
+    return (a.serial_no ?? 0) - (b.serial_no ?? 0);
+  });
+}
+
+function buildWaveSourcesContext(drops: WaveDrop[]) {
+  const sourcesById = new Map<string, { name: string | null; role: string | null; count: number }>();
+
+  for (const drop of drops) {
+    if (!drop.source_wave_id) {
+      continue;
+    }
+
+    const existing = sourcesById.get(drop.source_wave_id);
+
+    if (existing) {
+      existing.count += 1;
+      continue;
+    }
+
+    sourcesById.set(drop.source_wave_id, {
+      name: drop.source_wave_name ?? null,
+      role: drop.source_wave_role ?? null,
+      count: 1,
+    });
+  }
+
+  if (!sourcesById.size) {
+    return "Single wave context only.";
+  }
+
+  return [...sourcesById.entries()]
+    .map(([waveId, source]) => {
+      const name = source.name ? `${source.name} ` : "";
+      const role = source.role ? ` role=${source.role}` : "";
+
+      return `- ${name}(${waveId})${role}: ${source.count} drops`;
+    })
+    .join("\n");
 }
 
 function buildPreviousSummaryContext(previousSummary: PreviousWaveSummary | undefined) {
@@ -99,9 +151,10 @@ export function buildWaveBriefPrompts(params: {
   drops: WaveDrop[];
   previousSummary?: PreviousWaveSummary;
 }) {
-  const orderedDrops = [...params.drops].sort((a, b) => (a.serial_no ?? 0) - (b.serial_no ?? 0));
+  const orderedDrops = sortDropsChronologically(params.drops);
   const context = buildContext(orderedDrops);
   const previousSummaryContext = buildPreviousSummaryContext(params.previousSummary);
+  const waveSourcesContext = buildWaveSourcesContext(orderedDrops);
 
   return {
     systemPrompt: `You are a source-grounded 6529 wave summarizer.
@@ -111,6 +164,9 @@ Your job is to help anyone in the wave catch up quickly. Turn wave discussion in
 ${jsonContract}`,
     userPrompt: `Wave ID: ${params.waveId}
 Summary request: ${params.requestText}
+
+Wave sources covered:
+${waveSourcesContext}
 
 Previous reviewed summary:
 ${previousSummaryContext}

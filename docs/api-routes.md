@@ -228,13 +228,19 @@ Admin. Lists recent wave summary drafts with previous-summary metadata when avai
 
 ### `POST /api/admin/briefs`
 
-Admin. Generates a draft wave summary from 6529 wave context. If the same wave already has an approved or posted summary, the new draft stores `previousBriefId` and asks the model to fill `changes_since_previous`. Requests are rate-limited by `WAVE_BRIEF_RATE_LIMIT_PER_HOUR` and return `x-ratelimit-*` headers. If the rate-limit env is invalid, non-integer, or non-positive, if the cost-cap env is invalid or non-positive, or if the selected provider key is missing, generation fails closed before consuming a rate-limit bucket, creating a draft, or calling a model provider. Invalid rate-limit config logs `wave_brief.rate_limit_config_invalid`; invalid cost-cap config logs `wave_brief.cost_cap_config_invalid`; missing provider keys log `wave_brief.provider_config_missing`.
+Admin. Generates a draft wave summary from 6529 wave context. `relatedWaves` can include parent/subwave workspace context such as a raw PR firehose, digest wave, or team-chat wave; every stored drop keeps source-wave metadata for review and citation checks. If the same wave already has an approved or posted summary, the new draft stores `previousBriefId` and asks the model to fill `changes_since_previous`. Requests are rate-limited by `WAVE_BRIEF_RATE_LIMIT_PER_HOUR` and return `x-ratelimit-*` headers. If the rate-limit env is invalid, non-integer, or non-positive, if the cost-cap env is invalid or non-positive, or if the selected provider key is missing, generation fails closed before consuming a rate-limit bucket, creating a draft, or calling a model provider. Invalid rate-limit config logs `wave_brief.rate_limit_config_invalid`; invalid cost-cap config logs `wave_brief.cost_cap_config_invalid`; missing provider keys log `wave_brief.provider_config_missing`.
 
 Body:
 
 ```json
 {
   "waveId": "string",
+  "relatedWaves": [
+    {
+      "waveId": "optional related wave URL or ID",
+      "label": "optional source role, e.g. Raw PR feed"
+    }
+  ],
   "requestText": "optional summary request",
   "contextFrom": "optional ISO date",
   "contextTo": "optional ISO date",
@@ -361,7 +367,26 @@ Admin. Checks bot wallet auth against 6529 without posting.
 
 ### `POST /api/admin/6529/context`
 
-Admin. Previews normalized 6529 wave context.
+Admin. Previews normalized 6529 wave context. Accepts the same optional `relatedWaves` shape used by Wave Summary Drafts so a parent wave plus subwaves can be checked before generation.
+
+Body:
+
+```json
+{
+  "waveId": "string",
+  "relatedWaves": [
+    {
+      "waveId": "optional related wave URL or ID",
+      "label": "optional source role, e.g. Raw PR feed"
+    }
+  ],
+  "contextFrom": "optional ISO date",
+  "contextTo": "optional ISO date",
+  "maxMessages": 500
+}
+```
+
+Response `preview.context.sources` lists each source wave, its label, searched messages, and collected drop count. `sampleDrops` includes source-wave metadata for drops from related waves.
 
 ### `GET /api/admin/6529/waves/search`
 

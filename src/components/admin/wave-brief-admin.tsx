@@ -100,6 +100,35 @@ type WaveSearchOption = {
   source: string;
 };
 
+function extractWaveId(value: string) {
+  const trimmed = value.trim();
+  const waveUrlMatch = trimmed.match(/\/waves\/([^/?#\s]+)/);
+
+  return (waveUrlMatch?.[1] ?? trimmed).trim();
+}
+
+function parseRelatedWaves(value: string) {
+  return value
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const pipeIndex = line.indexOf("|");
+
+      if (pipeIndex >= 0) {
+        return {
+          label: line.slice(0, pipeIndex).trim() || undefined,
+          waveId: extractWaveId(line.slice(pipeIndex + 1)),
+        };
+      }
+
+      return {
+        waveId: extractWaveId(line),
+      };
+    })
+    .filter((wave) => wave.waveId);
+}
+
 function defaultDraft(brief: WaveBriefRow): Draft {
   return {
     title: brief.title,
@@ -150,7 +179,8 @@ export function WaveBriefAdmin({ briefs }: { briefs: WaveBriefRow[] }) {
   const [waveOptions, setWaveOptions] = useState<WaveSearchOption[]>([]);
   const [wavePickerOpen, setWavePickerOpen] = useState(false);
   const [waveSearchState, setWaveSearchState] = useState<ApiState>({});
-  const [requestText, setRequestText] = useState("Create a clear catch-up summary for this 6529 wave.");
+  const [relatedWavesText, setRelatedWavesText] = useState("");
+  const [requestText, setRequestText] = useState("Create a clear catch-up summary for this 6529 wave and any related waves.");
   const [contextFrom, setContextFrom] = useState("");
   const [contextTo, setContextTo] = useState("");
   const [maxMessages, setMaxMessages] = useState("");
@@ -248,11 +278,13 @@ export function WaveBriefAdmin({ briefs }: { briefs: WaveBriefRow[] }) {
     setState({ loading: "generate" });
 
     try {
+      const relatedWaves = parseRelatedWaves(relatedWavesText);
       const response = await fetch("/api/admin/briefs", {
         method: "POST",
         headers: headers(),
         body: JSON.stringify({
           waveId,
+          relatedWaves: relatedWaves.length ? relatedWaves : undefined,
           requestText,
           contextFrom: contextFrom ? new Date(contextFrom).toISOString() : undefined,
           contextTo: contextTo ? new Date(contextTo).toISOString() : undefined,
@@ -426,6 +458,18 @@ export function WaveBriefAdmin({ briefs }: { briefs: WaveBriefRow[] }) {
               placeholder="Paste wave ID"
             />
           </label>
+          <label className="block text-sm font-semibold text-zinc-800 dark:text-zinc-200 lg:col-span-4">
+            <span className="mb-1 block">Related waves</span>
+            <Textarea
+              className="min-h-24"
+              value={relatedWavesText}
+              onChange={(event) => setRelatedWavesText(event.target.value)}
+              placeholder="Raw PR feed | https://6529.io/waves/..."
+            />
+            <span className="mt-1 block text-xs font-medium text-zinc-500 dark:text-zinc-400">
+              Optional. Add one wave URL or ID per line; use <code>label | wave URL</code> when the source needs a role.
+            </span>
+          </label>
           <label className="block text-sm font-semibold text-zinc-800 dark:text-zinc-200">
             <span className="mb-1 block">Provider</span>
             <Select value={provider} onChange={(event) => setProvider(event.target.value)}>
@@ -451,14 +495,14 @@ export function WaveBriefAdmin({ briefs }: { briefs: WaveBriefRow[] }) {
             <Input type="datetime-local" value={contextTo} onChange={(event) => setContextTo(event.target.value)} />
           </label>
           <label className="block text-sm font-semibold text-zinc-800 dark:text-zinc-200">
-            <span className="mb-1 block">Max messages</span>
+            <span className="mb-1 block">Max messages total</span>
             <Input
               type="number"
               min={1}
               max={5000}
               value={maxMessages}
               onChange={(event) => setMaxMessages(event.target.value)}
-              placeholder="500"
+              placeholder="500 total"
             />
           </label>
         </div>

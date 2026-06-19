@@ -540,8 +540,25 @@ describe("createWaveBriefDraft", () => {
     waveBrief.findFirst.mockResolvedValue(previousBrief);
     vi.mocked(fetchWaveContext).mockResolvedValue({
       wave: { id: "wave-1" },
+      relatedWaves: [
+        {
+          waveId: "wave-firehose",
+          label: "Raw PR feed",
+          name: "PR Firehose",
+          dropCount: 1,
+        },
+      ],
       context: { maxMessages: 500 },
-      drops: [{ id: "drop-1", serial_no: 1, content: "New update" }],
+      drops: [
+        {
+          id: "drop-1",
+          serial_no: 1,
+          content: "New update",
+          source_wave_id: "wave-firehose",
+          source_wave_name: "PR Firehose",
+          source_wave_role: "Raw PR feed",
+        },
+      ],
     } as never);
     vi.mocked(runWaveBrief).mockResolvedValue({
       provider: "openai",
@@ -568,8 +585,16 @@ describe("createWaveBriefDraft", () => {
     await createWaveBriefDraft({
       waveId: "wave-1",
       requestText: "Create a summary.",
+      relatedWaves: [{ waveId: "wave-firehose", label: "Raw PR feed" }],
     });
 
+    expect(fetchWaveContext).toHaveBeenCalledWith({
+      waveId: "wave-1",
+      contextFrom: undefined,
+      contextTo: undefined,
+      maxMessages: undefined,
+      relatedWaves: [{ waveId: "wave-firehose", label: "Raw PR feed" }],
+    });
     expect(waveBrief.findFirst).toHaveBeenCalledWith({
       where: {
         waveId: "wave-1",
@@ -599,6 +624,14 @@ describe("createWaveBriefDraft", () => {
         previousBriefId: "brief-old",
         title: "New summary",
         content: "Rendered summary",
+        contextJson: expect.objectContaining({
+          relatedWaves: [
+            expect.objectContaining({
+              waveId: "wave-firehose",
+              label: "Raw PR feed",
+            }),
+          ],
+        }),
       }),
     });
     expect(logEvent).toHaveBeenCalledWith(
@@ -607,6 +640,7 @@ describe("createWaveBriefDraft", () => {
         actor: "operator",
         metadata: expect.objectContaining({
           previousBriefId: "brief-old",
+          relatedWaveCount: 1,
           suggestedTaskCount: 0,
           rementionedSuggestedTaskCount: 1,
           skippedSuggestedTaskCount: 0,

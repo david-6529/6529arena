@@ -18,6 +18,9 @@ export type WaveDrop = {
   drop_type?: string;
   poll?: JsonRecord | null;
   reactions?: JsonRecord[];
+  source_wave_id?: string;
+  source_wave_name?: string | null;
+  source_wave_role?: string | null;
   parts?: Array<{
     id?: string;
     content: string;

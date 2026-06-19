@@ -55,6 +55,7 @@ What ships:
 - internal prompt-config agents only
 - operator-created wave summaries
 - searchable wave picker backed by 6529 name search and saved-summary history, with separate wave ID entry as the fallback
+- optional related-wave context for parent/subwave workspaces such as PR firehose, digest, and team-chat flows
 - review, source-check, score, preview, and optional post flow
 - pre-run estimated cost cap for wave summaries
 - provider-key preflight before wave summary generation
@@ -91,6 +92,7 @@ The first operator-only version is now Wave Summary Drafts:
 - action items
 - risks and objections
 - source drops
+- source-wave labels when a summary spans multiple related waves
 - suggested next post
 - edit, save-before-approve, source-gated approve, reject, preview, and post workflow
 - rejected-summary content lock so bad drafts remain auditable and revisions start from a new summary

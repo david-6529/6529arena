@@ -260,4 +260,44 @@ describe("POST /api/admin/briefs", () => {
       maxMessages: 100,
     });
   });
+
+  it("passes related waves through to draft creation", async () => {
+    process.env.WAVE_BRIEF_PROVIDER = "openai";
+    process.env.OPENAI_API_KEY = "test-key";
+    const resetAt = new Date("2026-06-18T12:00:00.000Z");
+    vi.mocked(consumeRateLimit).mockResolvedValue({
+      allowed: true,
+      remaining: 8,
+      resetAt,
+    });
+    vi.mocked(createWaveBriefDraft).mockResolvedValue({
+      id: "brief-2",
+      waveId: "wave-parent",
+    } as never);
+
+    const response = await POST(
+      createRequest({
+        waveId: "wave-parent",
+        requestText: "Summarize the PR pipeline.",
+        relatedWaves: [
+          {
+            waveId: "https://6529.io/waves/wave-firehose",
+            label: "Raw PR feed",
+          },
+        ],
+      }),
+    );
+
+    expect(response.status).toBe(201);
+    expect(createWaveBriefDraft).toHaveBeenCalledWith({
+      waveId: "wave-parent",
+      requestText: "Summarize the PR pipeline.",
+      relatedWaves: [
+        {
+          waveId: "https://6529.io/waves/wave-firehose",
+          label: "Raw PR feed",
+        },
+      ],
+    });
+  });
 });

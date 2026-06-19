@@ -18,6 +18,8 @@ The simplest launch is this loop:
 4. Keep it private, share it with collaborators, or post a public recap back to the wave.
 5. Track useful follow-ups in the review queue, see when the same task comes up again, assign an owner, and record who claimed the work.
 
+Some 6529 work is split across a parent wave and subwaves. For example, a project can keep raw PR cards in one wave, readable summaries in another, and team coordination in a third. SwarmOps now supports that pattern by letting an operator summarize one main wave plus related waves while keeping each cited drop tied to its source wave.
+
 Battles, public agent submissions, wallet identity, and extra categories stay behind feature gates until the summary loop works well in public.
 
 The broader SwarmOps path adds reviewed wave summaries, follow-up tracking, outcome evidence, assignments, specialist agents, a 6529 bot profile for mentions and DMs, project workspaces, a Chrome extension inside the 6529 app, and eventually safe external agent intake.
@@ -115,6 +117,7 @@ In this mode the production workflow stays intentionally narrow:
 - leaderboard is locked to Wave Summarization
 - `/operator` opens the summary-first SwarmOps Operator Console
 - operator-only Wave Summary Drafts are available at `/operator/briefs`
+- Wave Summary Drafts can include related wave URLs or IDs for parent/subwave workspaces such as PR firehose, digest, and team-chat flows
 - operator-only Wave Tasks are available at `/operator/tasks`, including seen counts for repeated open follow-ups
 - the manual battle runner is hidden behind `SIMPLE_LAUNCH_MODE=false`
 - public submissions, wallet identity, and self-test pages are parked behind explanatory screens
@@ -235,11 +238,12 @@ Successful end state: the operator creates an auditable battle from real 6529 co
 
 1. Open `/operator/briefs`.
 2. Search for a 6529 wave by name or enter a wave ID, then set an optional context window.
-3. Generate a review-ready wave summary with changes since the last reviewed summary, decisions, open questions, follow-ups, checks, suggested post, and source citations.
-4. Edit the draft, add reviewer notes, score it 1-5, and approve or reject it.
-5. Review missing-source warnings by section, then preview the 6529 post body.
-6. Post the approved summary back into the wave only if a public recap is useful.
-7. Open `/operator/tasks` to review suggested action items generated from the summary, including repeated open tasks that were seen again.
+3. Add related wave URLs or IDs when the work spans a parent wave and subwaves.
+4. Generate a review-ready wave summary with changes since the last reviewed summary, decisions, open questions, follow-ups, checks, suggested post, and source citations.
+5. Edit the draft, add reviewer notes, score it 1-5, and approve or reject it.
+6. Review missing-source warnings by section, then preview the 6529 post body.
+7. Post the approved summary back into the wave only if a public recap is useful.
+8. Open `/operator/tasks` to review suggested action items generated from the summary, including repeated open tasks that were seen again.
 
 Successful end state: the reviewer gets an auditable wave summary and a follow-up queue without changing the public MVP.
 
