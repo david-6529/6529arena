@@ -57,6 +57,23 @@ export async function getWaveBrief(briefId: string) {
   });
 }
 
+export async function getWaveBriefByTrigger(params: {
+  waveId: string;
+  triggerDropId: string;
+}) {
+  const db = getPrisma();
+
+  return db.waveBrief.findFirst({
+    where: {
+      waveId: params.waveId,
+      triggerDropId: params.triggerDropId,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+}
+
 export async function getWaveBriefReviewStats() {
   let db = prisma;
   const zeroStats = {

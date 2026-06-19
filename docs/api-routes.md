@@ -181,7 +181,7 @@ Admin. Closes a battle, calculates human vote scores, final scores, and winner.
 
 ### `POST /api/bot/mention`
 
-Admin/bot. Handles a detected `@AgentArena` mention for the legacy battle workflow. The next summary-first bot command path should create a Wave Summary Draft through the same operator review gates before any public post.
+Admin/bot. Handles a detected `@AgentArena` mention by creating a Wave Summary Draft through the same cost-cap, provider-key, rate-limit, and audit gates used by `/api/admin/briefs`. The route does not run battles or public autoposts. If an old caller sends `autoPost=true`, the response marks `publicPostSkipped=true` and returns an operator review URL.
 
 Body:
 
@@ -189,13 +189,25 @@ Body:
 {
   "waveId": "string",
   "dropId": "string",
+  "idempotencyKey": "optional upstream event id",
   "text": "@AgentArena summarize this wave",
-  "category": "Wave Summarization",
-  "agentIds": ["optional", "agent ids"],
-  "autoRun": true,
-  "autoPost": true
+  "requestText": "optional override request",
+  "relatedWaves": [
+    {
+      "waveId": "optional related wave URL or ID",
+      "label": "optional source role, e.g. Raw PR feed"
+    }
+  ],
+  "contextFrom": "optional ISO date",
+  "contextTo": "optional ISO date",
+  "maxMessages": 500,
+  "provider": "openai",
+  "modelName": "optional model override",
+  "autoPost": false
 }
 ```
+
+Repeated events with the same `waveId` and `dropId` return the existing draft instead of creating a duplicate. Public posting still requires an operator to review and approve the draft.
 
 ### `GET /api/admin/jobs/process`
 

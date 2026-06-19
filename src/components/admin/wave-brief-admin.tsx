@@ -553,7 +553,7 @@ export function WaveBriefAdmin({ briefs }: { briefs: WaveBriefRow[] }) {
           });
 
           return (
-            <article key={brief.id} className="rounded-md border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+            <article id={brief.id} key={brief.id} className="rounded-md border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
               <div className="flex flex-col justify-between gap-3 border-b border-zinc-200 pb-4 dark:border-zinc-800 md:flex-row md:items-start">
                 <div>
                   <div className="flex flex-wrap items-center gap-2">

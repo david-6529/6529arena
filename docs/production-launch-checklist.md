@@ -230,7 +230,7 @@ Do not launch publicly if:
 
 Wave Summary Drafts and the first Wave Tasks board are now the Wave Guidance foundation. Wave selection supports 6529 name search, saved-summary history fallback, and separate 6529 wave ID entry. After real wave-summary use and several test summaries, improve the feature with:
 
-- 6529 bot mentions that create reviewed summary drafts instead of unsafe public autoposts
+- 6529 bot mention ingestion in the 6529 app, wired to the implemented mention-to-draft route
 - DM commands for "catch me up" after tracked-wave ingestion is running
 - richer task change history filters across summary cycles
 - project-specific workflow defaults

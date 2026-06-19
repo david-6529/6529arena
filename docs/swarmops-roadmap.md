@@ -117,7 +117,7 @@ The first operator-only version is now Wave Summary Drafts:
 - deterministic summary quality checks for operator review
 - human 1-5 quality scoring and score notes
 
-Next improvements should focus on bot-triggered summaries, agent-assist history, workflow templates/defaults, and side-by-side specialist summary comparisons.
+Next improvements should focus on connecting live 6529 mention ingestion to the summary-draft route, agent-assist history, workflow templates/defaults, and side-by-side specialist summary comparisons.
 
 ### Phase 1A: 6529 Bot Commands
 
@@ -134,6 +134,8 @@ The safe first version:
 - summary draft creation through the same cost cap, provider-key check, source gate, and audit log as `/operator/briefs`
 - default response is a private draft link or DM; public posting still requires an approved operator action
 - idempotency by wave, trigger drop, command text, and requester
+
+Current status: `/api/bot/mention` creates reviewed Wave Summary Drafts, skips public autoposting, rate-limits bot generation separately from operator generation, and dedupes repeated events by `waveId` plus trigger drop. Live 6529 mention ingestion, DM commands, allowlists, and requester identity mapping are still ahead.
 
 DMs should support a broader "catch me up across my tracked waves" command only after tracked-wave ingestion exists. Until then, DMs can trigger one-wave summaries by explicit wave ID or selected wave.
 
