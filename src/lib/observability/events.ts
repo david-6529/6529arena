@@ -65,6 +65,61 @@ export async function listRecentEvents(limit = 30) {
   });
 }
 
+export async function listEventsForEntities(params: {
+  entityType: string;
+  entityIds: string[];
+  limitPerEntity?: number;
+}) {
+  if (!prisma || !params.entityIds.length) {
+    return {};
+  }
+
+  const entityIds = [...new Set(params.entityIds.filter(Boolean))];
+  const limitPerEntity =
+    params.limitPerEntity && Number.isFinite(params.limitPerEntity) && params.limitPerEntity > 0
+      ? Math.floor(params.limitPerEntity)
+      : 5;
+
+  if (!entityIds.length) {
+    return {};
+  }
+
+  const events = await prisma.appEvent.findMany({
+    where: {
+      entityType: params.entityType,
+      entityId: {
+        in: entityIds,
+      },
+    },
+    orderBy: { createdAt: "desc" },
+    take: Math.min(entityIds.length * limitPerEntity * 4, 500),
+    select: {
+      id: true,
+      type: true,
+      severity: true,
+      message: true,
+      entityId: true,
+      actor: true,
+      createdAt: true,
+    },
+  });
+  const grouped: Record<string, typeof events> = {};
+
+  for (const event of events) {
+    if (!event.entityId) {
+      continue;
+    }
+
+    grouped[event.entityId] ??= [];
+
+    if (grouped[event.entityId].length < limitPerEntity) {
+      grouped[event.entityId].push(event);
+    }
+  }
+
+  return grouped;
+}
+
 export async function cleanupOldEvents() {
   if (!prisma) {
     return 0;

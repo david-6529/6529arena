@@ -212,13 +212,13 @@ export function BattleAdminOps({ initialBattleId = "" }: { initialBattleId?: str
         <label className="block text-sm font-semibold text-zinc-800 dark:text-zinc-200">
           <span className="mb-1 flex items-center gap-2">
             <KeyRound className="h-4 w-4" aria-hidden="true" />
-            Admin key
+            App access key
           </span>
           <Input
             type="password"
             value={adminKey}
             onChange={(event) => setAdminKey(event.target.value)}
-            placeholder="Optional after admin login"
+            placeholder="Optional after operator login"
           />
         </label>
         <label className="block text-sm font-semibold text-zinc-800 dark:text-zinc-200">

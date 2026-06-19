@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { getRequestFingerprint, handleRouteError, requireAdmin } from "@/lib/api";
+import { validateWaveBriefContentSources, validateWaveBriefSources } from "@/lib/briefs/source-validation";
 import { toCsv, type CsvColumn } from "@/lib/csv";
 import { getLeaderboard, type LeaderboardRow } from "@/lib/data/queries";
 import { getPrisma } from "@/lib/db/prisma";
@@ -8,7 +9,7 @@ import { logEvent } from "@/lib/observability/events";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const exportSchema = z.enum(["leaderboard", "battles", "votes", "agent-runs"]);
+const exportSchema = z.enum(["leaderboard", "wave-summaries", "wave-tasks", "battles", "votes", "agent-runs"]);
 
 function csvResponse(filename: string, csv: string) {
   return new Response(csv, {
@@ -36,7 +37,7 @@ export async function GET(request: Request) {
     await logEvent({
       type: "admin.csv_exported",
       actor: getRequestFingerprint(request),
-      message: "Admin exported CSV data.",
+      message: "Operator exported CSV data.",
       metadata: { exportType: type, limit, count, filename },
     });
 
@@ -57,6 +58,46 @@ async function buildExport(type: z.infer<typeof exportSchema>, limit: number) {
   }
 
   const db = getPrisma();
+
+  if (type === "wave-summaries") {
+    const rows = await db.waveBrief.findMany({
+      take: limit,
+      orderBy: { createdAt: "desc" },
+      include: {
+        _count: {
+          select: {
+            tasks: true,
+          },
+        },
+      },
+    });
+
+    return {
+      filename: "swarmops-wave-summaries.csv",
+      csv: toCsv(rows, waveSummaryColumns),
+      count: rows.length,
+    };
+  }
+
+  if (type === "wave-tasks") {
+    const rows = await db.waveTask.findMany({
+      take: limit,
+      orderBy: { createdAt: "desc" },
+      include: {
+        _count: {
+          select: {
+            comments: true,
+          },
+        },
+      },
+    });
+
+    return {
+      filename: "swarmops-wave-tasks.csv",
+      csv: toCsv(rows, waveTaskColumns),
+      count: rows.length,
+    };
+  }
 
   if (type === "battles") {
     const rows = await db.battle.findMany({
@@ -154,6 +195,159 @@ const leaderboardColumns: CsvColumn<LeaderboardRow>[] = [
   { header: "avg_latency_ms", value: (row) => row.avgLatency },
   { header: "sample_size", value: (row) => row.sampleSize },
   { header: "last_active", value: (row) => row.lastActive },
+];
+
+type WaveSummaryExportRow = {
+  id: string;
+  previousBriefId: string | null;
+  waveId: string;
+  triggerDropId: string | null;
+  status: string;
+  title: string;
+  dropsJson: unknown;
+  briefJson: unknown;
+  content: string;
+  provider: string;
+  modelName: string;
+  promptTokens: number | null;
+  completionTokens: number | null;
+  costUsd: number | null;
+  latencyMs: number | null;
+  humanScore: number | null;
+  reviewedBy: string | null;
+  approvedAt: Date | null;
+  rejectedAt: Date | null;
+  postDropId: string | null;
+  postedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+  _count: {
+    tasks: number;
+  };
+};
+
+type WaveSummarySourceGateMetadata = {
+  structuredReferenceCount: number;
+  structuredMissingCount: number;
+  finalReferenceCount: number;
+  finalMissingCount: number;
+  finalGate: "clear" | "blocked";
+};
+
+const waveSummarySourceGateCache = new WeakMap<WaveSummaryExportRow, WaveSummarySourceGateMetadata>();
+
+function waveSummarySourceGateMetadata(row: WaveSummaryExportRow): WaveSummarySourceGateMetadata {
+  const cached = waveSummarySourceGateCache.get(row);
+
+  if (cached) {
+    return cached;
+  }
+
+  const structuredCheck = validateWaveBriefSources(row.briefJson, row.dropsJson);
+  const finalCheck = validateWaveBriefContentSources(row.content, row.dropsJson);
+  const metadata: WaveSummarySourceGateMetadata = {
+    structuredReferenceCount: structuredCheck.references.length,
+    structuredMissingCount: structuredCheck.missingReferences.length,
+    finalReferenceCount: finalCheck.references.length,
+    finalMissingCount: finalCheck.missingReferences.length,
+    finalGate: finalCheck.missingReferences.length ? "blocked" : "clear",
+  };
+
+  waveSummarySourceGateCache.set(row, metadata);
+  return metadata;
+}
+
+const waveSummaryColumns: CsvColumn<WaveSummaryExportRow>[] = [
+  { header: "summary_id", value: (row) => row.id },
+  { header: "wave_id", value: (row) => row.waveId },
+  { header: "previous_summary_id", value: (row) => row.previousBriefId },
+  { header: "trigger_drop_id", value: (row) => row.triggerDropId },
+  { header: "status", value: (row) => row.status },
+  { header: "title", value: (row) => row.title },
+  { header: "provider", value: (row) => row.provider },
+  { header: "model", value: (row) => row.modelName },
+  { header: "prompt_tokens", value: (row) => row.promptTokens },
+  { header: "completion_tokens", value: (row) => row.completionTokens },
+  { header: "cost_usd", value: (row) => row.costUsd },
+  { header: "latency_ms", value: (row) => row.latencyMs },
+  { header: "human_score", value: (row) => row.humanScore },
+  { header: "structured_source_references", value: (row) => waveSummarySourceGateMetadata(row).structuredReferenceCount },
+  { header: "structured_missing_sources", value: (row) => waveSummarySourceGateMetadata(row).structuredMissingCount },
+  { header: "final_source_references", value: (row) => waveSummarySourceGateMetadata(row).finalReferenceCount },
+  { header: "final_missing_sources", value: (row) => waveSummarySourceGateMetadata(row).finalMissingCount },
+  { header: "final_source_gate", value: (row) => waveSummarySourceGateMetadata(row).finalGate },
+  { header: "reviewed_by", value: (row) => row.reviewedBy },
+  { header: "approved_at", value: (row) => row.approvedAt },
+  { header: "rejected_at", value: (row) => row.rejectedAt },
+  { header: "post_drop_id", value: (row) => row.postDropId },
+  { header: "posted_at", value: (row) => row.postedAt },
+  { header: "task_count", value: (row) => row._count.tasks },
+  { header: "created_at", value: (row) => row.createdAt },
+  { header: "updated_at", value: (row) => row.updatedAt },
+];
+
+type WaveTaskExportRow = {
+  id: string;
+  waveBriefId: string | null;
+  waveId: string;
+  title: string;
+  status: string;
+  workflowLabel: string | null;
+  suggestedOwner: string | null;
+  assignedTo: string | null;
+  claimedBy: string | null;
+  claimedAt: Date | null;
+  lastSeenBriefId: string | null;
+  lastSeenAt: Date | null;
+  seenCount: number;
+  sourceDropIdsJson: unknown;
+  reviewedBy: string | null;
+  outcomeDropId: string | null;
+  outcomeUrl: string | null;
+  outcomeRecordedAt: Date | null;
+  outcomeScore: number | null;
+  outcomeReviewedBy: string | null;
+  outcomeReviewedAt: Date | null;
+  completedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+  _count: {
+    comments: number;
+  };
+};
+
+function sourceDropIds(value: unknown) {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string" && item.length > 0).join(" ")
+    : "";
+}
+
+const waveTaskColumns: CsvColumn<WaveTaskExportRow>[] = [
+  { header: "task_id", value: (row) => row.id },
+  { header: "summary_id", value: (row) => row.waveBriefId },
+  { header: "wave_id", value: (row) => row.waveId },
+  { header: "title", value: (row) => row.title },
+  { header: "status", value: (row) => row.status },
+  { header: "workflow", value: (row) => row.workflowLabel },
+  { header: "suggested_owner", value: (row) => row.suggestedOwner },
+  { header: "assigned_to", value: (row) => row.assignedTo },
+  { header: "claimed_by", value: (row) => row.claimedBy },
+  { header: "claimed_at", value: (row) => row.claimedAt },
+  { header: "last_seen_summary_id", value: (row) => row.lastSeenBriefId },
+  { header: "last_seen_at", value: (row) => row.lastSeenAt },
+  { header: "seen_count", value: (row) => row.seenCount },
+  { header: "source_drop_ids", value: (row) => sourceDropIds(row.sourceDropIdsJson) },
+  { header: "reviewed_by", value: (row) => row.reviewedBy },
+  { header: "outcome_drop_id", value: (row) => row.outcomeDropId },
+  { header: "outcome_url", value: (row) => row.outcomeUrl },
+  { header: "outcome_recorded_at", value: (row) => row.outcomeRecordedAt },
+  { header: "outcome_score", value: (row) => row.outcomeScore },
+  { header: "outcome_reviewed_by", value: (row) => row.outcomeReviewedBy },
+  { header: "outcome_reviewed_at", value: (row) => row.outcomeReviewedAt },
+  { header: "completed_at", value: (row) => row.completedAt },
+  { header: "comment_count", value: (row) => row._count.comments },
+  { header: "created_at", value: (row) => row.createdAt },
+  { header: "updated_at", value: (row) => row.updatedAt },
 ];
 
 type BattleExportRow = {

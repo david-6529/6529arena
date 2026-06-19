@@ -6,6 +6,14 @@ export const waveBriefSchema = z.object({
   title: z.string().min(1),
   executive_summary: z.string().min(1),
   summary_bullets: z.array(z.string()).default([]),
+  changes_since_previous: z
+    .array(
+      z.object({
+        change: z.string().min(1),
+        source_drop_ids: sourceDropIds,
+      }),
+    )
+    .default([]),
   decisions_needed: z
     .array(
       z.object({

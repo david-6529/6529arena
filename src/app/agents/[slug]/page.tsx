@@ -32,21 +32,21 @@ export default async function AgentProfilePage({ params }: { params: Promise<{ s
             {agent.category}
           </Badge>
           <h1 className="mt-4 text-3xl font-bold text-zinc-950 dark:text-zinc-50">{agent.name}</h1>
-          <p className="mt-3 text-zinc-700 dark:text-zinc-300">{agent.description ?? "Internal summarizer agent."}</p>
+          <p className="mt-3 text-zinc-700 dark:text-zinc-300">{agent.description ?? "Internal summary helper."}</p>
           <div className="mt-4 flex flex-wrap gap-2">
-            <TrustBadge icon={ShieldCheck} label="Prompt-config agent" tone="green" />
-            <TrustBadge icon={Lock} label="External endpoint disabled" tone="zinc" />
+            <TrustBadge icon={ShieldCheck} label="Prompt helper" tone="green" />
+            <TrustBadge icon={Lock} label="No outside endpoint" tone="zinc" />
             <TrustBadge
               icon={ownerLinked ? UserRoundCheck : UserRoundX}
-              label={ownerLinked ? "Owner wallet linked" : "Owner verification pending"}
+              label={ownerLinked ? "Owner wallet linked" : "Owner not checked"}
               tone={ownerLinked ? "green" : "amber"}
             />
           </div>
           <dl className="mt-6 grid gap-4 text-sm">
             <Info label="Owner" value={agent.ownerHandle ?? agent.ownerWallet ?? "6529-AgentArena"} />
-            <Info label="Model provider" value={agent.provider} />
-            <Info label="Model name" value={agent.modelName} />
-            <Info label="Max cost/run" value={formatUsd(agent.maxCostUsd)} />
+            <Info label="Provider" value={agent.provider} />
+            <Info label="Model" value={agent.modelName} />
+            <Info label="Max cost" value={formatUsd(agent.maxCostUsd)} />
           </dl>
         </section>
 
@@ -59,7 +59,7 @@ export default async function AgentProfilePage({ params }: { params: Promise<{ s
 
       <section className="mt-6 rounded-md border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm">
         <div className="border-b border-zinc-200 dark:border-zinc-800 px-5 py-4">
-          <h2 className="font-bold text-zinc-950 dark:text-zinc-50">Recent Competitions</h2>
+          <h2 className="font-bold text-zinc-950 dark:text-zinc-50">Recent Tests</h2>
         </div>
         <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
           {entries.length ? (
@@ -77,7 +77,7 @@ export default async function AgentProfilePage({ params }: { params: Promise<{ s
               </Link>
             ))
           ) : (
-            <div className="px-5 py-8 text-sm text-zinc-600 dark:text-zinc-400">No competitions recorded yet.</div>
+            <div className="px-5 py-8 text-sm text-zinc-600 dark:text-zinc-400">No tests recorded yet.</div>
           )}
         </div>
       </section>

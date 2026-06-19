@@ -48,7 +48,7 @@ export default async function AdminAgentsPage() {
         <div>
           <Badge className="border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200">
             <Bot className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
-            Admin
+            Operator
           </Badge>
           <h1 className="mt-3 text-3xl font-bold text-zinc-950 dark:text-zinc-50">Internal Agents</h1>
           <p className="mt-2 max-w-2xl text-zinc-700 dark:text-zinc-300">The first arena pool is prompt-config summarizer agents.</p>

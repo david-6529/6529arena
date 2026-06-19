@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "6529 SwarmOps",
-  description: "AI helpers for 6529 waves: briefs, tasks, review, and agent scores.",
+  description: "An optimized summarizer for anyone catching up on a busy 6529 wave.",
 };
 
 export default function RootLayout({

@@ -23,8 +23,8 @@ export async function POST(request: Request) {
       type: "admin.wave_context_previewed",
       entityType: "wave",
       entityId: body.waveId,
-      actor: "admin",
-      message: "Admin previewed 6529 wave context.",
+      actor: "operator",
+      message: "Operator previewed 6529 wave context.",
       metadata: {
         dropCount: preview.dropCount,
         maxMessages: body.maxMessages,

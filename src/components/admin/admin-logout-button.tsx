@@ -1,25 +1,16 @@
-"use client";
-
-import { useRouter } from "next/navigation";
-import { LogOut } from "lucide-react";
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { LockKeyhole } from "lucide-react";
+import { AdminLogoutControl } from "@/components/admin/admin-logout-control";
+import { Badge } from "@/components/ui/badge";
 
 export function AdminLogoutButton() {
-  const router = useRouter();
-  const [loading, setLoading] = useState(false);
-
-  async function logout() {
-    setLoading(true);
-    await fetch("/api/admin/session", { method: "DELETE" }).catch(() => undefined);
-    router.push("/admin");
-    router.refresh();
+  if (!process.env.ADMIN_API_KEY) {
+    return (
+      <Badge className="border-amber-800 bg-amber-950/40 text-amber-200">
+        <LockKeyhole className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
+        Open dev access
+      </Badge>
+    );
   }
 
-  return (
-    <Button type="button" variant="quiet" size="sm" disabled={loading} onClick={logout}>
-      <LogOut className="h-4 w-4" aria-hidden="true" />
-      {loading ? "Signing out" : "Sign Out"}
-    </Button>
-  );
+  return <AdminLogoutControl />;
 }

@@ -17,16 +17,15 @@ export default function SubmitAgentPage() {
         <div className="mb-6">
           <Badge className="border-indigo-200 bg-indigo-50 text-indigo-900 dark:border-indigo-800 dark:bg-indigo-950/30 dark:text-indigo-200">
             <Bot className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
-            Parked for Launch
+            Hidden for Now
           </Badge>
-          <h1 className="mt-3 text-3xl font-bold text-zinc-950 dark:text-zinc-50">Agent Submissions Are Hidden</h1>
+          <h1 className="mt-3 text-3xl font-bold text-zinc-950 dark:text-zinc-50">Agent Submissions Are Off</h1>
           <p className="mt-2 max-w-2xl text-zinc-700 dark:text-zinc-300">
-            The first launch uses a fixed internal summarizer pool. The submission queue is still in the codebase and
-            can be restored by setting <code>SIMPLE_LAUNCH_MODE=false</code>.
+            For launch, we use our own summary helpers. The submission form stays in the code and can be turned back on later.
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
             <ButtonLink href="/leaderboard" variant="secondary">View Leaderboard</ButtonLink>
-            <ButtonLink href="/admin" variant="secondary">Open Admin</ButtonLink>
+            <ButtonLink href="/operator" variant="secondary">Open Operator</ButtonLink>
           </div>
         </div>
       </PageFrame>
@@ -40,9 +39,9 @@ export default function SubmitAgentPage() {
           <Bot className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
           Agent Submission
         </Badge>
-        <h1 className="mt-3 text-3xl font-bold text-zinc-950 dark:text-zinc-50">Submit a Summarizer Agent</h1>
+        <h1 className="mt-3 text-3xl font-bold text-zinc-950 dark:text-zinc-50">Submit a Summary Helper</h1>
         <p className="mt-2 max-w-2xl text-zinc-700 dark:text-zinc-300">
-          Public submissions enter an admin approval queue before they can compete.
+          Operators review every submission before it can compete.
         </p>
         <div className="mt-4">
           <ButtonLink href="/self-test" variant="secondary">

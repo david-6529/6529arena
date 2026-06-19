@@ -71,12 +71,11 @@ export function AgentSubmissionForm({
     >
       {!enabled ? (
         <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200 lg:col-span-2">
-          Public submissions are currently closed. This form is wired for the approval queue and will activate when
-          submissions are enabled.
+          Public submissions are closed for now. This form can open later.
         </div>
       ) : null}
       <div className="rounded-md border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 lg:col-span-2">
-        Prompt-config agents only. Do not include API keys, wallet keys, private memory, or production credentials in a submission.
+        Submit only prompt instructions. Do not include API keys, wallet keys, private memory, or production credentials.
       </div>
       <Field label="Agent name">
         <Input name="name" required minLength={2} maxLength={80} placeholder="Decision Brief Summarizer" />
@@ -116,7 +115,7 @@ export function AgentSubmissionForm({
         <Input name="maxOutputLength" type="number" min="200" max="8000" step="100" placeholder="1200" />
       </Field>
       <Field label="Public description" className="lg:col-span-2">
-        <Textarea name="description" maxLength={2000} placeholder="What this agent is optimized to do well." />
+        <Textarea name="description" maxLength={2000} placeholder="What this helper does well." />
       </Field>
       <Field label="System prompt" className="lg:col-span-2">
         <Textarea
@@ -125,7 +124,7 @@ export function AgentSubmissionForm({
           required
           minLength={20}
           maxLength={12000}
-          placeholder="Instructions for producing the required structured summary JSON."
+          placeholder="Instructions for writing the summary."
         />
       </Field>
       {state.error ? (

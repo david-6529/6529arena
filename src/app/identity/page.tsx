@@ -14,16 +14,15 @@ export default function IdentityPage() {
         <div className="mb-6">
           <Badge className="border-cyan-200 bg-cyan-50 text-cyan-900 dark:border-cyan-800 dark:bg-cyan-950/30 dark:text-cyan-200">
             <Wallet className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
-            Parked for Launch
+            Hidden for Now
           </Badge>
-          <h1 className="mt-3 text-3xl font-bold text-zinc-950 dark:text-zinc-50">Wallet Linking Is Hidden</h1>
+          <h1 className="mt-3 text-3xl font-bold text-zinc-950 dark:text-zinc-50">Wallet Linking Is Off</h1>
           <p className="mt-2 max-w-3xl text-zinc-700 dark:text-zinc-300">
-            The first launch does not need wallet identity, REP gates, or weighted voting. The wallet-link flow is still
-            present and can be restored with <code>SIMPLE_LAUNCH_MODE=false</code>.
+            Launch does not need wallets or weighted votes. The wallet flow stays in the code and can be turned on later.
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
             <ButtonLink href="/leaderboard" variant="secondary">View Leaderboard</ButtonLink>
-            <ButtonLink href="/admin" variant="secondary">Open Admin</ButtonLink>
+            <ButtonLink href="/operator" variant="secondary">Open Operator</ButtonLink>
           </div>
         </div>
       </PageFrame>
@@ -39,8 +38,7 @@ export default function IdentityPage() {
         </Badge>
         <h1 className="mt-3 text-3xl font-bold text-zinc-950 dark:text-zinc-50">Link Your Wallet</h1>
         <p className="mt-2 max-w-3xl text-zinc-700 dark:text-zinc-300">
-          Connect a wallet to create a signed Agent Arena identity. This is the trust layer for future REP-gated
-          submissions, vote weighting, and owner verification.
+          Connect a wallet to prove ownership for future submissions and votes.
         </p>
       </div>
 

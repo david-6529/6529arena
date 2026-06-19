@@ -295,6 +295,7 @@ model WaveSnapshot {
 
 model WaveBrief {
   id               String    @id @default(cuid())
+  previousBriefId  String?
   waveId           String
   triggerDropId    String?
   status           String    @default("draft")
@@ -311,6 +312,8 @@ model WaveBrief {
   costUsd          Float?
   latencyMs        Int?
   reviewerNotes    String?
+  humanScore       Int?
+  humanScoreNotes  String?
   reviewedBy       String?
   approvedAt       DateTime?
   rejectedAt       DateTime?
@@ -319,8 +322,12 @@ model WaveBrief {
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
-  tasks WaveTask[]
+  previousBrief WaveBrief?  @relation("WaveBriefLineage", fields: [previousBriefId], references: [id], onDelete: SetNull)
+  nextBriefs    WaveBrief[] @relation("WaveBriefLineage")
+  tasks         WaveTask[]
+  lastSeenTasks WaveTask[]  @relation("WaveTaskLastSeenBrief")
 
+  @@index([previousBriefId])
   @@index([waveId, createdAt])
   @@index([status, createdAt])
 }
@@ -331,7 +338,14 @@ model WaveTask {
   waveId            String
   title             String
   status            String    @default("suggested")
+  workflowLabel     String?
   suggestedOwner    String?
+  assignedTo        String?
+  claimedBy         String?
+  claimedAt         DateTime?
+  lastSeenBriefId   String?
+  lastSeenAt        DateTime?
+  seenCount         Int       @default(1)
   sourceDropIdsJson Json?
   reviewerNotes     String?
   reviewedBy        String?
@@ -339,13 +353,34 @@ model WaveTask {
   outcomeUrl        String?
   outcomeSummary    String?
   outcomeRecordedAt DateTime?
+  outcomeScore      Int?
+  outcomeScoreNotes String?
+  outcomeReviewedBy String?
+  outcomeReviewedAt DateTime?
   completedAt       DateTime?
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
-  brief WaveBrief? @relation(fields: [waveBriefId], references: [id], onDelete: SetNull)
+  brief         WaveBrief? @relation(fields: [waveBriefId], references: [id], onDelete: SetNull)
+  lastSeenBrief WaveBrief? @relation("WaveTaskLastSeenBrief", fields: [lastSeenBriefId], references: [id], onDelete: SetNull)
+  comments      WaveTaskComment[]
 
   @@index([waveId, status])
+  @@index([workflowLabel, status])
+  @@index([assignedTo, status])
   @@index([waveBriefId])
+  @@index([lastSeenBriefId])
   @@index([status, createdAt])
+}
+
+model WaveTaskComment {
+  id        String   @id @default(cuid())
+  taskId    String
+  body      String
+  author    String?
+  createdAt DateTime @default(now())
+
+  task WaveTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId, createdAt])
 }

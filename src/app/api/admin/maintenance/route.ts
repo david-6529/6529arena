@@ -14,7 +14,7 @@ export async function POST(request: Request) {
     await logEvent({
       type: "admin.maintenance_run",
       actor: getRequestFingerprint(request),
-      message: "Admin manually ran operational maintenance.",
+      message: "Operator manually ran operational maintenance.",
       metadata: maintenance,
     });
 

@@ -13,6 +13,11 @@ function renderDropIds(ids: string[]) {
 }
 
 export function renderWaveBrief(brief: WaveBriefPayload) {
+  const changes = brief.changes_since_previous.length
+    ? brief.changes_since_previous
+      .map((item) => `- ${item.change}${renderDropIds(item.source_drop_ids)}`)
+      .join("\n")
+    : "- No previous reviewed summary was used, or no material changes were found.";
   const decisions = brief.decisions_needed.length
     ? brief.decisions_needed
       .map((item) => `- ${item.title}${item.why ? `: ${item.why}` : ""}${renderDropIds(item.source_drop_ids)}`)
@@ -42,7 +47,10 @@ export function renderWaveBrief(brief: WaveBriefPayload) {
 **Executive summary**
 ${brief.executive_summary}
 
-**What changed**
+**What changed since last summary**
+${changes}
+
+**What happened**
 ${renderList(brief.summary_bullets)}
 
 **Decisions needed**
@@ -71,7 +79,7 @@ export function renderWaveBriefPost(params: {
   briefId: string;
   content: string;
 }) {
-  return `Agent-assisted wave brief:
+  return `Agent-assisted wave summary:
 
 ${params.content}`;
 }

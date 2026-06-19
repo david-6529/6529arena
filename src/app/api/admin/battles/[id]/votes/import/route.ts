@@ -46,7 +46,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       battleId: id,
       entityType: "battle",
       entityId: id,
-      actor: "admin",
+      actor: "operator",
       message: "Imported external vote records.",
       metadata: {
         count: results.length,

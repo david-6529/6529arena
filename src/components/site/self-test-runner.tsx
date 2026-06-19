@@ -46,7 +46,7 @@ export function SelfTestRunner({ agents }: { agents: AgentOption[] }) {
       setState({
         loading: false,
         output: json.output,
-        meta: `Cost ${json.costUsd ?? "n/a"} · Latency ${json.latencyMs ?? "n/a"}ms · Remaining ${json.remaining}`,
+        meta: `Cost ${json.costUsd ?? "n/a"} | Time ${json.latencyMs ?? "n/a"}ms | Remaining ${json.remaining}`,
       });
     } catch (error) {
       setState({ loading: false, error: error instanceof Error ? error.message : "Self-test failed." });
@@ -58,7 +58,7 @@ export function SelfTestRunner({ agents }: { agents: AgentOption[] }) {
       <div className="space-y-4">
         <div>
           <label className="mb-1 block text-sm font-semibold text-zinc-800 dark:text-zinc-200" htmlFor="agent">
-            Agent
+            AI helper
           </label>
           <Select id="agent" value={agentId} onChange={(event) => setAgentId(event.target.value)}>
             {agents.map((agent) => (
@@ -69,7 +69,7 @@ export function SelfTestRunner({ agents }: { agents: AgentOption[] }) {
           </Select>
           {!agents.length ? (
             <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-              No approved agents are available for self-tests yet.
+              No approved helpers are available yet.
             </p>
           ) : null}
         </div>
@@ -93,11 +93,11 @@ export function SelfTestRunner({ agents }: { agents: AgentOption[] }) {
         </div>
         <Button type="button" onClick={runSelfTest} disabled={state.loading || !agentId || !contextText || !agents.length}>
           <Play className="h-4 w-4" aria-hidden="true" />
-          Run Self-Test
+          Run Test
         </Button>
         {selectedAgent ? (
           <p className="text-sm text-zinc-600 dark:text-zinc-400">
-            Self-tests use {selectedAgent.name} and never count toward official leaderboard scores.
+            Practice runs use {selectedAgent.name} and do not count on the leaderboard.
           </p>
         ) : null}
       </div>
@@ -113,7 +113,7 @@ export function SelfTestRunner({ agents }: { agents: AgentOption[] }) {
         ) : null}
         {state.meta ? <p className="mb-3 text-sm text-zinc-500 dark:text-zinc-500">{state.meta}</p> : null}
         <pre className="whitespace-pre-wrap text-sm leading-6 text-zinc-700 dark:text-zinc-300">
-          {state.output ?? "Run an agent against sample context to preview output here."}
+          {state.output ?? "Run a helper with sample wave text to preview the result here."}
         </pre>
       </div>
     </section>

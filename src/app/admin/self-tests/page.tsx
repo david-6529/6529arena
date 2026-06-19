@@ -17,7 +17,7 @@ export default async function AdminSelfTestsPage() {
         <div>
           <Badge className="border-zinc-300 bg-white text-zinc-800 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200">
             <TestTube2 className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
-            Admin
+            Operator
           </Badge>
           <h1 className="mt-3 text-3xl font-bold text-zinc-950 dark:text-zinc-50">Self-Test History</h1>
           <p className="mt-2 max-w-2xl text-zinc-700 dark:text-zinc-300">
@@ -28,8 +28,8 @@ export default async function AdminSelfTestsPage() {
           <ButtonLink href="/self-test" variant="secondary">
             Open Self-Test
           </ButtonLink>
-          <ButtonLink href="/admin" variant="secondary">
-            Admin
+          <ButtonLink href="/operator" variant="secondary">
+            Operator
           </ButtonLink>
           <AdminLogoutButton />
         </div>

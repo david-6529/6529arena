@@ -13,8 +13,8 @@ export async function POST(request: Request) {
     await logEvent({
       type: "admin.6529_auth_checked",
       entityType: "6529_auth",
-      actor: "admin",
-      message: "Admin checked 6529 bot authentication.",
+      actor: "operator",
+      message: "Operator checked 6529 bot authentication.",
       metadata: {
         baseUrl: get6529ApiBaseUrl(),
         walletConfigured: Boolean(process.env["6529_BOT_WALLET_ADDRESS"]),

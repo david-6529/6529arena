@@ -1,28 +1,136 @@
 import { describe, expect, it } from "vitest";
+import { hasUnsavedPostContentChanges, isWaveBriefApprovalBlocked, isWaveBriefContentLocked } from "@/lib/briefs/draft-state";
 import { buildWaveBriefPrompts } from "@/lib/briefs/prompts";
 import { scoreWaveBriefQuality } from "@/lib/briefs/quality";
 import { renderWaveBrief, renderWaveBriefPost } from "@/lib/briefs/render";
 import { parseWaveBrief } from "@/lib/briefs/schema";
-import { validateWaveBriefSources } from "@/lib/briefs/source-validation";
+import { validateWaveBriefContentSources, validateWaveBriefSources } from "@/lib/briefs/source-validation";
 import { extractWaveTasksFromBriefJson, getWaveTaskDedupeKey, normalizeWaveTaskOutcome } from "@/lib/data/wave-tasks";
 import type { WaveDrop } from "@/lib/6529/types";
 
+describe("hasUnsavedPostContentChanges", () => {
+  it("tracks title and content changes that would make a post preview stale", () => {
+    expect(
+      hasUnsavedPostContentChanges({
+        savedTitle: "Saved",
+        savedContent: "Saved content",
+        draftTitle: "Saved",
+        draftContent: "Saved content",
+      }),
+    ).toBe(false);
+    expect(
+      hasUnsavedPostContentChanges({
+        savedTitle: "Saved",
+        savedContent: "Saved content",
+        draftTitle: "Edited",
+        draftContent: "Saved content",
+      }),
+    ).toBe(true);
+    expect(
+      hasUnsavedPostContentChanges({
+        savedTitle: "Saved",
+        savedContent: "Saved content",
+        draftTitle: "Saved",
+        draftContent: "Edited content",
+      }),
+    ).toBe(true);
+  });
+});
+
+describe("isWaveBriefApprovalBlocked", () => {
+  it("blocks approval when content is locked, source-blocked, or unsaved content would make the saved source gate stale", () => {
+    expect(
+      isWaveBriefApprovalBlocked({
+        status: "draft",
+        finalMissingSourceCount: 0,
+        hasUnsavedContentChanges: false,
+      }),
+    ).toBe(false);
+    expect(
+      isWaveBriefApprovalBlocked({
+        status: "posted",
+        finalMissingSourceCount: 0,
+        hasUnsavedContentChanges: false,
+      }),
+    ).toBe(true);
+    expect(
+      isWaveBriefApprovalBlocked({
+        status: "rejected",
+        finalMissingSourceCount: 0,
+        hasUnsavedContentChanges: false,
+      }),
+    ).toBe(true);
+    expect(
+      isWaveBriefApprovalBlocked({
+        status: "posting",
+        finalMissingSourceCount: 0,
+        hasUnsavedContentChanges: false,
+      }),
+    ).toBe(true);
+    expect(
+      isWaveBriefApprovalBlocked({
+        status: "draft",
+        finalMissingSourceCount: 1,
+        hasUnsavedContentChanges: false,
+      }),
+    ).toBe(true);
+    expect(
+      isWaveBriefApprovalBlocked({
+        status: "draft",
+        finalMissingSourceCount: 0,
+        hasUnsavedContentChanges: true,
+      }),
+    ).toBe(true);
+  });
+});
+
+describe("isWaveBriefContentLocked", () => {
+  it("locks posted, rejected, and in-flight posting summary content", () => {
+    expect(isWaveBriefContentLocked("draft")).toBe(false);
+    expect(isWaveBriefContentLocked("approved")).toBe(false);
+    expect(isWaveBriefContentLocked("posted")).toBe(true);
+    expect(isWaveBriefContentLocked("rejected")).toBe(true);
+    expect(isWaveBriefContentLocked("posting")).toBe(true);
+  });
+});
+
 describe("buildWaveBriefPrompts", () => {
-  it("orders source drops and includes the operator brief contract", () => {
+  it("orders source drops and includes the wave summary contract", () => {
     const drops: WaveDrop[] = [
       { id: "drop-2", serial_no: 2, content: "Second", author: { handle: "bob" } },
       { id: "drop-1", serial_no: 1, content: "First", author: { handle: "alice" } },
     ];
     const prompts = buildWaveBriefPrompts({
       waveId: "wave-1",
-      requestText: "Brief this wave.",
+      requestText: "Summarize this wave.",
       drops,
     });
 
-    expect(prompts.systemPrompt).toContain("Wave Chief Of Staff");
+    expect(prompts.systemPrompt).toContain("source-grounded 6529 wave summarizer");
     expect(prompts.systemPrompt).toContain("Return strict JSON with this exact shape");
     expect(prompts.userPrompt.indexOf("drop_id=drop-1")).toBeLessThan(prompts.userPrompt.indexOf("drop_id=drop-2"));
-    expect(prompts.userPrompt).toContain("Operator request: Brief this wave.");
+    expect(prompts.userPrompt).toContain("Summary request: Summarize this wave.");
+  });
+
+  it("includes previous reviewed summary context when available", () => {
+    const prompts = buildWaveBriefPrompts({
+      waveId: "wave-1",
+      requestText: "Summarize this wave.",
+      drops: [{ id: "drop-1", serial_no: 1, content: "New decision", author: { handle: "alice" } }],
+      previousSummary: {
+        id: "brief-old",
+        title: "Yesterday summary",
+        content: "The previous summary said the grant rubric was still open.",
+        status: "approved",
+        createdAt: new Date("2026-06-18T00:00:00.000Z"),
+        postDropId: "drop-old",
+      },
+    });
+
+    expect(prompts.systemPrompt).toContain("changes_since_previous");
+    expect(prompts.userPrompt).toContain("previous_summary_id=brief-old");
+    expect(prompts.userPrompt).toContain("Yesterday summary");
+    expect(prompts.userPrompt).toContain("fill changes_since_previous with material changes");
   });
 });
 
@@ -31,9 +139,12 @@ describe("parseWaveBrief", () => {
     const brief = parseWaveBrief(`
       \`\`\`json
       {
-        "title": "Builder grant brief",
+        "title": "Builder grant summary",
         "executive_summary": "The wave is discussing a grant rubric.",
         "summary_bullets": ["Rubric needed"],
+        "changes_since_previous": [
+          { "change": "Rubric owner changed", "source_drop_ids": ["drop-1"] }
+        ],
         "decisions_needed": [
           { "title": "Approve rubric", "why": "Needed before voting", "source_drop_ids": ["drop-1"] }
         ]
@@ -41,7 +152,10 @@ describe("parseWaveBrief", () => {
       \`\`\`
     `);
 
-    expect(brief.title).toBe("Builder grant brief");
+    expect(brief.title).toBe("Builder grant summary");
+    expect(brief.changes_since_previous).toEqual([
+      { change: "Rubric owner changed", source_drop_ids: ["drop-1"] },
+    ]);
     expect(brief.open_questions).toEqual([]);
     expect(brief.action_items).toEqual([]);
     expect(brief.risks).toEqual([]);
@@ -50,11 +164,12 @@ describe("parseWaveBrief", () => {
 });
 
 describe("renderWaveBrief", () => {
-  it("renders operator sections and citations", () => {
+  it("renders summary sections and citations", () => {
     const output = renderWaveBrief({
-      title: "Daily wave brief",
+      title: "Daily wave summary",
       executive_summary: "The wave aligned on next steps.",
-      summary_bullets: ["A brief was requested."],
+      summary_bullets: ["A summary was requested."],
+      changes_since_previous: [{ change: "The owner changed.", source_drop_ids: ["drop-5"] }],
       decisions_needed: [{ title: "Pick owners", why: "Tasks need accountability", source_drop_ids: ["drop-1"] }],
       open_questions: [{ question: "Who owns follow-up?", source_drop_ids: ["drop-2"] }],
       action_items: [{ task: "Draft a post", suggested_owner: "admin", source_drop_ids: ["drop-3"] }],
@@ -64,7 +179,10 @@ describe("renderWaveBrief", () => {
       confidence: 0.73,
     });
 
-    expect(output).toContain("**Daily wave brief**");
+    expect(output).toContain("**Daily wave summary**");
+    expect(output).toContain("**What changed since last summary**");
+    expect(output).toContain("The owner changed. Sources: drop-5");
+    expect(output).toContain("**What happened**");
     expect(output).toContain("**Decisions needed**");
     expect(output).toContain("Pick owners");
     expect(output).toContain("Owner: admin.");
@@ -74,14 +192,14 @@ describe("renderWaveBrief", () => {
 });
 
 describe("renderWaveBriefPost", () => {
-  it("wraps the approved brief for posting", () => {
+  it("wraps the approved summary for posting", () => {
     const output = renderWaveBriefPost({
       appUrl: "https://arena.example",
       briefId: "brief-1",
       content: "Approved content",
     });
 
-    expect(output).toContain("Agent-assisted wave brief:");
+    expect(output).toContain("Agent-assisted wave summary:");
     expect(output).toContain("Approved content");
     expect(output).not.toContain("/admin/briefs");
   });
@@ -103,16 +221,89 @@ describe("validateWaveBriefSources", () => {
       totalDrops: 2,
       referencedDropIds: ["drop-1", "drop-2", "missing-drop"],
       missingDropIds: ["missing-drop"],
+      references: [
+        {
+          dropId: "drop-1",
+          path: "decisions_needed[0].source_drop_ids",
+          section: "Decisions needed #1",
+        },
+        {
+          dropId: "missing-drop",
+          path: "decisions_needed[0].source_drop_ids",
+          section: "Decisions needed #1",
+        },
+        {
+          dropId: "drop-2",
+          path: "citations[0].drop_id",
+          section: "Citations #1",
+        },
+      ],
+      missingReferences: [
+        {
+          dropId: "missing-drop",
+          path: "decisions_needed[0].source_drop_ids",
+          section: "Decisions needed #1",
+        },
+      ],
     });
+  });
+
+  it("finds missing drop IDs in final rendered summary content", () => {
+    const result = validateWaveBriefContentSources(
+      `**Decisions needed**
+- Pick the owner. sources: drop-1, missing-drop
+
+**Open questions**
+- Who verifies this? Source: missing-single
+
+**Action items**
+- Collect context. Source drops: drop-2; missing-semi and missing-and
+
+**Citations**
+- drop-2: evidence
+- missing-citation: not in context`,
+      {
+        drops: [{ id: "drop-1" }, { id: "drop-2" }],
+      },
+    );
+
+    expect(result.missingDropIds).toEqual(["missing-and", "missing-citation", "missing-drop", "missing-semi", "missing-single"]);
+    expect(result.missingReferences).toEqual([
+      {
+        dropId: "missing-drop",
+        path: "content.line2.sources[1]",
+        section: "Decisions needed",
+      },
+      {
+        dropId: "missing-single",
+        path: "content.line5.sources[0]",
+        section: "Open questions",
+      },
+      {
+        dropId: "missing-semi",
+        path: "content.line8.sources[1]",
+        section: "Action items",
+      },
+      {
+        dropId: "missing-and",
+        path: "content.line8.sources[2]",
+        section: "Action items",
+      },
+      {
+        dropId: "missing-citation",
+        path: "content.citations.line12",
+        section: "Citations",
+      },
+    ]);
   });
 });
 
 describe("scoreWaveBriefQuality", () => {
-  it("marks a source-linked actionable brief as ready", () => {
+  it("marks a source-linked actionable summary as ready", () => {
     const quality = scoreWaveBriefQuality(
       {
-        title: "Ops brief",
-        executive_summary: "The team has next steps.",
+        title: "Ops summary",
+        executive_summary: "The wave has next steps.",
         decisions_needed: [{ title: "Pick owner", why: "Work needs an owner", source_drop_ids: ["drop-1"] }],
         action_items: [{ task: "Post update", suggested_owner: "admin", source_drop_ids: ["drop-2"] }],
         risks: [{ risk: "Timeline can slip", severity: "medium", source_drop_ids: ["drop-1"] }],
@@ -128,10 +319,10 @@ describe("scoreWaveBriefQuality", () => {
     expect(quality.blockers).toEqual([]);
   });
 
-  it("penalizes missing sources and missing operator follow-up", () => {
+  it("penalizes missing sources and missing follow-up", () => {
     const quality = scoreWaveBriefQuality(
       {
-        title: "Thin brief",
+        title: "Thin summary",
         executive_summary: "Not much happened.",
         citations: [{ drop_id: "missing-drop", reason: "Only source" }],
         confidence: 0.4,
@@ -145,21 +336,21 @@ describe("scoreWaveBriefQuality", () => {
     expect(quality.blockers).toContain("Model confidence is low.");
   });
 
-  it("marks malformed brief JSON as weak", () => {
+  it("marks malformed summary JSON as weak", () => {
     expect(scoreWaveBriefQuality({ title: "" }, { drops: [] })).toEqual({
       score: 0,
       label: "weak",
-      blockers: ["Brief JSON does not match the expected shape."],
+      blockers: ["Summary JSON does not match the expected shape."],
       strengths: [],
     });
   });
 });
 
 describe("extractWaveTasksFromBriefJson", () => {
-  it("turns brief action items into deduped suggested tasks", () => {
+  it("turns summary action items into deduped suggested tasks", () => {
     const tasks = extractWaveTasksFromBriefJson({
-      title: "Ops brief",
-      executive_summary: "Operators need follow-up.",
+      title: "Ops summary",
+      executive_summary: "The wave has follow-up.",
       action_items: [
         {
           task: "  Draft the next wave update   ",
@@ -178,10 +369,10 @@ describe("extractWaveTasksFromBriefJson", () => {
     ]);
   });
 
-  it("dedupes equivalent task titles inside one brief", () => {
+  it("dedupes equivalent task titles inside one summary", () => {
     const tasks = extractWaveTasksFromBriefJson({
-      title: "Ops brief",
-      executive_summary: "Operators need follow-up.",
+      title: "Ops summary",
+      executive_summary: "The wave has follow-up.",
       action_items: [
         {
           task: "Draft the next wave update",

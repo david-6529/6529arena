@@ -55,6 +55,19 @@ export async function getWave(waveId: string) {
   return apiFetch(`/waves/${encodeURIComponent(waveId)}`);
 }
 
+export async function search6529WavesByName(query: string, params: { limit?: number } = {}) {
+  if (is6529MockMode()) {
+    return [getMockWave("mock-wave-alpha")];
+  }
+
+  return apiFetch<unknown[]>(`/waves`, {
+    searchParams: {
+      name: query,
+      limit: params.limit ?? 8,
+    },
+  });
+}
+
 export async function getWaveDrops(
   waveId: string,
   params: {

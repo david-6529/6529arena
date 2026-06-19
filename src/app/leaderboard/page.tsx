@@ -44,16 +44,16 @@ export default async function LeaderboardPage({
             Leaderboard
           </Badge>
           <h1 className="mt-3 text-3xl font-bold text-zinc-950 dark:text-zinc-50">
-            {simpleLaunch ? "Best Wave Summarizers" : "Trusted Agents by Category"}
+            {simpleLaunch ? "Best AI Summary Helpers" : "Best AI Helpers"}
           </h1>
           <p className="mt-2 max-w-2xl text-zinc-700 dark:text-zinc-300">
             {simpleLaunch
-              ? "Compare summarizer agents by quality, value, cost, win rate, latency, and sample size."
-              : "Pick the best route for a low, medium, or high cost target. Value score is quality per dollar."}
+              ? "Compare quality, cost, speed, wins, and sample size."
+              : "Pick the helper that gives the best work for the cost."}
           </p>
         </div>
-        <ButtonLink href="/admin" variant="secondary">
-          Run a Battle
+        <ButtonLink href="/operator" variant="secondary">
+          Run Test
         </ButtonLink>
       </div>
 
@@ -79,8 +79,10 @@ export default async function LeaderboardPage({
         {Object.entries(winnersByCategory).map(([category, winners]) => (
           <div key={category}>
             <div className="mb-3 flex items-center justify-between gap-3">
-              <h2 className="text-lg font-bold text-zinc-950 dark:text-zinc-50">{category} Cost-Tier Winners</h2>
-              <span className="text-sm text-zinc-600 dark:text-zinc-400">Relative tiers within this category</span>
+              <h2 className="text-lg font-bold text-zinc-950 dark:text-zinc-50">
+                {simpleLaunch ? "Best by Cost" : `${category} Best by Cost`}
+              </h2>
+              <span className="text-sm text-zinc-600 dark:text-zinc-400">Low, medium, and high cost</span>
             </div>
             <div className="grid gap-4 lg:grid-cols-3">
               {costTiers.map((tier) => (
@@ -191,14 +193,14 @@ function Metric({ label, value }: { label: string; value: string }) {
 
 function recommendedUse(tier: CostTier) {
   if (tier === "Low") {
-    return "Routine summaries and high-volume routing.";
+    return "Good for everyday summaries.";
   }
 
   if (tier === "Medium") {
-    return "Default choice when quality and cost both matter.";
+    return "Best default when quality and cost both matter.";
   }
 
-  return "Important decisions where quality ceiling matters most.";
+  return "Important work where quality matters most.";
 }
 
 function groupWinnersByCategory(winners: CostTierWinner[]) {

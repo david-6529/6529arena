@@ -2,9 +2,11 @@
 
 ## Product Decision
 
-Build toward **6529 SwarmOps**: a wave-native operating layer where AI agents monitor context, perform specialist work, get reviewed by humans, and build task-specific reputation.
+Build toward **6529 SwarmOps**: a wave-native assistant that helps anyone in a 6529 wave catch up, understand what happened, and turn confusion into clear next steps.
 
-The current 6529 Agent Arena remains the first production wedge. It proves the evaluation loop:
+The product should not lead with battles or REP. The front door is a 6529 wave summarizer: what happened, what was decided, what is open, who owns follow-up, and what needs checking.
+
+The current 6529 Agent Arena remains useful as the evaluation layer. It can compare two agents on the same wave:
 
 1. Pick a wave.
 2. Run two summarizer agents.
@@ -13,7 +15,7 @@ The current 6529 Agent Arena remains the first production wedge. It proves the e
 5. Close the battle.
 6. Update the leaderboard.
 
-Do not skip this step. SwarmOps only becomes credible if the system can first prove that agent outputs can be evaluated in public and routed based on usefulness.
+Keep this capability, but do not make it the main product story. Battles answer an internal routing question: which agent produced the most useful output for this task? Reputation becomes important later when the system accepts third-party agents or routes paid work.
 
 ## North Star
 
@@ -21,7 +23,7 @@ Every serious 6529-native project should be able to run a lightweight agent swar
 
 - ingest wave context
 - preserve source-linked memory
-- produce summaries and decision briefs
+- produce catch-up summaries and decision notes
 - extract tasks
 - identify risks
 - draft posts
@@ -30,7 +32,7 @@ Every serious 6529-native project should be able to run a lightweight agent swar
 - record cost, latency, edits, votes, and outcomes
 - rank agents by task-specific usefulness
 
-The long-term product is not a generic chatbot. It is coordination infrastructure for wave-native companies, projects, grants, curation groups, and governance teams.
+The long-term product is not a generic chatbot and not a public leaderboard. It is coordination infrastructure for wave-native companies, projects, grants, curation groups, and governance groups.
 
 ## Guiding Principles
 
@@ -45,18 +47,22 @@ The long-term product is not a generic chatbot. It is coordination infrastructur
 
 ### Phase 0: Production Wave Summary Arena
 
-Goal: launch the simplest useful loop.
+Goal: launch the simplest useful wave assistant while keeping battles as operator-only evaluation infrastructure.
 
 What ships:
 
 - Wave Summarization only
 - internal prompt-config agents only
-- admin-created battles
-- anonymous Option A/B battle pages
-- manual vote import
-- battle close and winner reveal
-- leaderboard by quality, value, cost, win rate, latency, and sample size
+- operator-created wave summaries
+- searchable wave picker backed by 6529 name search and saved-summary history, with separate wave ID entry as the fallback
+- review, source-check, score, preview, and optional post flow
+- pre-run estimated cost cap for wave summaries
+- provider-key preflight before wave summary generation
+- operator generation rate limit for wave summaries
+- suggested follow-ups into `/operator/tasks`
+- battle pages, manual vote import, and leaderboard available as evaluation tools
 - CSV exports and event logs
+- simple-mode CSV exports for leaderboard, summary metadata with source-gate counts, and task metadata
 - no public submissions
 - no external endpoints
 - no wallet-gated voting
@@ -64,37 +70,79 @@ What ships:
 
 Success criteria:
 
-- at least 10 real test battles
-- posts render correctly back into 6529
+- summaries are faster than rereading the wave
+- source checks catch missing citations before sharing
+- approved posts render correctly back into 6529
 - costs stay within cap
-- vote import and close flow works without manual database edits
-- operators trust the admin workflow
+- review scoring saves and is visible
+- people trust the operator workflow
 
-### Phase 1: Wave Chief Of Staff
+### Phase 1: Wave Guidance And Follow-Ups
 
-Goal: move from "which summarizer is best?" to "what should this wave do next?"
+Goal: move from "what happened?" to "what should happen next?"
 
-The first admin-only version is now Wave Brief Drafts:
+The first operator-only version is now Wave Summary Drafts:
 
-- wave brief
+- wave summary
+- previous-summary lineage
+- changes since the last reviewed summary
 - open questions
 - decisions needed
 - action items
 - risks and objections
 - source drops
 - suggested next post
-- edit, approve, reject, preview, and post workflow
-- citation/source validation against stored context drops
-- suggested task extraction into `/admin/tasks`
-- deterministic brief quality checks for admin review
+- edit, save-before-approve, source-gated approve, reject, preview, and post workflow
+- rejected-summary content lock so bad drafts remain auditable and revisions start from a new summary
+- 6529 post failure events with wave and brief context
+- DB-backed posting claim to prevent duplicate 6529 posts for one approved summary
+- posting-state content lock while a 6529 post is in flight
+- citation/source validation against stored context drops, including section-level missing-source warnings
+- visible final-content source validation that blocks approval and 6529 posting when cited drops are outside stored context
+- approved-summary content edits automatically return the summary to draft until it is re-approved
+- suggested task extraction into `/operator/tasks`
+- repeated open task tracking with seen count and last-seen summary metadata
+- per-summary and per-task change history from audit events
+- append-only task comments for follow-up notes and handoffs
+- human 1-5 outcome scoring and score notes for completed follow-ups
+- operator outcome rollups for completed, evidence-linked, scored, unscored, average scored, strong, weak, and score-distribution follow-ups
+- operator wave rollups for open load, repeated open work, completed work, proof, scored completions, average score, and weak outcomes
+- operator workflow labels and workflow rollups for open load, repeated open work, completed work, proof, scored completions, average score, and weak outcomes
+- operator owner rollups for open load, completed work, proof, scored completions, average score, and weak outcomes
+- operator summary review rollups for generated, reviewed, reviewed-scored, unscored reviewed, posted, and average reviewed scores
+- operator summary cost rollups for cost, latency, and token volume
+- operator recent-summary source-gate status before review or posting
+- deterministic summary quality checks for operator review
+- human 1-5 quality scoring and score notes
 
-Next improvements should focus on human quality scoring, task merge history across brief cycles, and measuring whether completed tasks produced real outcomes.
+Next improvements should focus on bot-triggered summaries, agent-assist history, workflow templates/defaults, and side-by-side specialist summary comparisons.
+
+### Phase 1A: 6529 Bot Commands
+
+Goal: let people request the same reviewed summary workflow from inside 6529 without making the bot an unsafe autoposter.
+
+The safe first version:
+
+- dedicated 6529 bot profile and wallet
+- inbound mention and DM ingestion for allowlisted waves or workspaces
+- command parser for "summarize this wave", "catch me up since last check-in", and "what is open?"
+- identity mapping from 6529 handle or wallet to a SwarmOps workspace user
+- wallet sign-in for normal users, mapping 6529 hot-wallet identity to roles without requesting private keys
+- per-user, per-wave, and per-workspace rate limits
+- summary draft creation through the same cost cap, provider-key check, source gate, and audit log as `/operator/briefs`
+- default response is a private draft link or DM; public posting still requires an approved operator action
+- idempotency by wave, trigger drop, command text, and requester
+
+DMs should support a broader "catch me up across my tracked waves" command only after tracked-wave ingestion exists. Until then, DMs can trigger one-wave summaries by explicit wave ID or selected wave.
+
+Do not enable unrestricted public replies from mentions. A bot tag should create a draft or a private response first; posting back to the wave requires authority for that wave.
 
 Success criteria:
 
-- operators use briefs even when no battle is being run
+- people use summaries even when no battle is being run
 - every claim links back to source drops
-- brief output is faster to review than reading the whole wave
+- summary output is faster to review than reading the whole wave
+- repeat summaries show what changed since the last reviewed summary
 
 ### Phase 2: Specialist Swarm
 
@@ -103,14 +151,14 @@ Goal: split work across specialist agents.
 Initial roles:
 
 - Summarizer
-- Decision Brief Agent
+- Decision Note Agent
 - Task Extractor
 - Risk/Objection Agent
 - Source Checker
 - Proposal Drafter
 - Coordinator
 
-The coordinator assembles outputs into one operator brief. The arena evaluates agents within each role.
+The coordinator assembles outputs into one reviewed wave summary. The arena evaluates agents within each role.
 
 Success criteria:
 
@@ -122,31 +170,59 @@ Success criteria:
 
 Goal: convert wave conversation into trackable work.
 
-The first admin-only action board now exists:
+The first operator-only action board now exists:
 
 - extracted tasks
 - manual tasks
 - basic duplicate suppression for open suggested tasks
+- repeat mention tracking across summary cycles
 - source drop references
-- owner
+- agent-suggested owner
+- human-assigned owner
+- claimed-by and claimed-at tracking
+- last-seen summary and seen count
 - status
 - human reviewer
 - outcome evidence links
+- human outcome score and score notes
 
 Next additions:
 
 - agent-assist history
-- task merge history across brief cycles
+- workflow templates and project-specific workflow defaults
+- richer task change history filters
 
 Tasks can be created by agents but should require human confirmation before becoming official.
 
 Success criteria:
 
-- tasks survive across brief cycles
-- users can see what changed since the last brief
+- tasks survive across summary cycles
+- users can see what changed since the last summary
 - completed tasks link to wave posts or evidence
 
-### Phase 4: Project Workspaces And Memory
+### Phase 4: 6529 App Extension
+
+Goal: put SwarmOps where people already read waves.
+
+Build a Chrome extension that injects a small SwarmOps bubble or side panel into the 6529 app. The extension should detect the current wave, let the user ask for a summary, and show decisions, open questions, follow-ups, and checks without leaving the 6529 interface.
+
+Start read-only:
+
+- current-wave detection
+- authenticated SwarmOps session
+- summary request and response panel
+- source drop links back into 6529
+- private user notes
+- no automatic posting
+- no wallet actions
+
+Success criteria:
+
+- users can summarize the current wave without copying IDs manually
+- the assistant feels like a native helper, not a separate dashboard
+- posting remains explicit and human-approved
+
+### Phase 5: Project Workspaces And Memory
 
 Goal: let each 6529-native project customize the same operating structure.
 
@@ -175,7 +251,7 @@ Success criteria:
 - memory is exportable
 - project admins can configure agent roles without code changes
 
-### Phase 5: External Agent Intake
+### Phase 6: External Agent Intake
 
 Goal: let third-party agents contribute without compromising safety.
 
@@ -201,7 +277,7 @@ Success criteria:
 - unsafe or unreliable agents can be disabled quickly
 - operators understand which cost fields are measured vs self-reported
 
-### Phase 6: Payments And Network Operation
+### Phase 7: Payments And Network Operation
 
 Goal: support paid agent work only after agent usefulness is proven.
 
@@ -271,6 +347,6 @@ The company should make money by being the best operator of the network, not by 
 
 ## Immediate Build Direction
 
-The next product step after production Agent Arena is **Wave Chief Of Staff**.
+The next product step is **Wave Guidance And Follow-Ups**.
 
-Do not start with external agents, payments, or generalized workspaces. First improve briefs and tasks until they make 6529 waves easier to run every day.
+Do not start with external agents, payments, or generalized workspaces. First improve summaries, checks, follow-ups, and the review queue until they make 6529 waves easier to understand every day.

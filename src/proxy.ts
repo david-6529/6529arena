@@ -23,8 +23,9 @@ async function expectedAdminSessionToken() {
 
 export async function proxy(request: NextRequest) {
   const adminKey = process.env.ADMIN_API_KEY;
+  const pathname = request.nextUrl.pathname;
 
-  if (!adminKey || request.nextUrl.pathname === "/admin/login") {
+  if (!adminKey || pathname === "/admin/login" || pathname === "/operator/login") {
     return NextResponse.next();
   }
 
@@ -36,12 +37,12 @@ export async function proxy(request: NextRequest) {
   }
 
   const url = request.nextUrl.clone();
-  url.pathname = "/admin/login";
+  url.pathname = "/operator/login";
   url.searchParams.set("next", `${request.nextUrl.pathname}${request.nextUrl.search}`);
 
   return NextResponse.redirect(url);
 }
 
 export const config = {
-  matcher: ["/admin/:path*"],
+  matcher: ["/admin/:path*", "/operator/:path*"],
 };

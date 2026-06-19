@@ -13,6 +13,8 @@ Use `errorId` to correlate with `api.route_error` events and server logs.
 
 Admin routes accept an admin session cookie, `x-admin-api-key: $ADMIN_API_KEY`, or `Authorization: Bearer $ADMIN_API_KEY`. Worker routes also accept `Authorization: Bearer $CRON_SECRET`.
 
+The `/api/admin/*` path is a technical namespace. Product copy calls this role an operator: the human reviewer who approves summaries, posts, follow-ups, exports, and maintenance actions.
+
 ## Public
 
 ### `GET /api/health`
@@ -179,7 +181,7 @@ Admin. Closes a battle, calculates human vote scores, final scores, and winner.
 
 ### `POST /api/bot/mention`
 
-Admin/bot. Handles a detected `@AgentArena` mention.
+Admin/bot. Handles a detected `@AgentArena` mention for the legacy battle workflow. The next summary-first bot command path should create a Wave Summary Draft through the same operator review gates before any public post.
 
 Body:
 
@@ -197,7 +199,7 @@ Body:
 
 ### `GET /api/admin/jobs/process`
 
-Admin or cron. Processes queued battle jobs and runs operational maintenance.
+Operator or cron. Processes queued battle jobs and runs operational maintenance.
 
 Query:
 
@@ -205,7 +207,7 @@ Query:
 
 ### `POST /api/admin/jobs/process`
 
-Admin or cron. Same as GET, with JSON body:
+Operator or cron. Same as GET, with JSON body:
 
 ```json
 {
@@ -218,22 +220,22 @@ Admin or cron. Same as GET, with JSON body:
 
 Admin. Runs cleanup without processing model jobs: stale job recovery, expired rate-limit cleanup, old job cleanup, and old event cleanup.
 
-## Wave Briefs
+## Wave Summaries
 
 ### `GET /api/admin/briefs`
 
-Admin. Lists recent wave brief drafts.
+Admin. Lists recent wave summary drafts with previous-summary metadata when available. The route keeps the existing `/briefs` path for compatibility.
 
 ### `POST /api/admin/briefs`
 
-Admin. Generates a draft operator brief from 6529 wave context.
+Admin. Generates a draft wave summary from 6529 wave context. If the same wave already has an approved or posted summary, the new draft stores `previousBriefId` and asks the model to fill `changes_since_previous`. Requests are rate-limited by `WAVE_BRIEF_RATE_LIMIT_PER_HOUR` and return `x-ratelimit-*` headers. If the rate-limit env is invalid, non-integer, or non-positive, if the cost-cap env is invalid or non-positive, or if the selected provider key is missing, generation fails closed before consuming a rate-limit bucket, creating a draft, or calling a model provider. Invalid rate-limit config logs `wave_brief.rate_limit_config_invalid`; invalid cost-cap config logs `wave_brief.cost_cap_config_invalid`; missing provider keys log `wave_brief.provider_config_missing`.
 
 Body:
 
 ```json
 {
   "waveId": "string",
-  "requestText": "optional operator request",
+  "requestText": "optional summary request",
   "contextFrom": "optional ISO date",
   "contextTo": "optional ISO date",
   "maxMessages": 500,
@@ -244,7 +246,7 @@ Body:
 
 ### `POST /api/admin/briefs/:id/review`
 
-Admin. Updates, approves, or rejects a wave brief draft.
+Admin. Updates, approves, or rejects a wave summary draft. Approval validates the final summary content against the stored wave context and fails closed when cited drops are missing. Updates can still save work-in-progress edits while sources are being fixed.
 
 Body:
 
@@ -254,25 +256,27 @@ Body:
   "title": "optional edited title",
   "content": "optional edited markdown",
   "reviewerNotes": "optional",
+  "humanScore": "optional 1-5 score or null",
+  "humanScoreNotes": "optional score notes or null",
   "reviewedBy": "optional"
 }
 ```
 
-`action` can be `update`, `approve`, or `reject`.
+`action` can be `update`, `approve`, or `reject`. Missing final-content source drops block `approve` and log `wave_brief.approve_blocked`. Updating title or content on an approved summary moves it back to `draft` and clears `approvedAt`; metadata-only updates keep the approval. Posting, posted, and rejected summaries lock title and content; use `update` only for reviewer notes, reviewer identity, human score, and score notes after those terminal states. Create a new summary for revisions after rejection.
 
 ### `GET /api/admin/briefs/:id/post-to-6529`
 
-Admin. Dry-run render of the 6529 wave brief post body.
+Admin. Dry-run render of the 6529 wave summary post body. The response includes final-content source-gate metadata so clients can see whether posting would be blocked by missing cited drops.
 
 ### `POST /api/admin/briefs/:id/post-to-6529`
 
-Admin. Posts an approved wave brief back into the source 6529 wave.
+Admin. Posts an approved wave summary back into the source 6529 wave. The final rendered summary content is checked against the stored wave context before any 6529 call; missing source drops block posting and log `wave_brief.post_blocked`. Posting uses a DB-backed `approved -> posting -> posted` claim so concurrent requests do not create duplicate 6529 drops. Failed 6529 post attempts restore the summary to `approved` when no drop id was returned and log `wave_brief.post_failed` with the brief id, wave id, content length, upstream status when available, and error message.
 
 ## Wave Tasks
 
 ### `GET /api/admin/tasks`
 
-Admin. Lists recent wave tasks suggested from Wave Brief Draft action items.
+Admin. Lists recent wave tasks suggested from Wave Summary Draft action items. Repeated open tasks include `seenCount`, `lastSeenAt`, and `lastSeenBriefId` so operators can tell when a later summary reinforced existing work.
 
 ### `POST /api/admin/tasks`
 
@@ -285,7 +289,9 @@ Body:
   "waveId": "string",
   "title": "task title",
   "status": "confirmed",
-  "suggestedOwner": "optional owner",
+  "workflowLabel": "optional standard workflow label",
+  "suggestedOwner": "optional agent-suggested owner",
+  "assignedTo": "optional human-assigned owner",
   "sourceDropIds": ["optional-drop-id"],
   "reviewerNotes": "optional",
   "reviewedBy": "optional",
@@ -297,7 +303,7 @@ Body:
 
 ### `POST /api/admin/tasks/:id/review`
 
-Admin. Updates a wave task's status, owner, title, reviewer notes, or outcome evidence.
+Admin. Updates a wave task's status, workflow label, suggested owner, human assignment, claim state, title, reviewer notes, outcome evidence, or human outcome score.
 
 Body:
 
@@ -305,12 +311,31 @@ Body:
 {
   "status": "confirmed",
   "title": "optional edited task title",
-  "suggestedOwner": "optional owner",
+  "workflowLabel": "optional standard workflow label or null",
+  "suggestedOwner": "optional agent-suggested owner",
+  "assignedTo": "optional human-assigned owner",
+  "claimedBy": "optional person or agent that claimed the work",
   "reviewerNotes": "optional",
   "reviewedBy": "optional",
   "outcomeDropId": "optional 6529 drop id",
   "outcomeUrl": "optional evidence URL",
-  "outcomeSummary": "optional outcome summary"
+  "outcomeSummary": "optional outcome summary",
+  "outcomeScore": "optional 1-5 score or null",
+  "outcomeScoreNotes": "optional score notes or null",
+  "outcomeReviewedBy": "optional admin handle"
+}
+```
+
+### `POST /api/admin/tasks/:id/comments`
+
+Admin. Adds an append-only operational comment to a wave task and records a `wave_task.comment_added` audit event.
+
+Body:
+
+```json
+{
+  "body": "comment text",
+  "author": "optional admin handle"
 }
 ```
 
@@ -337,6 +362,30 @@ Admin. Checks bot wallet auth against 6529 without posting.
 ### `POST /api/admin/6529/context`
 
 Admin. Previews normalized 6529 wave context.
+
+### `GET /api/admin/6529/waves/search`
+
+Admin. Searches waves by name using the 6529 waves endpoint, then fills in any matching saved summary history. Direct wave ID entry is handled by the operator form and does not call this search route.
+
+Query:
+
+- `q`: wave name text, minimum 2 characters.
+- `limit`: number from 1 to 20, default 8.
+
+Response:
+
+```json
+{
+  "waves": [
+    {
+      "id": "wave-id",
+      "name": "Wave name",
+      "description": "optional",
+      "source": "6529"
+    }
+  ]
+}
+```
 
 ### `POST /api/admin/battles/:id/votes/import`
 
@@ -366,8 +415,10 @@ Admin. CSV exports.
 
 Query:
 
-- `type`: `leaderboard`, `battles`, `votes`, or `agent-runs`.
+- `type`: `leaderboard`, `wave-summaries`, `wave-tasks`, `battles`, `votes`, or `agent-runs`.
 - `limit`: optional, max 10000 for table exports.
+
+Wave summary and wave task exports include operational metadata only. Wave summary exports include source-gate counts and clear/blocked status, but intentionally exclude raw wave drops, raw summary content, prompts, comments, reviewer note bodies, and full model outputs.
 
 ### `POST /api/admin/agent-submissions/:id/review`
 

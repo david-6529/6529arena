@@ -1,14 +1,32 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { CheckCircle2, Eye, FileText, KeyRound, Plus, Send, XCircle } from "lucide-react";
-import { useState } from "react";
+import { CheckCircle2, Eye, FileText, KeyRound, Plus, Send, Star, XCircle } from "lucide-react";
+import { useEffect, useState } from "react";
+import { EntityHistoryList, type EntityHistoryEventRow } from "@/components/admin/entity-history-list";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { hasUnsavedPostContentChanges, isWaveBriefApprovalBlocked, isWaveBriefContentLocked } from "@/lib/briefs/draft-state";
 import { formatDate, formatLatency, formatUsd } from "@/lib/format";
+
+type SourceCheck = {
+  totalDrops: number;
+  referencedDropIds: string[];
+  missingDropIds: string[];
+  references: Array<{
+    dropId: string;
+    path: string;
+    section: string;
+  }>;
+  missingReferences: Array<{
+    dropId: string;
+    path: string;
+    section: string;
+  }>;
+};
 
 export type WaveBriefRow = {
   id: string;
@@ -25,23 +43,30 @@ export type WaveBriefRow = {
   costUsd: number | null;
   latencyMs: number | null;
   reviewerNotes: string | null;
+  humanScore: number | null;
+  humanScoreNotes: string | null;
   reviewedBy: string | null;
   approvedAt: string | null;
   rejectedAt: string | null;
   postDropId: string | null;
   postedAt: string | null;
   createdAt: string;
-  sourceCheck: {
-    totalDrops: number;
-    referencedDropIds: string[];
-    missingDropIds: string[];
-  };
+  previousBrief: {
+    id: string;
+    title: string;
+    status: string;
+    postDropId: string | null;
+    createdAt: string;
+  } | null;
+  sourceCheck: SourceCheck;
+  contentSourceCheck: SourceCheck;
   quality: {
     score: number;
     label: "ready" | "review" | "weak";
     blockers: string[];
     strengths: string[];
   };
+  history: EntityHistoryEventRow[];
 };
 
 type ApiState = {
@@ -54,6 +79,8 @@ type Draft = {
   title: string;
   content: string;
   reviewerNotes: string;
+  humanScore: string;
+  humanScoreNotes: string;
 };
 
 type PostPreview = {
@@ -63,6 +90,14 @@ type PostPreview = {
   postDropId: string | null;
   content: string;
   contentLength: number;
+  sourceCheck: SourceCheck;
+};
+
+type WaveSearchOption = {
+  id: string;
+  name: string;
+  description: string | null;
+  source: string;
 };
 
 function defaultDraft(brief: WaveBriefRow): Draft {
@@ -70,6 +105,8 @@ function defaultDraft(brief: WaveBriefRow): Draft {
     title: brief.title,
     content: brief.content,
     reviewerNotes: brief.reviewerNotes ?? "",
+    humanScore: brief.humanScore == null ? "" : String(brief.humanScore),
+    humanScoreNotes: brief.humanScoreNotes ?? "",
   };
 }
 
@@ -109,7 +146,11 @@ export function WaveBriefAdmin({ briefs }: { briefs: WaveBriefRow[] }) {
   const router = useRouter();
   const [adminKey, setAdminKey] = useState("");
   const [waveId, setWaveId] = useState("");
-  const [requestText, setRequestText] = useState("Create an operator-ready brief for this 6529 wave.");
+  const [waveQuery, setWaveQuery] = useState("");
+  const [waveOptions, setWaveOptions] = useState<WaveSearchOption[]>([]);
+  const [wavePickerOpen, setWavePickerOpen] = useState(false);
+  const [waveSearchState, setWaveSearchState] = useState<ApiState>({});
+  const [requestText, setRequestText] = useState("Create a clear catch-up summary for this 6529 wave.");
   const [contextFrom, setContextFrom] = useState("");
   const [contextTo, setContextTo] = useState("");
   const [maxMessages, setMaxMessages] = useState("");
@@ -129,7 +170,55 @@ export function WaveBriefAdmin({ briefs }: { briefs: WaveBriefRow[] }) {
     };
   }
 
+  useEffect(() => {
+    const query = waveQuery.trim();
+
+    if (query.length < 2) {
+      return;
+    }
+
+    const controller = new AbortController();
+    const timeout = window.setTimeout(async () => {
+      setWaveSearchState({ loading: "search" });
+
+      try {
+        const response = await fetch(`/api/admin/6529/waves/search?q=${encodeURIComponent(query)}&limit=8`, {
+          headers: adminKey ? { "x-admin-api-key": adminKey } : undefined,
+          signal: controller.signal,
+        });
+        const json = await response.json();
+
+        if (!response.ok) {
+          throw new Error(errorMessage(json));
+        }
+
+        setWaveOptions(Array.isArray(json.waves) ? json.waves : []);
+        setWaveSearchState({});
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
+
+        setWaveOptions([]);
+        setWaveSearchState({ error: error instanceof Error ? error.message : "Wave search failed." });
+      }
+    }, 250);
+
+    return () => {
+      window.clearTimeout(timeout);
+      controller.abort();
+    };
+  }, [adminKey, waveQuery]);
+
   function updateDraft(briefId: string, patch: Partial<Draft>) {
+    if ("title" in patch || "content" in patch) {
+      setPreviewById((current) => {
+        const next = { ...current };
+        delete next[briefId];
+        return next;
+      });
+    }
+
     setDrafts((current) => ({
       ...current,
       [briefId]: {
@@ -137,6 +226,22 @@ export function WaveBriefAdmin({ briefs }: { briefs: WaveBriefRow[] }) {
         ...patch,
       },
     }));
+  }
+
+  function updateWaveQuery(value: string) {
+    setWaveQuery(value);
+    setWavePickerOpen(true);
+
+    if (value.trim().length < 2) {
+      setWaveOptions([]);
+      setWaveSearchState({});
+    }
+  }
+
+  function selectWave(option: WaveSearchOption) {
+    setWaveQuery(option.name);
+    setWaveId(option.id);
+    setWavePickerOpen(false);
   }
 
   async function generateBrief() {
@@ -162,10 +267,10 @@ export function WaveBriefAdmin({ briefs }: { briefs: WaveBriefRow[] }) {
         throw new Error(errorMessage(json));
       }
 
-      setState({ message: `Generated brief ${json.brief.id.slice(0, 8)}.` });
+      setState({ message: `Generated summary ${json.brief.id.slice(0, 8)}.` });
       router.refresh();
     } catch (error) {
-      setState({ error: error instanceof Error ? error.message : "Brief generation failed." });
+      setState({ error: error instanceof Error ? error.message : "Summary generation failed." });
     }
   }
 
@@ -182,7 +287,9 @@ export function WaveBriefAdmin({ briefs }: { briefs: WaveBriefRow[] }) {
           action,
           title: draft.title,
           content: draft.content,
-          reviewerNotes: draft.reviewerNotes || undefined,
+          reviewerNotes: draft.reviewerNotes.trim() || null,
+          humanScore: draft.humanScore ? Number(draft.humanScore) : null,
+          humanScoreNotes: draft.humanScoreNotes.trim() || null,
           reviewedBy: reviewedBy || undefined,
         }),
       });
@@ -233,7 +340,7 @@ export function WaveBriefAdmin({ briefs }: { briefs: WaveBriefRow[] }) {
         throw new Error(errorMessage(json));
       }
 
-      setState({ message: `Posted brief ${brief.id.slice(0, 8)} to 6529.` });
+      setState({ message: `Posted summary ${brief.id.slice(0, 8)} to 6529.` });
       router.refresh();
     } catch (error) {
       setState({ error: error instanceof Error ? error.message : "Post failed." });
@@ -245,29 +352,79 @@ export function WaveBriefAdmin({ briefs }: { briefs: WaveBriefRow[] }) {
       <section className="rounded-md border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
         <div className="mb-5 grid gap-3 border-b border-zinc-200 pb-5 dark:border-zinc-800 lg:grid-cols-[1fr_0.8fr]">
           <div>
-            <h2 className="font-bold text-zinc-950 dark:text-zinc-50">Generate Wave Brief</h2>
+            <h2 className="font-bold text-zinc-950 dark:text-zinc-50">Generate Wave Summary</h2>
             <p className="mt-1 text-sm leading-6 text-zinc-600 dark:text-zinc-400">
-              Create an admin-only draft brief from 6529 wave context. Review and approve before posting.
+              Create an operator-reviewed summary from 6529 wave context. Review, score 1-5, and approve after the source gate passes.
             </p>
           </div>
           <label className="block text-sm font-semibold text-zinc-800 dark:text-zinc-200">
             <span className="mb-1 flex items-center gap-2">
               <KeyRound className="h-4 w-4" aria-hidden="true" />
-              Admin key
+              App access key
             </span>
             <Input
               type="password"
               value={adminKey}
               onChange={(event) => setAdminKey(event.target.value)}
-              placeholder="Optional after admin login"
+              placeholder="Optional after operator login"
             />
           </label>
         </div>
 
-        <div className="grid gap-4 lg:grid-cols-3">
+        <div className="grid gap-4 lg:grid-cols-4">
+          <div className="relative block text-sm font-semibold text-zinc-800 dark:text-zinc-200">
+            <label htmlFor="wave-search" className="mb-1 block">Wave name</label>
+            <Input
+              id="wave-search"
+              value={waveQuery}
+              onChange={(event) => updateWaveQuery(event.target.value)}
+              onFocus={() => setWavePickerOpen(true)}
+              onBlur={() => window.setTimeout(() => setWavePickerOpen(false), 120)}
+              placeholder="Search saved waves"
+              autoComplete="off"
+            />
+            {wavePickerOpen && (waveSearchState.loading === "search" || waveSearchState.error || waveOptions.length > 0) ? (
+              <div className="absolute z-20 mt-2 max-h-72 w-full overflow-auto rounded-md border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-zinc-950">
+                {waveSearchState.loading === "search" ? (
+                  <p className="px-3 py-2 text-xs font-medium text-zinc-500 dark:text-zinc-400">Searching waves</p>
+                ) : null}
+                {waveSearchState.error ? (
+                  <p className="px-3 py-2 text-xs font-medium text-red-700 dark:text-red-300">{waveSearchState.error}</p>
+                ) : null}
+                {waveOptions.map((option) => (
+                  <button
+                    key={option.id}
+                    type="button"
+                    className="block w-full cursor-pointer border-t border-zinc-100 px-3 py-2 text-left transition hover:bg-zinc-100 dark:border-zinc-800 dark:hover:bg-zinc-900"
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => selectWave(option)}
+                  >
+                    <span className="block truncate text-sm font-semibold text-zinc-950 dark:text-zinc-50">{option.name}</span>
+                    <span className="mt-0.5 block truncate font-mono text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                      {option.id} · {option.source}
+                    </span>
+                    {option.description ? (
+                      <span className="mt-1 line-clamp-2 block text-xs font-medium leading-5 text-zinc-500 dark:text-zinc-400">
+                        {option.description}
+                      </span>
+                    ) : null}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+            {waveId.trim() ? (
+              <p className="mt-2 truncate text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                Selected wave ID <span className="font-mono text-zinc-700 dark:text-zinc-300">{waveId.trim()}</span>
+              </p>
+            ) : null}
+          </div>
           <label className="block text-sm font-semibold text-zinc-800 dark:text-zinc-200">
             <span className="mb-1 block">Wave ID</span>
-            <Input value={waveId} onChange={(event) => setWaveId(event.target.value)} />
+            <Input
+              value={waveId}
+              onChange={(event) => setWaveId(event.target.value)}
+              placeholder="Paste wave ID"
+            />
           </label>
           <label className="block text-sm font-semibold text-zinc-800 dark:text-zinc-200">
             <span className="mb-1 block">Provider</span>
@@ -281,8 +438,8 @@ export function WaveBriefAdmin({ briefs }: { briefs: WaveBriefRow[] }) {
             <span className="mb-1 block">Model override</span>
             <Input value={modelName} onChange={(event) => setModelName(event.target.value)} placeholder="default for provider" />
           </label>
-          <label className="block text-sm font-semibold text-zinc-800 dark:text-zinc-200 lg:col-span-3">
-            <span className="mb-1 block">Brief request</span>
+          <label className="block text-sm font-semibold text-zinc-800 dark:text-zinc-200 lg:col-span-4">
+            <span className="mb-1 block">Summary request</span>
             <Textarea value={requestText} onChange={(event) => setRequestText(event.target.value)} />
           </label>
           <label className="block text-sm font-semibold text-zinc-800 dark:text-zinc-200">
@@ -309,11 +466,11 @@ export function WaveBriefAdmin({ briefs }: { briefs: WaveBriefRow[] }) {
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <Button type="button" onClick={generateBrief} disabled={state.loading !== undefined || !waveId.trim()}>
             <Plus className="h-4 w-4" aria-hidden="true" />
-            {state.loading === "generate" ? "Generating" : "Generate Brief"}
+            {state.loading === "generate" ? "Generating" : "Generate Summary"}
           </Button>
           <label className="block min-w-64 text-sm font-semibold text-zinc-800 dark:text-zinc-200">
             <span className="mb-1 block">Reviewer</span>
-            <Input value={reviewedBy} onChange={(event) => setReviewedBy(event.target.value)} placeholder="admin handle" />
+            <Input value={reviewedBy} onChange={(event) => setReviewedBy(event.target.value)} placeholder="operator handle" />
           </label>
         </div>
 
@@ -334,6 +491,22 @@ export function WaveBriefAdmin({ briefs }: { briefs: WaveBriefRow[] }) {
         {briefs.map((brief) => {
           const draft = drafts[brief.id] ?? defaultDraft(brief);
           const preview = previewById[brief.id];
+          const isRejected = brief.status === "rejected";
+          const isPosting = brief.status === "posting";
+          const isContentLocked = isWaveBriefContentLocked(brief.status);
+          const isPostGateBlocked = brief.contentSourceCheck.missingDropIds.length > 0;
+          const hasUnsavedPostChanges = hasUnsavedPostContentChanges({
+            savedTitle: brief.title,
+            savedContent: brief.content,
+            draftTitle: draft.title,
+            draftContent: draft.content,
+          });
+          const willInvalidateApproval = brief.status === "approved" && hasUnsavedPostChanges;
+          const isApprovalBlocked = isWaveBriefApprovalBlocked({
+            status: brief.status,
+            finalMissingSourceCount: brief.contentSourceCheck.missingDropIds.length,
+            hasUnsavedContentChanges: hasUnsavedPostChanges,
+          });
 
           return (
             <article key={brief.id} className="rounded-md border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
@@ -353,13 +526,30 @@ export function WaveBriefAdmin({ briefs }: { briefs: WaveBriefRow[] }) {
                         ? `${brief.sourceCheck.missingDropIds.length} missing sources`
                         : "sources ok"}
                     </Badge>
+                    <Badge
+                      className={
+                        isPostGateBlocked
+                          ? "border-red-800 bg-red-950/40 text-red-200"
+                          : "border-emerald-800 bg-emerald-950/40 text-emerald-200"
+                      }
+                    >
+                      {isPostGateBlocked ? `${brief.contentSourceCheck.missingDropIds.length} post blocked` : "post gate clear"}
+                    </Badge>
                     <Badge className={qualityClass(brief.quality.label)}>
                       quality {brief.quality.score}
+                    </Badge>
+                    <Badge className="border-sky-800 bg-sky-950/40 text-sky-200">
+                      human {brief.humanScore == null ? "unscored" : `${brief.humanScore}/5`}
                     </Badge>
                   </div>
                   <h2 className="mt-3 text-xl font-bold text-zinc-950 dark:text-zinc-50">{brief.title}</h2>
                   <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
                     Wave {brief.waveId} · {formatDate(brief.createdAt)}
+                  </p>
+                  <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-500">
+                    {brief.previousBrief
+                      ? `Continues ${brief.previousBrief.title} (${brief.previousBrief.status}, ${formatDate(brief.previousBrief.createdAt)})`
+                      : "First reviewed summary lineage for this wave."}
                   </p>
                 </div>
                 <div className="grid gap-2 text-sm text-zinc-700 dark:text-zinc-300 sm:grid-cols-4">
@@ -374,7 +564,11 @@ export function WaveBriefAdmin({ briefs }: { briefs: WaveBriefRow[] }) {
                 <div className="space-y-3">
                   <label className="block text-sm font-semibold text-zinc-800 dark:text-zinc-200">
                     <span className="mb-1 block">Title</span>
-                    <Input value={draft.title} onChange={(event) => updateDraft(brief.id, { title: event.target.value })} />
+                    <Input
+                      value={draft.title}
+                      onChange={(event) => updateDraft(brief.id, { title: event.target.value })}
+                      disabled={isContentLocked}
+                    />
                   </label>
                   <label className="block text-sm font-semibold text-zinc-800 dark:text-zinc-200">
                     <span className="mb-1 block">Reviewer notes</span>
@@ -384,40 +578,128 @@ export function WaveBriefAdmin({ briefs }: { briefs: WaveBriefRow[] }) {
                       onChange={(event) => updateDraft(brief.id, { reviewerNotes: event.target.value })}
                     />
                   </label>
+                  <div className="grid gap-3 sm:grid-cols-[0.45fr_1fr]">
+                    <label className="block text-sm font-semibold text-zinc-800 dark:text-zinc-200">
+                      <span className="mb-1 flex items-center gap-1.5">
+                        <Star className="h-4 w-4" aria-hidden="true" />
+                        Human score
+                      </span>
+                      <Select
+                        value={draft.humanScore}
+                        onChange={(event) => updateDraft(brief.id, { humanScore: event.target.value })}
+                      >
+                        <option value="">Unscored</option>
+                        <option value="5">5 - ready</option>
+                        <option value="4">4 - minor edits</option>
+                        <option value="3">3 - useful but needs work</option>
+                        <option value="2">2 - weak</option>
+                        <option value="1">1 - unusable</option>
+                      </Select>
+                    </label>
+                    <label className="block text-sm font-semibold text-zinc-800 dark:text-zinc-200">
+                      <span className="mb-1 block">Score notes</span>
+                      <Input
+                        value={draft.humanScoreNotes}
+                        onChange={(event) => updateDraft(brief.id, { humanScoreNotes: event.target.value })}
+                        placeholder="Why this score?"
+                      />
+                    </label>
+                  </div>
                   <div className="flex flex-wrap gap-2">
                     <Button type="button" variant="secondary" onClick={() => reviewBrief(brief, "update")} disabled={state.loading !== undefined}>
                       <FileText className="h-4 w-4" aria-hidden="true" />
                       Save Edits
                     </Button>
-                    <Button type="button" onClick={() => reviewBrief(brief, "approve")} disabled={state.loading !== undefined || brief.status === "posted"}>
+                    <Button type="button" onClick={() => reviewBrief(brief, "approve")} disabled={state.loading !== undefined || isApprovalBlocked}>
                       <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
                       Approve
                     </Button>
-                    <Button type="button" variant="danger" onClick={() => reviewBrief(brief, "reject")} disabled={state.loading !== undefined || brief.status === "posted"}>
+                    <Button
+                      type="button"
+                      variant="danger"
+                      onClick={() => reviewBrief(brief, "reject")}
+                      disabled={state.loading !== undefined || isContentLocked}
+                    >
                       <XCircle className="h-4 w-4" aria-hidden="true" />
                       Reject
                     </Button>
-                    <Button type="button" variant="secondary" onClick={() => previewPost(brief)} disabled={state.loading !== undefined || brief.status === "rejected"}>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() => previewPost(brief)}
+                      disabled={state.loading !== undefined || brief.status === "rejected" || hasUnsavedPostChanges}
+                    >
                       <Eye className="h-4 w-4" aria-hidden="true" />
                       Preview Post
                     </Button>
-                    <Button type="button" variant="secondary" onClick={() => postBrief(brief)} disabled={state.loading !== undefined || brief.status !== "approved"}>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() => postBrief(brief)}
+                      disabled={state.loading !== undefined || brief.status !== "approved" || isPostGateBlocked || hasUnsavedPostChanges}
+                    >
                       <Send className="h-4 w-4" aria-hidden="true" />
                       Post to 6529
                     </Button>
                   </div>
-                  {brief.postDropId ? (
-                    <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                      Posted as drop {brief.postDropId}{brief.postedAt ? ` on ${formatDate(brief.postedAt)}` : ""}.
+                  {hasUnsavedPostChanges ? (
+                    <p className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
+                      Save edits before approving, previewing, or posting.
+                      {willInvalidateApproval ? " Saving title or content changes will move this summary back to draft until it is approved again." : ""}
                     </p>
                   ) : null}
-                  {brief.sourceCheck.missingDropIds.length ? (
+                  {brief.postDropId ? (
+                    <div className="space-y-1 text-sm text-zinc-600 dark:text-zinc-400">
+                      <p>
+                        Posted as drop {brief.postDropId}{brief.postedAt ? ` on ${formatDate(brief.postedAt)}` : ""}.
+                      </p>
+                      <p>Posted title and content are locked. Review notes and scores can still be updated.</p>
+                    </div>
+                  ) : null}
+                  {isRejected ? (
                     <p className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-950/30 dark:text-red-200">
-                      Missing source drops: {brief.sourceCheck.missingDropIds.join(", ")}
+                      Rejected summary content is locked. Create a new summary for revisions; notes and scores can still be updated.
                     </p>
+                  ) : null}
+                  {isPosting ? (
+                    <p className="rounded-md border border-sky-200 bg-sky-50 p-3 text-sm text-sky-900 dark:border-sky-800 dark:bg-sky-950/30 dark:text-sky-200">
+                      6529 posting is in progress. Title and content are locked until the post finishes or fails.
+                    </p>
+                  ) : null}
+                  {isPostGateBlocked ? (
+                    <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-950/30 dark:text-red-200">
+                      <p className="font-semibold">Final source gate blocked</p>
+                      <p className="mt-1">Save edits after removing or correcting these source references before approval or posting.</p>
+                      <ul className="mt-2 space-y-1">
+                        {brief.contentSourceCheck.missingReferences.map((reference) => (
+                          <li key={`${reference.path}:${reference.dropId}`}>
+                            {reference.dropId} in {reference.section}
+                            <span className="block text-xs text-red-700 dark:text-red-300">{reference.path}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : (
+                    <p className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200">
+                      Post source gate is clear for the saved summary content.
+                    </p>
+                  )}
+                  {brief.sourceCheck.missingDropIds.length ? (
+                    <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-950/30 dark:text-red-200">
+                      <p className="font-semibold">Generated summary missing source drops</p>
+                      <ul className="mt-1 space-y-1">
+                        {brief.sourceCheck.missingReferences.map((reference) => (
+                          <li key={`${reference.path}:${reference.dropId}`}>
+                            {reference.dropId} in {reference.section}
+                            <span className="block text-xs text-red-700 dark:text-red-300">{reference.path}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   ) : (
                     <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                      {brief.sourceCheck.referencedDropIds.length} cited drops found in {brief.sourceCheck.totalDrops} stored context drops.
+                      {brief.sourceCheck.references.length} source references across {brief.sourceCheck.referencedDropIds.length} cited drops found in{" "}
+                      {brief.sourceCheck.totalDrops} stored context drops.
                     </p>
                   )}
                   {brief.quality.blockers.length ? (
@@ -431,26 +713,49 @@ export function WaveBriefAdmin({ briefs }: { briefs: WaveBriefRow[] }) {
                     </div>
                   ) : (
                     <p className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200">
-                      Brief quality checks are ready for human review.
+                      Summary quality checks are ready for human review.
                     </p>
                   )}
                 </div>
 
                 <div className="space-y-3">
                   <label className="block text-sm font-semibold text-zinc-800 dark:text-zinc-200">
-                    <span className="mb-1 block">Brief content</span>
+                    <span className="mb-1 block">Summary content</span>
                     <Textarea
                       className="min-h-[520px] font-mono text-xs"
                       value={draft.content}
                       onChange={(event) => updateDraft(brief.id, { content: event.target.value })}
+                      disabled={isContentLocked}
                     />
                   </label>
                   {preview ? (
                     <div className="rounded-md border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-950">
                       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                         <h3 className="font-semibold text-zinc-950 dark:text-zinc-50">6529 Post Preview</h3>
-                        <span className="text-xs text-zinc-500 dark:text-zinc-500">{preview.contentLength} chars</span>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge
+                            className={
+                              preview.sourceCheck.missingDropIds.length
+                                ? "border-red-800 bg-red-950/40 text-red-200"
+                                : "border-emerald-800 bg-emerald-950/40 text-emerald-200"
+                            }
+                          >
+                            {preview.sourceCheck.missingDropIds.length
+                              ? `${preview.sourceCheck.missingDropIds.length} missing sources`
+                              : "source gate clear"}
+                          </Badge>
+                          <span className="text-xs text-zinc-500 dark:text-zinc-500">{preview.contentLength} chars</span>
+                        </div>
                       </div>
+                      {preview.sourceCheck.missingReferences.length ? (
+                        <div className="mb-2 rounded-md border border-red-200 bg-red-50 p-2 text-xs text-red-800 dark:border-red-800 dark:bg-red-950/30 dark:text-red-200">
+                          {preview.sourceCheck.missingReferences.map((reference) => (
+                            <p key={`${reference.path}:${reference.dropId}`}>
+                              {reference.dropId} in {reference.section}
+                            </p>
+                          ))}
+                        </div>
+                      ) : null}
                       <pre className="max-h-96 overflow-auto whitespace-pre-wrap rounded-md border border-zinc-200 bg-white p-3 text-xs leading-5 text-zinc-800 dark:border-zinc-800 dark:bg-black dark:text-zinc-200">
                         {preview.content}
                       </pre>
@@ -458,12 +763,13 @@ export function WaveBriefAdmin({ briefs }: { briefs: WaveBriefRow[] }) {
                   ) : null}
                 </div>
               </div>
+              <EntityHistoryList events={brief.history} emptyText="No summary changes recorded yet." />
             </article>
           );
         })}
         {!briefs.length ? (
           <div className="rounded-md border border-zinc-200 bg-white px-5 py-8 text-sm text-zinc-600 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400">
-            No wave briefs generated yet.
+            No wave summaries generated yet.
           </div>
         ) : null}
       </section>

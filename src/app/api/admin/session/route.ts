@@ -43,7 +43,7 @@ export async function POST(request: Request) {
         await logEvent({
           type: "admin.login_rate_limited",
           severity: "warn",
-          message: "Admin login rate limit exceeded.",
+          message: "Operator login rate limit exceeded.",
           actor: `anon:${fingerprint}`,
           metadata: {
             resetAt: rateLimit.resetAt.toISOString(),
@@ -63,7 +63,7 @@ export async function POST(request: Request) {
       await logEvent({
         type: "admin.login_failed",
         severity: "warn",
-        message: "Admin login failed.",
+        message: "Operator login failed.",
       });
 
       return json({ error: "Unauthorized" }, { status: 401 });
@@ -72,12 +72,12 @@ export async function POST(request: Request) {
     const token = getAdminSessionToken();
 
     if (!token) {
-      return json({ error: "Admin session could not be created." }, { status: 500 });
+      return json({ error: "Operator session could not be created." }, { status: 500 });
     }
 
     await logEvent({
       type: "admin.login",
-      message: "Admin session created.",
+      message: "Operator session created.",
     });
 
     return json(
@@ -98,7 +98,7 @@ export async function POST(request: Request) {
 export async function DELETE() {
   await logEvent({
     type: "admin.logout",
-    message: "Admin session cleared.",
+    message: "Operator session cleared.",
   });
 
   return json(

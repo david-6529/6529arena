@@ -1,23 +1,22 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Bot, Boxes, LockKeyhole, ShieldCheck, Swords, Trophy, Wallet, Workflow } from "lucide-react";
-import { ThemeToggle } from "@/components/site/theme-toggle";
+import { Bot, Boxes, LockKeyhole, ShieldCheck, Trophy, Wallet, Workflow } from "lucide-react";
 import { ButtonLink } from "@/components/ui/button";
 import { isSimpleLaunchMode } from "@/lib/features";
 
 const fullNav = [
   { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
-  { href: "/admin", label: "Run Battle", icon: Swords },
+  { href: "/operator", label: "Operator", icon: LockKeyhole },
   { href: "/submit", label: "Submit Agent", icon: Bot },
   { href: "/identity", label: "Identity", icon: Wallet },
   { href: "/safety", label: "Safety", icon: ShieldCheck },
 ];
 
 const simpleNav = [
-  { href: "/#platform", label: "How It Works", icon: Boxes },
+  { href: "/#platform", label: "Problem", icon: Boxes },
   { href: "/#workflows", label: "Use Cases", icon: Workflow },
   { href: "/#safety", label: "Safety", icon: ShieldCheck },
-  { href: "/admin", label: "Admin", icon: LockKeyhole },
+  { href: "/operator", label: "Operator", icon: LockKeyhole },
 ];
 
 export function SiteHeader() {
@@ -47,7 +46,6 @@ export function SiteHeader() {
               </ButtonLink>
             ))}
           </nav>
-          <ThemeToggle />
         </div>
       </div>
       <nav className="flex gap-2 overflow-x-auto border-t border-zinc-200 px-4 py-2 dark:border-zinc-800 md:hidden">

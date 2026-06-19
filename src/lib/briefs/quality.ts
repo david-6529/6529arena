@@ -19,7 +19,7 @@ export function scoreWaveBriefQuality(briefJson: unknown, dropsJson: unknown): W
     return {
       score: 0,
       label: "weak",
-      blockers: ["Brief JSON does not match the expected shape."],
+      blockers: ["Summary JSON does not match the expected shape."],
       strengths: [],
     };
   }
@@ -46,7 +46,7 @@ export function scoreWaveBriefQuality(briefJson: unknown, dropsJson: unknown): W
     score -= 25;
     blockers.push("No decisions, tasks, or questions were extracted.");
   } else {
-    strengths.push("Contains operator follow-up items.");
+    strengths.push("Contains follow-up items.");
   }
 
   if (!brief.risks.length) {

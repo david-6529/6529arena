@@ -23,10 +23,10 @@ export default async function BattlePage({ params }: { params: Promise<{ id: str
   const drops = extractDrops(battle.snapshots[0]?.dropsJson);
   const showAdminControls = await canShowAdminControls();
   const voteHelper = isClosed
-    ? "Voting is closed. Agent names and the winner are visible."
+    ? "Voting is closed. Helper names and the winner are visible."
     : battle.entries.length < 2
-      ? "Voting opens after both options are generated."
-      : "Vote for the more useful option. Agent names stay hidden until the battle closes.";
+      ? "Voting opens after both options are ready."
+      : "Pick the more useful option. Helper names stay hidden until voting closes.";
 
   return (
     <PageFrame>
@@ -43,7 +43,7 @@ export default async function BattlePage({ params }: { params: Promise<{ id: str
           <h1 className="mt-3 text-3xl font-bold text-zinc-950 dark:text-zinc-50">Battle {battle.id.slice(0, 8)}</h1>
           <p className="mt-2 max-w-3xl text-zinc-700 dark:text-zinc-300">{battle.requestText}</p>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-600 dark:text-zinc-400">
-            Compare Option A and Option B on accuracy, clarity, citations, and usefulness. Cost and latency are recorded after generation.
+            Compare Option A and Option B. Pick the one that is clearer, more accurate, and more useful.
           </p>
         </div>
         <VoteButtons battleId={battle.id} disabled={isClosed || battle.entries.length < 2} helper={voteHelper} />
@@ -63,8 +63,8 @@ export default async function BattlePage({ params }: { params: Promise<{ id: str
                   <h2 className="text-xl font-bold text-zinc-950 dark:text-zinc-50">Option {entry.label}</h2>
                   <p className="text-sm text-zinc-600 dark:text-zinc-400">
                     {isClosed
-                      ? `${entry.agent.name} · v${entry.agentVersion?.version ?? "legacy"} · ${entry.agentVersion?.provider ?? entry.agent.provider}/${entry.agentVersion?.modelName ?? entry.agent.modelName}`
-                      : "Agent hidden until voting closes"}
+                      ? `${entry.agent.name} | v${entry.agentVersion?.version ?? "legacy"} | ${entry.agentVersion?.provider ?? entry.agent.provider}/${entry.agentVersion?.modelName ?? entry.agent.modelName}`
+                      : "Helper hidden until voting closes"}
                   </p>
                 </div>
                 {winner ? <Badge className="border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 text-amber-900 dark:text-amber-200">Winner</Badge> : null}
@@ -74,7 +74,7 @@ export default async function BattlePage({ params }: { params: Promise<{ id: str
                 <dl className="grid gap-3 border-t border-zinc-100 pt-4 text-sm dark:border-zinc-800 sm:grid-cols-3">
                   <Meta label="Votes" value={String(votes.length)} />
                   <Meta label="Cost" value={formatUsd(entry.costUsd)} />
-                  <Meta label="Latency" value={formatLatency(entry.latencyMs)} />
+                  <Meta label="Time" value={formatLatency(entry.latencyMs)} />
                 </dl>
               </div>
             </article>
@@ -84,9 +84,9 @@ export default async function BattlePage({ params }: { params: Promise<{ id: str
 
       <section className="mt-6 rounded-md border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm">
         <div className="border-b border-zinc-200 dark:border-zinc-800 px-5 py-4">
-          <h2 className="font-bold text-zinc-950 dark:text-zinc-50">Source Drops Used</h2>
+          <h2 className="font-bold text-zinc-950 dark:text-zinc-50">Messages Used</h2>
           <p className="text-sm text-zinc-600 dark:text-zinc-400">
-            Wave {battle.waveId} · snapshot {formatDate(battle.snapshots[0]?.createdAt)}
+            Wave {battle.waveId} | saved {formatDate(battle.snapshots[0]?.createdAt)}
           </p>
         </div>
         <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
@@ -100,7 +100,7 @@ export default async function BattlePage({ params }: { params: Promise<{ id: str
               <p className="mt-2 line-clamp-3 text-sm leading-6 text-zinc-700 dark:text-zinc-300">{drop.content}</p>
             </div>
           ))}
-          {!drops.length ? <div className="px-5 py-8 text-sm text-zinc-600 dark:text-zinc-400">No snapshot drops found.</div> : null}
+          {!drops.length ? <div className="px-5 py-8 text-sm text-zinc-600 dark:text-zinc-400">No saved messages found.</div> : null}
         </div>
       </section>
     </PageFrame>

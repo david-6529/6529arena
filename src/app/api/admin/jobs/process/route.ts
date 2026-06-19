@@ -34,8 +34,8 @@ export async function POST(request: Request) {
     await logEvent({
       type: "admin.jobs_processed",
       entityType: "battle_job",
-      actor: "admin_or_cron",
-      message: "Admin or cron processed queued jobs.",
+      actor: "operator_or_cron",
+      message: "Operator or cron processed queued jobs.",
       metadata: {
         method: "POST",
         requestedLimit: body.limit,
@@ -62,8 +62,8 @@ export async function GET(request: Request) {
     await logEvent({
       type: "admin.jobs_processed",
       entityType: "battle_job",
-      actor: "admin_or_cron",
-      message: "Admin or cron processed queued jobs.",
+      actor: "operator_or_cron",
+      message: "Operator or cron processed queued jobs.",
       metadata: {
         method: "GET",
         requestedLimit: limit,

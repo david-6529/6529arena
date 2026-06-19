@@ -9,7 +9,9 @@ const reviewSchema = z.object({
   action: z.enum(["approve", "reject", "update"]),
   title: z.string().trim().min(1).max(200).optional(),
   content: z.string().trim().min(1).max(20000).optional(),
-  reviewerNotes: z.string().trim().max(2000).optional(),
+  reviewerNotes: z.string().trim().max(2000).nullable().optional(),
+  humanScore: z.number().int().min(1).max(5).nullable().optional(),
+  humanScoreNotes: z.string().trim().max(1000).nullable().optional(),
   reviewedBy: z.string().trim().max(120).optional(),
 });
 

@@ -73,7 +73,7 @@ export function WalletLinker() {
     if (!window.ethereum) {
       setState({
         identity: state.identity,
-        error: "No injected wallet was found. Open this page in a browser with MetaMask or another EIP-1193 wallet.",
+        error: "No wallet was found. Open this page in a browser with MetaMask or another wallet.",
       });
       return;
     }
@@ -161,7 +161,7 @@ export function WalletLinker() {
         <div className="flex flex-wrap gap-2">
           <Button type="button" onClick={connectAndSign} disabled={state.loading !== undefined}>
             <Wallet className="h-4 w-4" aria-hidden="true" />
-            {state.loading === "connect" ? "Connecting" : state.loading === "sign" ? "Waiting for Signature" : "Link Wallet"}
+            {state.loading === "connect" ? "Connecting" : state.loading === "sign" ? "Waiting for Wallet" : "Link Wallet"}
           </Button>
           {isLinked ? (
             <Button type="button" variant="secondary" onClick={logout} disabled={state.loading !== undefined}>
@@ -171,14 +171,14 @@ export function WalletLinker() {
           ) : null}
         </div>
         <p className="text-sm leading-6 text-zinc-600 dark:text-zinc-400">
-          Signing proves wallet ownership only. The message cannot spend funds, move NFTs, or grant platform admin rights.
+          Signing only proves wallet ownership. It cannot spend funds, move NFTs, or grant admin rights.
         </p>
       </div>
 
       <div className="rounded-md border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950">
         <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-zinc-950 dark:text-zinc-50">
           <ShieldCheck className="h-4 w-4" aria-hidden="true" />
-          Linked Identity
+          Linked Wallet
         </div>
         {state.error ? (
           <p aria-live="polite" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-950/30 dark:text-red-200">

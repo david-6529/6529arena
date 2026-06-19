@@ -31,7 +31,7 @@ export function AdminLoginForm() {
       return;
     }
 
-    router.push(searchParams.get("next") ?? "/admin");
+    router.push(searchParams.get("next") ?? "/operator");
     router.refresh();
   }
 
@@ -42,10 +42,10 @@ export function AdminLoginForm() {
     >
       <div className="flex items-center gap-2">
         <KeyRound className="h-5 w-5 text-zinc-500 dark:text-zinc-400" aria-hidden="true" />
-        <h2 className="font-bold text-zinc-950 dark:text-zinc-50">Admin Login</h2>
+        <h2 className="font-bold text-zinc-950 dark:text-zinc-50">Operator Login</h2>
       </div>
       <label className="mt-4 block text-sm font-semibold text-zinc-800 dark:text-zinc-200">
-        <span className="mb-1 block">Admin key</span>
+        <span className="mb-1 block">App access key</span>
         <Input
           type="password"
           value={adminKey}

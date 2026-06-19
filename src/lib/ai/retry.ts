@@ -1,7 +1,7 @@
-function envNumber(name: string, fallback: number) {
+function envNumber(name: string, fallback: number, options: { allowZero?: boolean } = {}) {
   const value = Number(process.env[name]);
 
-  return Number.isFinite(value) && value > 0 ? value : fallback;
+  return Number.isFinite(value) && (options.allowZero ? value >= 0 : value > 0) ? value : fallback;
 }
 
 function sleep(ms: number) {
@@ -27,7 +27,7 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: str
 }
 
 export async function runProviderCall<T>(label: string, call: () => Promise<T>) {
-  const retries = Math.max(0, envNumber("AI_PROVIDER_RETRIES", 1));
+  const retries = Math.max(0, envNumber("AI_PROVIDER_RETRIES", 1, { allowZero: true }));
   const timeoutMs = envNumber("AI_PROVIDER_TIMEOUT_MS", 45_000);
   let lastError: unknown;
 

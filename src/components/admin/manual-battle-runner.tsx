@@ -215,14 +215,14 @@ export function ManualBattleRunner({
           <h3 className="text-sm font-bold uppercase tracking-normal text-zinc-500 dark:text-zinc-500">Wave context</h3>
           <div>
             <label className="mb-1 block text-sm font-semibold text-zinc-800 dark:text-zinc-200" htmlFor="admin-key">
-              Admin key
+              App access key
             </label>
             <Input
               id="admin-key"
               type="password"
               value={adminKey}
               onChange={(event) => setAdminKey(event.target.value)}
-              placeholder="Optional after admin login"
+              placeholder="Optional after operator login"
             />
           </div>
           <div className="grid gap-4 sm:grid-cols-2">

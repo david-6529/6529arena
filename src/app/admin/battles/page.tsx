@@ -18,12 +18,12 @@ export default async function AdminBattlesPage() {
         <div>
           <Badge className="border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200">
             <ListChecks className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
-            Admin
+            Operator
           </Badge>
           <h1 className="mt-3 text-3xl font-bold text-zinc-950 dark:text-zinc-50">Battles</h1>
         </div>
         <div className="flex flex-wrap gap-2">
-          <ButtonLink href="/admin">Run Battle</ButtonLink>
+          <ButtonLink href="/operator">Operator Console</ButtonLink>
           <AdminLogoutButton />
         </div>
       </div>

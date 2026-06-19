@@ -56,4 +56,4 @@ Use:
 GET /api/health
 ```
 
-Keep `/admin/readiness` behind admin auth and use it after deploy to confirm database, bot wallet, AI provider, and mock-mode state.
+Keep `/operator/readiness` behind operator auth and use it after deploy to confirm database, production URL, cron secret, rate-limit salt, summary cost cap, bot wallet, AI provider, and mock-mode state.

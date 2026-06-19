@@ -69,7 +69,7 @@ DATABASE_URL="$RESTORE_DATABASE_URL" npm run prisma:generate
 
 Open the app against the restored database and check:
 
-- `/admin/readiness`
+- `/operator/readiness`
 - `/leaderboard`
 - recent battles
 - a battle detail page
@@ -87,7 +87,7 @@ npx prisma migrate deploy
 ```
 
 5. Re-enable cron/job processing.
-6. Open `/admin/readiness`.
+6. Open `/operator/readiness`.
 7. Process one small test job or create a test battle.
 8. Review `AppEvent` for restore-time errors.
 
@@ -100,7 +100,7 @@ Before applying migrations that modify core tables:
 - run `npm run build`
 - take a provider snapshot or branch
 - apply migrations to staging first
-- verify `/admin/readiness` and a sample battle page in staging
+- verify `/operator/readiness` and a sample battle page in staging
 
 Use `npx prisma migrate deploy` in production. Do not use `prisma migrate dev` against production.
 

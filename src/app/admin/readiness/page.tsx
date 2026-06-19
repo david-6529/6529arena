@@ -15,16 +15,6 @@ type ChecklistItem = {
   action: string;
 };
 
-function hasProductionUrl() {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
-
-  return Boolean(appUrl && !appUrl.includes("localhost") && !appUrl.includes("127.0.0.1"));
-}
-
-function configured(value?: string) {
-  return Boolean(value?.trim());
-}
-
 export default async function AdminReadinessPage() {
   const simpleLaunch = isSimpleLaunchMode();
   const status = await getSystemStatus();
@@ -41,37 +31,55 @@ export default async function AdminReadinessPage() {
     },
     {
       label: "Production URL",
-      ok: hasProductionUrl(),
-      detail: process.env.NEXT_PUBLIC_APP_URL ?? "NEXT_PUBLIC_APP_URL is missing.",
-      action: "Set NEXT_PUBLIC_APP_URL to the deployed https URL so 6529 posts link to the right battle page.",
+      ok: status.app.productionUrlConfigured,
+      detail: status.app.productionUrlConfigured
+        ? `${status.app.publicUrl} is configured.`
+        : status.app.publicUrl ?? "NEXT_PUBLIC_APP_URL is missing.",
+      action: "Set NEXT_PUBLIC_APP_URL to the deployed https URL so 6529 posts link to the right app pages.",
     },
     {
-      label: "Admin auth",
+      label: "Operator auth",
       ok: status.security.adminKeyConfigured,
       detail: status.security.adminKeyConfigured ? "ADMIN_API_KEY is configured." : "ADMIN_API_KEY is missing.",
-      action: "Set a long random ADMIN_API_KEY before deploying public admin routes.",
+      action: "Set a long random ADMIN_API_KEY before deploying public operator routes.",
     },
     {
       label: "Cron auth",
-      ok: configured(process.env.CRON_SECRET),
-      detail: configured(process.env.CRON_SECRET) ? "CRON_SECRET is configured." : "CRON_SECRET is missing.",
+      ok: status.security.cronSecretConfigured,
+      detail: status.security.cronSecretConfigured ? "CRON_SECRET is configured." : "CRON_SECRET is missing.",
       action: "Set CRON_SECRET so scheduled workers can authenticate without exposing admin credentials.",
     },
     {
       label: "Rate-limit salt",
-      ok: configured(process.env.RATE_LIMIT_SALT),
-      detail: configured(process.env.RATE_LIMIT_SALT) ? "RATE_LIMIT_SALT is configured." : "RATE_LIMIT_SALT is missing.",
+      ok: status.security.rateLimitSaltConfigured,
+      detail: status.security.rateLimitSaltConfigured ? "RATE_LIMIT_SALT is configured." : "RATE_LIMIT_SALT is missing.",
       action: "Set RATE_LIMIT_SALT so request fingerprints stored in the database are not reversible.",
     },
     {
-      label: "AI provider",
-      ok: status.aiProviders.some((provider) => provider.configured),
+      label: "Summary AI provider",
+      ok: status.waveBriefProvider.configured,
+      detail: status.waveBriefProvider.configured
+        ? `${status.waveBriefProvider.provider} summaries can run with ${status.waveBriefProvider.keyName}.`
+        : `WAVE_BRIEF_PROVIDER is ${status.waveBriefProvider.provider}, but ${status.waveBriefProvider.keyName} is missing.`,
+      action: `Set ${status.waveBriefProvider.keyName} or change WAVE_BRIEF_PROVIDER to a configured provider.`,
+    },
+    {
+      label: "Summary cost cap",
+      ok: status.costCaps.waveBriefEstimatedCostUsd !== null,
       detail:
-        status.aiProviders
-          .filter((provider) => provider.configured)
-          .map((provider) => provider.provider)
-          .join(", ") || "No AI provider keys are configured.",
-      action: "Set at least one of OPENAI_API_KEY, ANTHROPIC_API_KEY, or GOOGLE_API_KEY.",
+        status.costCaps.waveBriefEstimatedCostUsd === null
+          ? "MAX_WAVE_BRIEF_ESTIMATED_COST_USD is missing or invalid."
+          : `Wave summaries are capped at $${status.costCaps.waveBriefEstimatedCostUsd.toFixed(2)} estimated cost before provider calls.`,
+      action: "Set MAX_WAVE_BRIEF_ESTIMATED_COST_USD to a conservative positive dollar amount for the pilot.",
+    },
+    {
+      label: "Summary rate limit",
+      ok: status.rateLimits.waveBriefPerHour !== null,
+      detail:
+        status.rateLimits.waveBriefPerHour === null
+          ? "WAVE_BRIEF_RATE_LIMIT_PER_HOUR is missing or invalid."
+          : `Wave summary generation is limited to ${status.rateLimits.waveBriefPerHour} requests per hour per fingerprint.`,
+      action: "Set WAVE_BRIEF_RATE_LIMIT_PER_HOUR to a conservative positive integer for the pilot.",
     },
     {
       label: "6529 bot wallet",
@@ -93,7 +101,7 @@ export default async function AdminReadinessPage() {
       label: "Simple launch mode",
       ok: simpleLaunch,
       detail: simpleLaunch
-        ? "Only the wave-summary battle loop is exposed in primary navigation."
+        ? "The operator console starts with wave summaries, and evaluation battles stay hidden from the launch path."
         : "Full product surfaces are visible.",
       action: "Set SIMPLE_LAUNCH_MODE=true or omit it for the simplest first launch.",
     },
@@ -139,16 +147,16 @@ export default async function AdminReadinessPage() {
         <div>
           <Badge className="border-zinc-300 bg-white text-zinc-800 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200">
             <ClipboardCheck className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
-            Admin
+            Operator
           </Badge>
           <h1 className="mt-3 text-3xl font-bold text-zinc-950 dark:text-zinc-50">Production Readiness</h1>
           <p className="mt-2 max-w-3xl text-zinc-700 dark:text-zinc-300">
-            Concrete deployment checks for the first production 6529 Agent Arena loop.
+            Concrete deployment checks for the first production SwarmOps summary loop.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <ButtonLink href="/admin" variant="secondary">
-            Run Battle
+          <ButtonLink href="/operator" variant="secondary">
+            Operator Console
           </ButtonLink>
           <AdminLogoutButton />
         </div>

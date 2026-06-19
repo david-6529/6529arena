@@ -9,6 +9,9 @@ const jsonContract = `Return strict JSON with this exact shape:
   "title": "string",
   "executive_summary": "string",
   "summary_bullets": ["string"],
+  "changes_since_previous": [
+    { "change": "string", "source_drop_ids": ["string"] }
+  ],
   "decisions_needed": [
     { "title": "string", "why": "string", "source_drop_ids": ["string"] }
   ],
@@ -59,7 +62,7 @@ function buildContext(drops: WaveDrop[]) {
 
     if (used + separator.length + chunk.length > MAX_PROMPT_CONTEXT_CHARS) {
       chunks.push(
-        `Context budget reached. ${drops.length - chunks.length} older drops were stored in the brief but omitted from this model prompt.`,
+        `Context budget reached. ${drops.length - chunks.length} older drops were stored with the summary but omitted from this model prompt.`,
       );
       break;
     }
@@ -71,26 +74,50 @@ function buildContext(drops: WaveDrop[]) {
   return chunks.join("\n\n---\n\n");
 }
 
+function buildPreviousSummaryContext(previousSummary: PreviousWaveSummary | undefined) {
+  if (!previousSummary) {
+    return "No previous reviewed summary was found for this wave.";
+  }
+
+  return `previous_summary_id=${previousSummary.id} status=${previousSummary.status} created=${previousSummary.createdAt.toISOString()}${previousSummary.postDropId ? ` posted_drop=${previousSummary.postDropId}` : ""}
+title=${previousSummary.title}
+${truncateText(previousSummary.content.replace(/\s+/g, " ").trim(), 6_000)}`;
+}
+
+export type PreviousWaveSummary = {
+  id: string;
+  title: string;
+  content: string;
+  status: string;
+  createdAt: Date;
+  postDropId?: string | null;
+};
+
 export function buildWaveBriefPrompts(params: {
   waveId: string;
   requestText: string;
   drops: WaveDrop[];
+  previousSummary?: PreviousWaveSummary;
 }) {
   const orderedDrops = [...params.drops].sort((a, b) => (a.serial_no ?? 0) - (b.serial_no ?? 0));
   const context = buildContext(orderedDrops);
+  const previousSummaryContext = buildPreviousSummaryContext(params.previousSummary);
 
   return {
-    systemPrompt: `You are Wave Chief Of Staff for a 6529 wave.
+    systemPrompt: `You are a source-grounded 6529 wave summarizer.
 
-Your job is to turn wave discussion into an operator-ready brief. Preserve uncertainty, do not invent consensus, and cite only provided drop IDs. Keep claims source-linked. Do not include secrets or private assumptions.
+Your job is to help anyone in the wave catch up quickly. Turn wave discussion into a clear summary with decisions, open questions, follow-ups, risks, suggested public recap, and source citations. Preserve uncertainty, do not invent consensus, and cite only provided drop IDs. Keep claims source-linked. Do not include secrets or private assumptions.
 
 ${jsonContract}`,
     userPrompt: `Wave ID: ${params.waveId}
-Operator request: ${params.requestText}
+Summary request: ${params.requestText}
+
+Previous reviewed summary:
+${previousSummaryContext}
 
 Recent wave drops:
 ${context || "No drops were returned for this wave."}
 
-Generate a concise but actionable wave brief for a human operator. Focus on what happened, what needs a decision, what tasks emerged, what risks exist, and what post the operator could send back into the wave.`,
+Generate a concise but actionable wave summary. Focus on what changed since the previous reviewed summary, what happened, what needs a decision, what follow-ups emerged, what risks exist, and what public recap someone could send back into the wave if useful. If a previous summary exists, fill changes_since_previous with material changes supported by current source drops. If no previous summary exists, keep changes_since_previous empty and use summary_bullets for the first catch-up.`,
   };
 }

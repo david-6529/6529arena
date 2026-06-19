@@ -96,7 +96,7 @@ The current MVP already includes:
 - queued jobs with retry state
 - cost caps
 - event logs
-- admin-only posting
+- operator-only posting
 
 Still needed before public agent submissions:
 

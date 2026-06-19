@@ -1,424 +1,466 @@
 import {
-  Activity,
   ArrowRight,
   BadgeCheck,
   Bot,
-  Boxes,
   BriefcaseBusiness,
   CheckCircle2,
   CircleDollarSign,
   ClipboardCheck,
+  FileCheck2,
   FileText,
-  Gauge,
-  GitBranch,
   Landmark,
-  ListTodo,
+  ListChecks,
   LockKeyhole,
-  Network,
-  RadioTower,
+  MessageSquareText,
   ShieldCheck,
   Sparkles,
-  Trophy,
   Users,
-  Workflow,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
 
-const liveMetrics = [
-  { label: "Wave briefs", value: "42", icon: FileText, tone: "text-teal-200" },
-  { label: "Open tasks", value: "128", icon: ListTodo, tone: "text-amber-200" },
-  { label: "AI helpers", value: "7", icon: Bot, tone: "text-indigo-200" },
-  { label: "Human review", value: "100%", icon: ShieldCheck, tone: "text-emerald-200" },
+const statusStats = [
+  { label: "Messages read", value: "318", detail: "last wave snapshot", icon: MessageSquareText },
+  { label: "Follow-ups found", value: "9", detail: "owners and open asks", icon: ListChecks },
+  { label: "Claims to check", value: "2", detail: "sources needed", icon: ShieldCheck },
+  { label: "Summary status", value: "Ready", detail: "review before sharing", icon: BadgeCheck },
 ];
 
-const consoleRows = [
+const summarySections = [
   {
-    title: "Wave brief",
-    detail: "318 messages turned into a short brief",
-    status: "Review",
+    title: "Decided",
+    text: "Move the curation pilot forward if the budget cap and reviewer list are confirmed.",
+  },
+  {
+    title: "Still Open",
+    text: "Final budget, reviewer availability, and whether the pilot should run for 2 or 4 weeks.",
+  },
+  {
+    title: "Follow-Up",
+    text: "Maya checks reviewer interest. Ben sources prior grant numbers. Ana drafts the pilot scope.",
+  },
+  {
+    title: "Check First",
+    text: "Budget claim needs a link. One privacy-sensitive message should stay out of the public note.",
+  },
+];
+
+const reviewChecks = [
+  { label: "Sources cited", value: "5 drops", state: "Ready" },
+  { label: "Agreement clear", value: "likely, not final", state: "Check" },
+  { label: "Private info", value: "1 line flagged", state: "Edit" },
+  { label: "Cost estimate", value: "$0.18 run", state: "Logged" },
+];
+
+const workflowSteps = [
+  {
+    title: "Read the wave",
+    text: "Choose the wave and time window. SwarmOps pulls only the messages needed for the job.",
+    icon: MessageSquareText,
+  },
+  {
+    title: "Create the summary",
+    text: "AI turns the conversation into a plain recap, decisions, open questions, follow-ups, and checks.",
     icon: FileText,
-    tone: "border-teal-300/40 bg-teal-300/10 text-teal-100",
   },
   {
-    title: "Task list",
-    detail: "9 tasks found",
-    status: "Approve",
-    icon: ListTodo,
-    tone: "border-amber-300/40 bg-amber-300/10 text-amber-100",
-  },
-  {
-    title: "Risk check",
-    detail: "2 claims need sources",
-    status: "Fix first",
-    icon: ShieldCheck,
-    tone: "border-rose-300/40 bg-rose-300/10 text-rose-100",
-  },
-];
-
-const platformPanels = [
-  {
-    title: "Pick The Wave",
-    text: "Choose the wave messages the AI can read.",
-    icon: RadioTower,
-  },
-  {
-    title: "Let AI Help",
-    text: "One helper writes briefs. One finds tasks. One checks risks.",
-    icon: Network,
-  },
-  {
-    title: "Humans Approve",
-    text: "People approve posts, tasks, and anything risky.",
+    title: "Check before sharing",
+    text: "Use it privately, share it with people in the wave, or post it back only after review.",
     icon: ClipboardCheck,
   },
-  {
-    title: "Learn What Works",
-    text: "Track which agents are useful, fast, and affordable.",
-    icon: Trophy,
-  },
 ];
 
-const workflows = [
+const useCases = [
   {
     title: "Governance Ops",
-    label: "Live",
-    text: "Summarize proposals, list decisions, and draft updates.",
+    text: "Catch up on a proposal wave without rereading every message.",
     icon: Landmark,
   },
   {
     title: "Builder Grants",
-    label: "Soon",
-    text: "Review applications, ask for missing info, and track decisions.",
+    text: "See missing facts, follow-ups, and unresolved asks before decisions move forward.",
     icon: BriefcaseBusiness,
   },
   {
-    title: "Product Sprints",
-    label: "Soon",
-    text: "Turn discussion into owners, tasks, and updates.",
-    icon: GitBranch,
+    title: "Curation Rooms",
+    text: "Summarize submissions, opinions, and final review points in one place.",
+    icon: Sparkles,
+  },
+];
+
+const caseStudies = [
+  {
+    group: "Meme Grants Room",
+    role: "Wave participant",
+    quote: "I caught up in two minutes instead of rereading the whole wave. The summary showed the open questions and owners.",
+    result: "3 hours saved",
   },
   {
-    title: "Curation Rooms",
-    label: "Soon",
-    text: "Track submissions, notes, choices, and final reasons.",
-    icon: Sparkles,
+    group: "Open Curation Room",
+    role: "Curation lead",
+    quote: "The wave had too many links and opinions. SwarmOps made the final review simple.",
+    result: "18 follow-ups sorted",
+  },
+  {
+    group: "Builder Sprint Crew",
+    role: "Project lead",
+    quote: "Every Monday we got a plain summary, blockers, and follow-ups. Everyone knew what to do next.",
+    result: "9 owners assigned",
   },
 ];
 
 const safetyItems = [
   {
-    title: "Limited Access",
-    text: "Agents only see the task data they need. They do not get keys or private data.",
+    title: "Limited access",
+    text: "AI sees the selected wave context, not wallets, keys, or private workspace data.",
     icon: LockKeyhole,
   },
   {
-    title: "Cost Checks",
-    text: "Show estimated cost before running expensive work.",
+    title: "Cost visible",
+    text: "Runs record token use, model, latency, and estimated cost when the provider returns it.",
     icon: CircleDollarSign,
   },
   {
-    title: "Activity Log",
-    text: "Record briefs, tasks, edits, votes, costs, posts, and reviewers.",
-    icon: BadgeCheck,
+    title: "Human control",
+    text: "Agents summarize. People approve, reject, edit, or keep the summary private.",
+    icon: ShieldCheck,
   },
 ];
 
 export default function Home() {
   return (
-    <main className="bg-zinc-50 text-zinc-950 dark:bg-zinc-950 dark:text-zinc-50">
-      <section className="relative isolate min-h-[72svh] overflow-hidden border-b border-zinc-200 bg-zinc-950 text-white dark:border-zinc-800">
-        <div className="absolute inset-0" aria-hidden="true">
-          <div className="absolute inset-0 opacity-35 [background-image:linear-gradient(rgba(255,255,255,0.10)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.10)_1px,transparent_1px)] [background-size:48px_48px]" />
-          <div className="absolute inset-0 bg-[linear-gradient(120deg,rgba(15,118,110,0.75),rgba(24,24,27,0.82)_42%,rgba(79,70,229,0.55))]" />
-          <CommandBackdrop />
-        </div>
-
-        <div className="relative mx-auto flex w-full max-w-7xl flex-col gap-10 px-4 py-16 sm:px-6 sm:py-20 lg:py-24">
-          <div className="max-w-3xl">
-            <Badge className="border-white/25 bg-white/10 text-white">
-              <Activity className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
-              Draft site
+    <main className="bg-zinc-100 text-zinc-950 dark:bg-zinc-950 dark:text-zinc-50">
+      <section className="border-b border-zinc-200 bg-[#f7f8f6] dark:border-zinc-800 dark:bg-zinc-950">
+        <div className="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 sm:py-16 lg:py-18">
+          <div className="max-w-4xl">
+            <Badge className="border-teal-200 bg-teal-50 text-teal-900 dark:border-teal-800 dark:bg-teal-950/40 dark:text-teal-200">
+              <FileCheck2 className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
+              SwarmOps alpha
             </Badge>
-            <h1 className="mt-5 text-4xl font-bold tracking-normal text-white sm:text-6xl">
-              6529 SwarmOps
+            <h1 className="mt-5 max-w-3xl text-4xl font-semibold tracking-normal text-zinc-950 sm:text-6xl dark:text-zinc-50">
+              Keep noisy 6529 waves from losing the plot.
             </h1>
-            <p className="mt-5 max-w-2xl text-lg leading-8 text-zinc-100 sm:text-xl">
-              AI helps read 6529 waves, write short briefs, make task lists, and wait for humans to approve important steps.
+            <p className="mt-5 max-w-3xl text-lg leading-8 text-zinc-700 sm:text-xl dark:text-zinc-300">
+              SwarmOps is an optimized summarizer for anyone in a 6529 wave. It catches you up fast: what happened, what was decided, what is still open, who owns the next step, and what needs checking.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <ButtonLink href="/admin/briefs" size="lg">
+              <ButtonLink href="/operator/briefs" size="lg">
                 <FileText className="h-5 w-5" aria-hidden="true" />
-                Open Briefs
+                Open Summaries
               </ButtonLink>
-              <ButtonLink href="/admin/tasks" variant="secondary" size="lg" className="border-white/30 bg-white/10 text-white hover:bg-white/20 dark:border-white/30 dark:bg-white/10 dark:text-white">
-                <ListTodo className="h-5 w-5" aria-hidden="true" />
-                Open Tasks
-              </ButtonLink>
-              <ButtonLink href="#platform" variant="secondary" size="lg" className="border-white/30 bg-white/10 text-white hover:bg-white/20 dark:border-white/30 dark:bg-white/10 dark:text-white">
+              <ButtonLink href="#example" variant="secondary" size="lg">
                 <ArrowRight className="h-5 w-5" aria-hidden="true" />
-                How It Works
+                See Example
               </ButtonLink>
             </div>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {liveMetrics.map((metric) => (
-              <Metric key={metric.label} {...metric} />
+          <ProductWorkspace />
+
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {statusStats.map((stat) => (
+              <StatusStat key={stat.label} {...stat} />
             ))}
           </div>
         </div>
       </section>
 
-      <section id="platform" className="border-b border-zinc-200 bg-white py-12 dark:border-zinc-800 dark:bg-zinc-950">
-        <div className="mx-auto grid w-full max-w-7xl gap-8 px-4 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
+      <section id="platform" className="border-b border-zinc-200 bg-white py-14 dark:border-zinc-800 dark:bg-zinc-950">
+        <div className="mx-auto grid w-full max-w-7xl gap-8 px-4 sm:px-6 lg:grid-cols-[0.8fr_1.2fr] lg:items-start">
           <div>
-            <Badge className="border-teal-200 bg-teal-50 text-teal-900 dark:border-teal-800 dark:bg-teal-950/30 dark:text-teal-200">
-              <Boxes className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
-              How It Works
+            <Badge className="border-zinc-300 bg-white text-zinc-800 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200">
+              <Users className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
+              Problem
             </Badge>
-            <h2 className="mt-4 text-3xl font-bold text-zinc-950 dark:text-zinc-50">Turn long waves into clear next steps.</h2>
+            <h2 className="mt-4 text-3xl font-semibold text-zinc-950 dark:text-zinc-50">Busy waves lose shared state.</h2>
             <p className="mt-4 text-base leading-7 text-zinc-700 dark:text-zinc-300">
-              SwarmOps reads the messages you choose, writes a plain brief, suggests tasks, and keeps a record of decisions.
+              People join late, skim, and ask the same questions again. Decisions, open issues, owners, and facts get buried. SwarmOps gives anyone in the wave a clear summary they can read privately, share with collaborators, or post back when the wave needs a public recap.
             </p>
-            <div className="mt-6 flex flex-wrap gap-3">
-              <ButtonLink href="/admin" variant="secondary">
-                <Gauge className="h-4 w-4" aria-hidden="true" />
-                Admin Console
-              </ButtonLink>
-              <ButtonLink href="/leaderboard" variant="secondary">
-                <Trophy className="h-4 w-4" aria-hidden="true" />
-                Leaderboard
-              </ButtonLink>
-            </div>
           </div>
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            {platformPanels.map((panel) => (
-              <InfoPanel key={panel.title} {...panel} />
+          <div className="grid gap-3 md:grid-cols-3">
+            {workflowSteps.map((step) => (
+              <WorkflowStep key={step.title} {...step} />
             ))}
           </div>
         </div>
       </section>
 
-      <section className="border-b border-zinc-200 bg-zinc-50 py-12 dark:border-zinc-800 dark:bg-zinc-900/40">
+      <section id="example" className="border-b border-zinc-200 bg-zinc-100 py-14 dark:border-zinc-800 dark:bg-zinc-900/40">
         <div className="mx-auto w-full max-w-7xl px-4 sm:px-6">
-          <div className="mb-6 flex flex-col justify-between gap-4 md:flex-row md:items-end">
-            <div>
-              <Badge className="border-indigo-200 bg-indigo-50 text-indigo-900 dark:border-indigo-800 dark:bg-indigo-950/30 dark:text-indigo-200">
-                <Workflow className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
-                Work Board
+          <div className="mb-7 flex flex-col justify-between gap-4 md:flex-row md:items-end">
+            <div className="max-w-3xl">
+              <Badge className="border-teal-200 bg-teal-50 text-teal-900 dark:border-teal-800 dark:bg-teal-950/40 dark:text-teal-200">
+                <FileText className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
+                Example Wave Summary
               </Badge>
-              <h2 className="mt-4 text-3xl font-bold text-zinc-950 dark:text-zinc-50">A simple view of the work.</h2>
+              <h2 className="mt-4 text-3xl font-semibold text-zinc-950 dark:text-zinc-50">The summary is plain on purpose.</h2>
+              <p className="mt-4 max-w-3xl text-base leading-7 text-zinc-700 dark:text-zinc-300">
+                A good wave summary is short enough to scan and specific enough to act on.
+              </p>
             </div>
-            <Badge className="w-fit border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
-              Built now: briefs, tasks, review
-            </Badge>
+            <ButtonLink href="/operator/briefs" variant="secondary">
+              <ClipboardCheck className="h-4 w-4" aria-hidden="true" />
+              Review Drafts
+            </ButtonLink>
           </div>
-
           <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
-            <section className="rounded-md border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+            <section className="overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
               <div className="border-b border-zinc-200 px-5 py-4 dark:border-zinc-800">
-                <h3 className="font-bold text-zinc-950 dark:text-zinc-50">Example wave</h3>
-                <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Briefs, tasks, and review</p>
+                <p className="text-sm font-semibold uppercase tracking-normal text-zinc-500 dark:text-zinc-500">Wave summary</p>
+                <h3 className="mt-1 text-xl font-semibold text-zinc-950 dark:text-zinc-50">Curation pilot wave</h3>
               </div>
               <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
-                {consoleRows.map((row) => (
-                  <ConsoleRow key={row.title} {...row} />
+                {summarySections.map((section) => (
+                  <SummaryRow key={section.title} {...section} />
                 ))}
               </div>
             </section>
-
-            <section className="rounded-md border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-              <h3 className="font-bold text-zinc-950 dark:text-zinc-50">What Happens Next</h3>
-              <div className="mt-4 space-y-3">
-                <ActionItem label="Review the brief" status="Review" />
-                <ActionItem label="Pick the tasks that matter" status="Ready" />
-                <ActionItem label="Ask AI to check risky points" status="Soon" />
-                <ActionItem label="Post the final update" status="Blocked" />
+            <section className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+              <h3 className="text-lg font-semibold text-zinc-950 dark:text-zinc-50">Review checks</h3>
+              <div className="mt-4 divide-y divide-zinc-100 dark:divide-zinc-800">
+                {reviewChecks.map((check) => (
+                  <ReviewCheck key={check.label} {...check} />
+                ))}
               </div>
             </section>
           </div>
         </div>
       </section>
 
-      <section id="workflows" className="border-b border-zinc-200 bg-white py-12 dark:border-zinc-800 dark:bg-zinc-950">
+      <section id="workflows" className="border-b border-zinc-200 bg-white py-14 dark:border-zinc-800 dark:bg-zinc-950">
         <div className="mx-auto w-full max-w-7xl px-4 sm:px-6">
-          <div className="mb-6 max-w-3xl">
-            <Badge className="border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200">
-              <Users className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
+          <div className="mb-7 max-w-3xl">
+            <Badge className="border-zinc-300 bg-white text-zinc-800 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200">
+              <Bot className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
               Use Cases
             </Badge>
-            <h2 className="mt-4 text-3xl font-bold text-zinc-950 dark:text-zinc-50">Use the same loop for different teams.</h2>
-            <p className="mt-4 text-base leading-7 text-zinc-700 dark:text-zinc-300">
-              Every team needs the same basics: read the wave, summarize it, make tasks, approve work, and record results.
-            </p>
+            <h2 className="mt-4 text-3xl font-semibold text-zinc-950 dark:text-zinc-50">For anyone who needs to catch up.</h2>
           </div>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {workflows.map((workflow) => (
-              <WorkflowCard key={workflow.title} {...workflow} />
+          <div className="grid gap-4 md:grid-cols-3">
+            {useCases.map((useCase) => (
+              <UseCaseCard key={useCase.title} {...useCase} />
             ))}
           </div>
         </div>
       </section>
 
-      <section id="safety" className="border-b border-zinc-200 bg-zinc-50 py-12 dark:border-zinc-800 dark:bg-zinc-900/40">
+      <section id="case-studies" className="border-b border-zinc-200 bg-zinc-100 py-14 dark:border-zinc-800 dark:bg-zinc-900/40">
+        <div className="mx-auto w-full max-w-7xl px-4 sm:px-6">
+          <div className="mb-7 max-w-3xl">
+            <Badge className="border-zinc-300 bg-white text-zinc-800 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200">
+              <BadgeCheck className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
+              Sample Stories
+            </Badge>
+            <h2 className="mt-4 text-3xl font-semibold text-zinc-950 dark:text-zinc-50">What success should feel like.</h2>
+            <p className="mt-4 text-base leading-7 text-zinc-700 dark:text-zinc-300">
+              Fictional examples for the draft site. These show the outcomes SwarmOps is built to create.
+            </p>
+          </div>
+          <div className="grid gap-4 lg:grid-cols-3">
+            {caseStudies.map((story) => (
+              <CaseStudyCard key={story.group} {...story} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="safety" className="border-b border-zinc-200 bg-white py-14 dark:border-zinc-800 dark:bg-zinc-950">
         <div className="mx-auto grid w-full max-w-7xl gap-8 px-4 sm:px-6 lg:grid-cols-[0.85fr_1.15fr]">
           <div>
-            <Badge className="border-rose-200 bg-rose-50 text-rose-900 dark:border-rose-800 dark:bg-rose-950/30 dark:text-rose-200">
+            <Badge className="border-zinc-300 bg-white text-zinc-800 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200">
               <ShieldCheck className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
               Safety
             </Badge>
-            <h2 className="mt-4 text-3xl font-bold text-zinc-950 dark:text-zinc-50">Agents suggest. Humans approve.</h2>
+            <h2 className="mt-4 text-3xl font-semibold text-zinc-950 dark:text-zinc-50">Agents summarize. People decide.</h2>
             <p className="mt-4 text-base leading-7 text-zinc-700 dark:text-zinc-300">
-              Crypto can prove who signed something. It cannot prove an answer is good. So SwarmOps keeps access tight and records important actions.
+              The product is useful only if people trust the process. SwarmOps keeps access narrow, records costs, and makes review the default.
             </p>
           </div>
           <div className="grid gap-3 md:grid-cols-3">
             {safetyItems.map((item) => (
-              <InfoPanel key={item.title} {...item} />
+              <SafetyCard key={item.title} {...item} />
             ))}
           </div>
         </div>
       </section>
 
-      <section id="launch" className="bg-white py-12 dark:bg-zinc-950">
-        <div className="mx-auto grid w-full max-w-7xl gap-8 px-4 sm:px-6 lg:grid-cols-[1fr_1fr]">
-          <div>
-            <Badge className="border-zinc-300 bg-white text-zinc-800 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200">
-              <CheckCircle2 className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
-              Launch Plan
-            </Badge>
-            <h2 className="mt-4 text-3xl font-bold text-zinc-950 dark:text-zinc-50">Start small. Make it useful. Then grow.</h2>
+      <section className="bg-zinc-950 py-14 text-white">
+        <div className="mx-auto flex w-full max-w-7xl flex-col justify-between gap-6 px-4 sm:px-6 md:flex-row md:items-center">
+          <div className="max-w-2xl">
+            <h2 className="text-3xl font-semibold">Launch the simplest useful loop.</h2>
+            <p className="mt-3 text-base leading-7 text-zinc-300">
+              Read a wave, create the summary, check it, and track follow-ups. Add external agents and payments only after this loop works.
+            </p>
           </div>
-          <div className="grid gap-3">
-            <RoadmapItem title="Now" text="Briefs, tasks, review, source checks, and the summary battle leaderboard." />
-            <RoadmapItem title="Next" text="Better AI helpers, task evidence, cost controls, and project settings." />
-            <RoadmapItem title="Later" text="External agents, project credits, payments, and multiple operators." />
-          </div>
+          <ButtonLink href="/operator/briefs" size="lg" className="w-fit bg-white text-zinc-950 hover:bg-zinc-200 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200">
+            <CheckCircle2 className="h-5 w-5" aria-hidden="true" />
+            Open Operator
+          </ButtonLink>
         </div>
       </section>
     </main>
   );
 }
 
-function CommandBackdrop() {
+function ProductWorkspace() {
   return (
-    <div className="absolute inset-x-4 bottom-8 hidden max-w-6xl rounded-md border border-white/15 bg-zinc-950/45 p-4 shadow-2xl backdrop-blur sm:block lg:left-1/2 lg:-translate-x-1/2">
-      <div className="grid gap-3 lg:grid-cols-[1fr_0.7fr_0.7fr]">
-        <div className="rounded-md border border-white/10 bg-white/10 p-4">
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-sm font-semibold text-white">Wave Brief</span>
-            <span className="rounded-md bg-teal-300/20 px-2 py-1 text-xs text-teal-100">sources ok</span>
-          </div>
-          <div className="mt-4 space-y-2">
-            <div className="h-2 w-11/12 rounded-full bg-white/35" />
-            <div className="h-2 w-8/12 rounded-full bg-white/25" />
-            <div className="h-2 w-10/12 rounded-full bg-white/20" />
+    <section className="mt-10 overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950" aria-label="Wave summary workflow preview">
+      <div className="flex flex-col gap-3 border-b border-zinc-200 bg-zinc-950 px-4 py-4 text-white sm:flex-row sm:items-center sm:justify-between dark:border-zinc-800">
+        <div>
+          <p className="text-sm font-semibold text-zinc-300">Wave 6529 / Curation pilot</p>
+          <p className="mt-1 text-xl font-semibold">Wave summary review</p>
+        </div>
+        <div className="flex flex-wrap gap-2 text-xs font-semibold">
+          <span className="rounded-md border border-emerald-400/40 bg-emerald-400/10 px-2.5 py-1 text-emerald-100">Draft ready</span>
+          <span className="rounded-md border border-amber-300/40 bg-amber-300/10 px-2.5 py-1 text-amber-100">2 checks</span>
+          <span className="rounded-md border border-zinc-500 bg-zinc-900 px-2.5 py-1 text-zinc-200">$0.18</span>
+        </div>
+      </div>
+
+      <div className="grid min-h-[360px] lg:grid-cols-[0.82fr_1.24fr_0.94fr]">
+        <div className="border-b border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900/70 lg:border-b-0 lg:border-r">
+          <p className="text-sm font-semibold text-zinc-950 dark:text-zinc-50">Wave activity</p>
+          <div className="mt-4 space-y-3">
+            <MessageSnippet name="Maya" text="We should test a smaller pilot first." />
+            <MessageSnippet name="Ben" text="Prior grants used a 2 ETH cap, but I need the link." />
+            <MessageSnippet name="Ana" text="I can draft the pilot scope by Friday." />
           </div>
         </div>
-        <div className="rounded-md border border-white/10 bg-white/10 p-4">
-          <span className="text-sm font-semibold text-white">Task Queue</span>
-          <div className="mt-4 grid grid-cols-3 gap-2">
-            <div className="h-16 rounded-md bg-amber-300/25" />
-            <div className="h-16 rounded-md bg-emerald-300/25" />
-            <div className="h-16 rounded-md bg-indigo-300/25" />
+
+        <div className="border-b border-zinc-200 p-5 dark:border-zinc-800 lg:border-b-0 lg:border-r">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-normal text-teal-700 dark:text-teal-300">Summary output</p>
+              <h2 className="mt-1 text-2xl font-semibold text-zinc-950 dark:text-zinc-50">What happened in the wave</h2>
+            </div>
+            <Badge className="border-teal-200 bg-teal-50 text-teal-900 dark:border-teal-800 dark:bg-teal-950/40 dark:text-teal-200">Reviewed</Badge>
+          </div>
+          <div className="mt-5 space-y-4">
+            {summarySections.slice(0, 3).map((section) => (
+              <div key={section.title}>
+                <p className="text-sm font-semibold text-zinc-950 dark:text-zinc-50">{section.title}</p>
+                <p className="mt-1 text-sm leading-6 text-zinc-600 dark:text-zinc-400">{section.text}</p>
+              </div>
+            ))}
           </div>
         </div>
-        <div className="rounded-md border border-white/10 bg-white/10 p-4">
-          <span className="text-sm font-semibold text-white">Agent Scores</span>
-          <div className="mt-4 flex items-end gap-2">
-            <div className="h-10 w-full rounded-md bg-rose-300/25" />
-            <div className="h-16 w-full rounded-md bg-teal-300/25" />
-            <div className="h-12 w-full rounded-md bg-amber-300/25" />
+
+        <div className="bg-zinc-50 p-4 dark:bg-zinc-900/70">
+          <p className="text-sm font-semibold text-zinc-950 dark:text-zinc-50">Before sharing</p>
+          <div className="mt-4 space-y-3">
+            {reviewChecks.slice(0, 3).map((check) => (
+              <ReviewPill key={check.label} {...check} />
+            ))}
+          </div>
+          <div className="mt-5 grid gap-2">
+            <ButtonLink href="/operator/briefs" className="w-full">
+              Review Summary
+            </ButtonLink>
+            <ButtonLink href="#example" variant="secondary" className="w-full">
+              View Example
+            </ButtonLink>
           </div>
         </div>
       </div>
+    </section>
+  );
+}
+
+function MessageSnippet({ name, text }: { name: string; text: string }) {
+  return (
+    <div className="rounded-md border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-950">
+      <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-500">{name}</p>
+      <p className="mt-1 text-sm leading-6 text-zinc-700 dark:text-zinc-300">{text}</p>
     </div>
   );
 }
 
-function Metric({ label, value, icon: Icon, tone }: { label: string; value: string; icon: LucideIcon; tone: string }) {
+function StatusStat({ label, value, detail, icon: Icon }: { label: string; value: string; detail: string; icon: LucideIcon }) {
   return (
-    <div className="rounded-md border border-white/15 bg-white/10 p-4 backdrop-blur">
-      <Icon className={`h-5 w-5 ${tone}`} aria-hidden="true" />
-      <p className="mt-3 text-2xl font-bold text-white">{value}</p>
-      <p className="text-sm text-zinc-200">{label}</p>
-    </div>
-  );
-}
-
-function InfoPanel({ title, text, icon: Icon }: { title: string; text: string; icon: LucideIcon }) {
-  return (
-    <article className="rounded-md border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-      <Icon className="h-5 w-5 text-teal-600 dark:text-teal-300" aria-hidden="true" />
-      <h3 className="mt-4 font-bold text-zinc-950 dark:text-zinc-50">{title}</h3>
-      <p className="mt-2 text-sm leading-6 text-zinc-600 dark:text-zinc-400">{text}</p>
-    </article>
-  );
-}
-
-function ConsoleRow({
-  title,
-  detail,
-  status,
-  icon: Icon,
-  tone,
-}: {
-  title: string;
-  detail: string;
-  status: string;
-  icon: LucideIcon;
-  tone: string;
-}) {
-  return (
-    <div className="grid gap-3 px-5 py-4 sm:grid-cols-[auto_1fr_auto] sm:items-center">
-      <div className={`flex h-10 w-10 items-center justify-center rounded-md border ${tone}`}>
-        <Icon className="h-5 w-5" aria-hidden="true" />
-      </div>
-      <div>
-        <p className="font-semibold text-zinc-950 dark:text-zinc-50">{title}</p>
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">{detail}</p>
-      </div>
-      <Badge className="w-fit border-zinc-300 bg-white text-zinc-800 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200">
-        {status}
-      </Badge>
-    </div>
-  );
-}
-
-function ActionItem({ label, status }: { label: string; status: string }) {
-  return (
-    <div className="flex items-start justify-between gap-3 border-b border-zinc-100 py-3 last:border-b-0 dark:border-zinc-800">
-      <p className="text-sm leading-6 text-zinc-700 dark:text-zinc-300">{label}</p>
-      <Badge className="shrink-0 border-zinc-300 bg-white text-zinc-800 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-200">
-        {status}
-      </Badge>
-    </div>
-  );
-}
-
-function WorkflowCard({ title, label, text, icon: Icon }: { title: string; label: string; text: string; icon: LucideIcon }) {
-  return (
-    <article className="rounded-md border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+    <div className="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
       <div className="flex items-center justify-between gap-3">
-        <Icon className="h-5 w-5 text-indigo-600 dark:text-indigo-300" aria-hidden="true" />
-        <Badge className="border-zinc-300 bg-white text-zinc-800 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200">
-          {label}
-        </Badge>
+        <Icon className="h-5 w-5 text-teal-700 dark:text-teal-300" aria-hidden="true" />
+        <p className="text-2xl font-semibold text-zinc-950 dark:text-zinc-50">{value}</p>
       </div>
-      <h3 className="mt-4 font-bold text-zinc-950 dark:text-zinc-50">{title}</h3>
+      <p className="mt-3 text-sm font-semibold text-zinc-950 dark:text-zinc-50">{label}</p>
+      <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-500">{detail}</p>
+    </div>
+  );
+}
+
+function WorkflowStep({ title, text, icon: Icon }: { title: string; text: string; icon: LucideIcon }) {
+  return (
+    <article className="rounded-lg border border-zinc-200 bg-zinc-50 p-5 dark:border-zinc-800 dark:bg-zinc-900">
+      <Icon className="h-5 w-5 text-teal-700 dark:text-teal-300" aria-hidden="true" />
+      <h3 className="mt-4 font-semibold text-zinc-950 dark:text-zinc-50">{title}</h3>
       <p className="mt-2 text-sm leading-6 text-zinc-600 dark:text-zinc-400">{text}</p>
     </article>
   );
 }
 
-function RoadmapItem({ title, text }: { title: string; text: string }) {
+function SummaryRow({ title, text }: { title: string; text: string }) {
   return (
-    <div className="rounded-md border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900">
-      <p className="font-bold text-zinc-950 dark:text-zinc-50">{title}</p>
-      <p className="mt-1 text-sm leading-6 text-zinc-600 dark:text-zinc-400">{text}</p>
+    <div className="grid gap-2 px-5 py-4 sm:grid-cols-[160px_1fr]">
+      <p className="text-sm font-semibold text-zinc-950 dark:text-zinc-50">{title}</p>
+      <p className="text-sm leading-6 text-zinc-600 dark:text-zinc-400">{text}</p>
     </div>
+  );
+}
+
+function ReviewCheck({ label, value, state }: { label: string; value: string; state: string }) {
+  return (
+    <div className="flex items-center justify-between gap-4 py-3">
+      <div>
+        <p className="text-sm font-semibold text-zinc-950 dark:text-zinc-50">{label}</p>
+        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-500">{value}</p>
+      </div>
+      <Badge className="border-zinc-300 bg-white text-zinc-800 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200">{state}</Badge>
+    </div>
+  );
+}
+
+function ReviewPill({ label, value, state }: { label: string; value: string; state: string }) {
+  return (
+    <div className="rounded-md border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-950">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold text-zinc-950 dark:text-zinc-50">{label}</p>
+          <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-500">{value}</p>
+        </div>
+        <span className="rounded-md bg-zinc-100 px-2 py-1 text-xs font-semibold text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">{state}</span>
+      </div>
+    </div>
+  );
+}
+
+function UseCaseCard({ title, text, icon: Icon }: { title: string; text: string; icon: LucideIcon }) {
+  return (
+    <article className="rounded-lg border border-zinc-200 bg-zinc-50 p-5 dark:border-zinc-800 dark:bg-zinc-900">
+      <Icon className="h-5 w-5 text-teal-700 dark:text-teal-300" aria-hidden="true" />
+      <h3 className="mt-4 font-semibold text-zinc-950 dark:text-zinc-50">{title}</h3>
+      <p className="mt-2 text-sm leading-6 text-zinc-600 dark:text-zinc-400">{text}</p>
+    </article>
+  );
+}
+
+function CaseStudyCard({ group, role, quote, result }: { group: string; role: string; quote: string; result: string }) {
+  return (
+    <article className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+      <p className="font-semibold text-zinc-950 dark:text-zinc-50">{group}</p>
+      <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-500">{role}</p>
+      <p className="mt-5 text-base leading-7 text-zinc-800 dark:text-zinc-200">&quot;{quote}&quot;</p>
+      <p className="mt-5 border-t border-zinc-100 pt-4 text-sm font-semibold text-teal-800 dark:border-zinc-800 dark:text-teal-300">{result}</p>
+    </article>
+  );
+}
+
+function SafetyCard({ title, text, icon: Icon }: { title: string; text: string; icon: LucideIcon }) {
+  return (
+    <article className="rounded-lg border border-zinc-200 bg-zinc-50 p-5 dark:border-zinc-800 dark:bg-zinc-900">
+      <Icon className="h-5 w-5 text-teal-700 dark:text-teal-300" aria-hidden="true" />
+      <h3 className="mt-4 font-semibold text-zinc-950 dark:text-zinc-50">{title}</h3>
+      <p className="mt-2 text-sm leading-6 text-zinc-600 dark:text-zinc-400">{text}</p>
+    </article>
   );
 }
