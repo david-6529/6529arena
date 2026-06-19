@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { generateWithOpenAI } from "@/lib/ai/openai";
-import { estimateWaveBriefRunCost, runWaveBrief } from "@/lib/briefs/runBrief";
+import { estimateWaveBriefDraftCost, estimateWaveBriefRunCost, runWaveBrief } from "@/lib/briefs/runBrief";
 import type { WaveDrop } from "@/lib/6529/types";
 
 vi.mock("@/lib/ai/openai", () => ({
@@ -63,6 +63,57 @@ describe("estimateWaveBriefRunCost", () => {
     expect(estimate.maxOutputTokens).toBe(1000);
     expect(estimate.estimatedCostUsd).toBeGreaterThan(0);
   });
+
+  it("previews draft prompt cost and prompt drop coverage without provider keys", () => {
+    delete process.env.OPENAI_API_KEY;
+    process.env.MAX_WAVE_BRIEF_ESTIMATED_COST_USD = "0.25";
+
+    const preview = estimateWaveBriefDraftCost({
+      waveId: "wave-1",
+      requestText: "Create a summary.",
+      drops: [{ id: "drop-1", content: "Update" }],
+      provider: "openai",
+      modelName: "gpt-4.1-mini",
+    });
+
+    expect(preview).toEqual(
+      expect.objectContaining({
+        provider: "openai",
+        modelName: "gpt-4.1-mini",
+        maxOutputTokens: 1800,
+        costCapUsd: 0.25,
+        costCapExceeded: false,
+        pricingAvailable: true,
+        promptDropCount: 1,
+        promptOmittedDropCount: 0,
+        fetchedDropCount: 1,
+      }),
+    );
+    expect(preview.promptTokens).toBeGreaterThan(0);
+    expect(preview.estimatedCostUsd).toBeGreaterThan(0);
+  });
+
+  it("marks draft cost preview as unpriced for unknown models", () => {
+    process.env.MAX_WAVE_BRIEF_ESTIMATED_COST_USD = "0.25";
+
+    const preview = estimateWaveBriefDraftCost({
+      waveId: "wave-1",
+      requestText: "Create a summary.",
+      drops: [{ id: "drop-1", content: "Update" }],
+      provider: "openai",
+      modelName: "unknown-model",
+    });
+
+    expect(preview).toEqual(
+      expect.objectContaining({
+        provider: "openai",
+        modelName: "unknown-model",
+        estimatedCostUsd: null,
+        pricingAvailable: false,
+        costCapExceeded: false,
+      }),
+    );
+  });
 });
 
 describe("runWaveBrief", () => {
@@ -78,14 +129,14 @@ describe("runWaveBrief", () => {
         modelName: "gpt-4.1-mini",
       }),
     ).rejects.toMatchObject({
-      message: "MAX_WAVE_BRIEF_ESTIMATED_COST_USD must be a positive number to generate wave summaries.",
+      message: "MAX_WAVE_BRIEF_ESTIMATED_COST_USD must be a positive number to generate wave check-ins.",
       status: 503,
       code: "wave_brief_cost_cap_invalid",
     });
     expect(generateWithOpenAI).not.toHaveBeenCalled();
   });
 
-  it("rejects over-cap wave summaries before calling the provider", async () => {
+  it("rejects over-cap wave check-ins before calling the provider", async () => {
     process.env.MAX_WAVE_BRIEF_ESTIMATED_COST_USD = "0.000001";
 
     const drops: WaveDrop[] = [
@@ -125,7 +176,7 @@ describe("runWaveBrief", () => {
         modelName: "unknown-model",
       }),
     ).rejects.toMatchObject({
-      message: "Wave summary cost cap requires pricing for openai/unknown-model.",
+      message: "Wave check-in cost cap requires pricing for openai/unknown-model.",
       status: 422,
     });
     expect(generateWithOpenAI).not.toHaveBeenCalled();
@@ -144,7 +195,7 @@ describe("runWaveBrief", () => {
         modelName: "gpt-4.1-mini",
       }),
     ).rejects.toMatchObject({
-      message: "OPENAI_API_KEY is required to generate openai wave summaries.",
+      message: "OPENAI_API_KEY is required to generate openai wave check-ins.",
       status: 422,
       code: "provider_not_configured",
     });
@@ -164,7 +215,7 @@ describe("runWaveBrief", () => {
         modelName: "gpt-4.1-mini",
       }),
     ).rejects.toMatchObject({
-      message: "OPENAI_API_KEY is required to generate openai wave summaries.",
+      message: "OPENAI_API_KEY is required to generate openai wave check-ins.",
       status: 422,
       code: "provider_not_configured",
     });

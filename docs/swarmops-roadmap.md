@@ -1,8 +1,8 @@
-# 6529 SwarmOps Roadmap
+# The Doom Signal Roadmap
 
 ## Product Decision
 
-Build toward **6529 SwarmOps**: a wave-native assistant that helps anyone in a 6529 wave catch up, understand what happened, and turn confusion into clear next steps.
+Build toward **The Doom Signal**: a wave-native assistant that helps anyone in a 6529 wave catch up, understand what happened, and turn confusion into clear next steps.
 
 The product should not lead with battles or REP. The front door is a 6529 wave summarizer: what happened, what was decided, what is open, who owns follow-up, and what needs checking.
 
@@ -53,17 +53,17 @@ What ships:
 
 - Wave Summarization only
 - internal prompt-config agents only
-- operator-created wave summaries
+- reviewer-created wave check-ins through the `/` path
 - searchable wave picker backed by 6529 name search and saved-summary history, with separate wave ID entry as the fallback
 - optional related-wave context for parent/subwave workspaces such as PR firehose, digest, and team-chat flows
 - review, source-check, score, preview, and optional post flow
-- pre-run estimated cost cap for wave summaries
-- provider-key preflight before wave summary generation
-- operator generation rate limit for wave summaries
-- suggested follow-ups into `/operator/tasks`
+- pre-run estimated cost cap for wave check-ins
+- provider-key preflight before wave check-in generation
+- operator generation rate limit for wave check-ins
+- suggested follow-ups into the protected `/operator/tasks` review queue
 - battle pages, manual vote import, and leaderboard available as evaluation tools
 - CSV exports and event logs
-- simple-mode CSV exports for leaderboard, summary metadata with source-gate counts, and task metadata
+- simple-mode CSV exports for leaderboard, check-in metadata with source-gate counts, and task metadata
 - no public submissions
 - no external endpoints
 - no wallet-gated voting
@@ -71,9 +71,9 @@ What ships:
 
 Success criteria:
 
-- summaries are faster than rereading the wave
+- check-ins are faster than rereading the wave
 - source checks catch missing citations before sharing
-- approved posts render correctly back into 6529
+- checked posts render correctly back into 6529
 - costs stay within cap
 - review scoring saves and is visible
 - people trust the operator workflow
@@ -82,64 +82,67 @@ Success criteria:
 
 Goal: move from "what happened?" to "what should happen next?"
 
-The first operator-only version is now Wave Summary Drafts:
+The first launch version is now Wave Check-ins, exposed to users through `/` and kept behind the same protected API gates:
 
-- wave summary
-- previous-summary lineage
-- changes since the last reviewed summary
+- wave check-in
+- previous-check-in lineage
+- changes since the last checked check-in
 - open questions
 - decisions needed
 - action items
 - risks and objections
+- evidence coverage with fetched drops, prompt-window limits, and cap warnings
 - source drops
-- source-wave labels when a summary spans multiple related waves
+- source-wave labels when a check-in spans multiple related waves
 - suggested next post
-- pre-generation context preview with source waves, drop counts, and sample drops
-- edit, save-before-approve, source-gated approve, reject, preview, and post workflow
-- rejected-summary content lock so bad drafts remain auditable and revisions start from a new summary
+- pre-generation context preview with recent, date-window, and all-history modes
+- source-wave coverage with available counts, collected counts, oldest/newest timestamps, cap status, and sample drops
+- pre-generation prompt/token/cost estimate for the selected provider and model
+- edit, save-before-check, source-gated check, discard, preview, and post workflow
+- discarded-check-in content lock so bad drafts remain auditable and revisions start from a new check-in
 - 6529 post failure events with wave and brief context
-- DB-backed posting claim to prevent duplicate 6529 posts for one approved summary
+- DB-backed posting claim to prevent duplicate 6529 posts for one checked check-in
 - posting-state content lock while a 6529 post is in flight
 - citation/source validation against stored context drops, including section-level missing-source warnings
-- visible final-content source validation that blocks approval and 6529 posting when cited drops are outside stored context
-- approved-summary content edits automatically return the summary to draft until it is re-approved
-- suggested task extraction into `/operator/tasks`
-- repeated open task tracking with seen count and last-seen summary metadata
-- per-summary and per-task change history from audit events
+- visible final-content source validation that blocks marking checked and 6529 posting when cited drops are outside stored context
+- checked-check-in content edits automatically return the check-in to draft until it is checked again
+- suggested task extraction into the protected `/operator/tasks` review queue
+- repeated open task tracking with seen count and last-seen check-in metadata
+- per-check-in and per-task change history from audit events
 - append-only task comments for follow-up notes and handoffs
 - human 1-5 outcome scoring and score notes for completed follow-ups
 - operator outcome rollups for completed, evidence-linked, scored, unscored, average scored, strong, weak, and score-distribution follow-ups
 - operator wave rollups for open load, repeated open work, completed work, proof, scored completions, average score, and weak outcomes
 - operator workflow labels and workflow rollups for open load, repeated open work, completed work, proof, scored completions, average score, and weak outcomes
 - operator owner rollups for open load, completed work, proof, scored completions, average score, and weak outcomes
-- operator summary review rollups for generated, reviewed, reviewed-scored, unscored reviewed, posted, and average reviewed scores
-- operator summary cost rollups for cost, latency, and token volume
-- operator recent-summary source-gate status before review or posting
-- operator source-wave rollups on summary review cards when drafts use related waves
-- deterministic summary quality checks for operator review
+- check-in quality rollups for generated, checked, scored, unscored checked, posted, and average usefulness scores
+- check-in cost rollups for cost, latency, and token volume
+- recent check-in source-gate status before review or posting
+- source-wave rollups on check-in cards when drafts use related waves
+- deterministic check-in quality checks
 - human 1-5 quality scoring and score notes
 
-Next improvements should focus on connecting live 6529 mention ingestion to the summary-draft route, agent-assist history, workflow templates/defaults, and side-by-side specialist summary comparisons.
+Next improvements should focus on connecting live 6529 mention ingestion to the check-in draft route, agent-assist history, workflow templates/defaults, and side-by-side specialist check-in comparisons.
 
 ### Phase 1A: 6529 Bot Commands
 
-Goal: let people request the same reviewed summary workflow from inside 6529 without making the bot an unsafe autoposter.
+Goal: let people request the same checked check-in workflow from inside 6529 without making the bot an unsafe autoposter.
 
 The safe first version:
 
 - dedicated 6529 bot profile and wallet
 - inbound mention and DM ingestion for allowlisted waves or workspaces
 - command parser for "summarize this wave", "catch me up since last check-in", and "what is open?"
-- identity mapping from 6529 handle or wallet to a SwarmOps workspace user
+- identity mapping from 6529 handle or wallet to a Doom Signal workspace user
 - wallet sign-in for normal users, mapping 6529 hot-wallet identity to roles without requesting private keys
 - per-user, per-wave, and per-workspace rate limits
-- summary draft creation through the same cost cap, provider-key check, source gate, and audit log as `/operator/briefs`
+- summary draft creation through the same cost cap, provider-key check, source gate, and audit log as `/`
 - default response is a private draft link or DM; public posting still requires an approved operator action
 - idempotency by wave, trigger drop, command text, and requester
 
-Current status: `/api/bot/mention` creates reviewed Wave Summary Drafts, skips public autoposting, rate-limits bot generation separately from operator generation, and dedupes repeated events by `waveId` plus trigger drop. Live 6529 mention ingestion, DM commands, allowlists, and requester identity mapping are still ahead.
+Current status: `/api/bot/mention` creates reviewed Wave Check-ins, skips public autoposting, rate-limits bot generation separately from operator generation, and dedupes repeated events by `waveId` plus trigger drop. Live 6529 mention ingestion, DM commands, allowlists, and requester identity mapping are still ahead.
 
-DMs should support a broader "catch me up across my tracked waves" command only after tracked-wave ingestion exists. Until then, DMs can trigger one-wave summaries by explicit wave ID or selected wave.
+DMs should support a broader "catch me up across my tracked waves" command only after tracked-wave ingestion exists. Until then, DMs can trigger one-wave check-ins by explicit wave ID or selected wave.
 
 Do not enable unrestricted public replies from mentions. A bot tag should create a draft or a private response first; posting back to the wave requires authority for that wave.
 
@@ -164,7 +167,7 @@ Initial roles:
 - Proposal Drafter
 - Coordinator
 
-The coordinator assembles outputs into one reviewed wave summary. The arena evaluates agents within each role.
+The coordinator assembles outputs into one checked wave check-in. The arena evaluates agents within each role.
 
 Success criteria:
 
@@ -208,14 +211,14 @@ Success criteria:
 
 ### Phase 4: 6529 App Extension
 
-Goal: put SwarmOps where people already read waves.
+Goal: put Doom Signal where people already read waves.
 
-Build a Chrome extension that injects a small SwarmOps bubble or side panel into the 6529 app. The extension should detect the current wave, let the user ask for a summary, and show decisions, open questions, follow-ups, and checks without leaving the 6529 interface.
+Build a Chrome extension that injects a small Doom Signal bubble or side panel into the 6529 app. The extension should detect the current wave, let the user ask for a summary, and show decisions, open questions, follow-ups, and checks without leaving the 6529 interface.
 
 Start read-only:
 
 - current-wave detection
-- authenticated SwarmOps session
+- authenticated Doom Signal session
 - summary request and response panel
 - source drop links back into 6529
 - private user notes
@@ -340,7 +343,7 @@ Cryptography can prove who signed something and whether a record changed. It can
 
 The protocol and export formats should feel like public goods. The sustainable company is the hosted operator:
 
-- hosted SwarmOps workspaces
+- hosted Doom Signal workspaces
 - usage-based agent runs
 - workflow templates
 - private deployments

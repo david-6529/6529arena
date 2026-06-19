@@ -4,8 +4,8 @@ import type { JsonRecord, WaveDrop } from "@/lib/6529/types";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const WAVE_DROPS_PAGE_SIZE = 200;
-const DEFAULT_CONTEXT_CAP = 500;
-const EXPLICIT_WINDOW_SAFETY_CAP = 5_000;
+const DEFAULT_RECENT_CONTEXT_CAP = 500;
+const DEFAULT_FULL_HISTORY_CONTEXT_CAP = 20_000;
 const MAX_RELATED_WAVES = 8;
 
 export type RelatedWaveContextParams = {
@@ -18,8 +18,11 @@ export type WaveContextParams = {
   contextFrom?: string;
   contextTo?: string;
   maxMessages?: number;
+  includeAllHistory?: boolean;
   relatedWaves?: RelatedWaveContextParams[];
 };
+
+export type WaveContextResult = Awaited<ReturnType<typeof fetchWaveContext>>;
 
 type WaveContextSource = {
   waveId: string;
@@ -102,6 +105,16 @@ function waveName(wave: unknown) {
   return typeof name === "string" && name.trim() ? name.trim() : null;
 }
 
+function waveTotalDrops(wave: unknown) {
+  if (!isRecord(wave)) {
+    return null;
+  }
+
+  const total = wave["total_drops_count"] ?? wave["totalDropsCount"] ?? wave["drops_count"];
+
+  return typeof total === "number" && Number.isFinite(total) ? total : null;
+}
+
 function isWithinWindow(drop: WaveDrop, fromMs?: number, toMs?: number) {
   const createdAt = dropCreatedAtMs(drop);
 
@@ -129,12 +142,33 @@ function sortDropsChronologically(drops: WaveDrop[]) {
   });
 }
 
+function dropRange(drops: WaveDrop[]) {
+  const timestamps = drops
+    .map(dropCreatedAtMs)
+    .filter((timestamp): timestamp is number => typeof timestamp === "number");
+
+  if (!timestamps.length) {
+    return {
+      oldestDropAt: null,
+      newestDropAt: null,
+    };
+  }
+
+  return {
+    oldestDropAt: new Date(Math.min(...timestamps)).toISOString(),
+    newestDropAt: new Date(Math.max(...timestamps)).toISOString(),
+  };
+}
+
 async function fetchSingleWaveContext(source: WaveContextSource, windowParams: WindowParams) {
   const collected: WaveDrop[] = [];
   let searchedMessages = 0;
   let serialNoLimit: number | undefined;
   let lastOldestSerial: number | undefined;
   let wave: unknown;
+  let reachedWindowStart = false;
+  let exhaustedHistory = false;
+  let stoppedByDuplicateCursor = false;
 
   while (searchedMessages < windowParams.maxMessages) {
     const limit = Math.min(WAVE_DROPS_PAGE_SIZE, windowParams.maxMessages - searchedMessages);
@@ -148,6 +182,7 @@ async function fetchSingleWaveContext(source: WaveContextSource, windowParams: W
     wave ??= page.wave ?? null;
 
     if (!pageDrops.length) {
+      exhaustedHistory = true;
       break;
     }
 
@@ -158,7 +193,7 @@ async function fetchSingleWaveContext(source: WaveContextSource, windowParams: W
       .map((drop) => drop.serial_no)
       .filter((serial): serial is number => typeof serial === "number");
     const oldestSerial = pageSerials.length ? Math.min(...pageSerials) : undefined;
-    const reachedWindowStart = Boolean(
+    reachedWindowStart = Boolean(
       windowParams.fromMs &&
         pageDrops.some((drop) => {
           const createdAt = dropCreatedAtMs(drop);
@@ -166,13 +201,25 @@ async function fetchSingleWaveContext(source: WaveContextSource, windowParams: W
         }),
     );
 
-    if (reachedWindowStart || !oldestSerial || oldestSerial === lastOldestSerial) {
+    stoppedByDuplicateCursor = Boolean(!oldestSerial || oldestSerial === lastOldestSerial);
+    exhaustedHistory = pageDrops.length < limit;
+
+    if (reachedWindowStart || exhaustedHistory || stoppedByDuplicateCursor) {
       break;
     }
 
     lastOldestSerial = oldestSerial;
     serialNoLimit = oldestSerial;
   }
+
+  const availableDropCount = waveTotalDrops(wave);
+  const hitCap =
+    searchedMessages >= windowParams.maxMessages &&
+    !reachedWindowStart &&
+    !exhaustedHistory &&
+    !stoppedByDuplicateCursor &&
+    (availableDropCount == null || searchedMessages < availableDropCount);
+  const range = dropRange(collected);
 
   return {
     wave,
@@ -183,7 +230,11 @@ async function fetchSingleWaveContext(source: WaveContextSource, windowParams: W
       source_wave_role: source.label,
     })),
     context: {
+      availableDropCount,
+      hitCap,
+      reachedWindowStart,
       searchedMessages,
+      ...range,
     },
   };
 }
@@ -191,8 +242,16 @@ async function fetchSingleWaveContext(source: WaveContextSource, windowParams: W
 export async function fetchWaveContext(params: WaveContextParams) {
   const now = Date.now();
   const explicitWindow = Boolean(params.contextFrom || params.contextTo);
-  const fromMs = explicitWindow ? parseWindowDate(params.contextFrom) : now - DAY_MS;
-  const toMs = explicitWindow ? parseWindowDate(params.contextTo) : now;
+  const includeAllHistory = params.includeAllHistory === true;
+
+  if (includeAllHistory && explicitWindow) {
+    throw Object.assign(new Error("Use either all available history or a date window, not both."), {
+      status: 400,
+    });
+  }
+
+  const fromMs = explicitWindow ? parseWindowDate(params.contextFrom) : includeAllHistory ? undefined : now - DAY_MS;
+  const toMs = explicitWindow ? parseWindowDate(params.contextTo) : includeAllHistory ? undefined : now;
 
   if (fromMs && toMs && fromMs > toMs) {
     throw Object.assign(new Error("Context window start must be before context window end."), {
@@ -200,8 +259,7 @@ export async function fetchWaveContext(params: WaveContextParams) {
     });
   }
 
-  const maxMessages =
-    params.maxMessages ?? (explicitWindow ? EXPLICIT_WINDOW_SAFETY_CAP : DEFAULT_CONTEXT_CAP);
+  const maxMessages = params.maxMessages ?? (includeAllHistory ? DEFAULT_FULL_HISTORY_CONTEXT_CAP : DEFAULT_RECENT_CONTEXT_CAP);
   const sources = buildContextSources(params);
   const maxMessagesPerWave = Math.max(1, Math.ceil(maxMessages / sources.length));
   const sourceResults: Array<Awaited<ReturnType<typeof fetchSingleWaveContext>>> = [];
@@ -222,9 +280,14 @@ export async function fetchWaveContext(params: WaveContextParams) {
     label: sources[index]!.label,
     primary: sources[index]!.primary,
     name: waveName(result.wave),
+    availableDropCount: result.context.availableDropCount,
     dropCount: result.drops.length,
+    hitCap: result.context.hitCap,
+    oldestDropAt: result.context.oldestDropAt,
+    newestDropAt: result.context.newestDropAt,
     searchedMessages: result.context.searchedMessages,
   }));
+  const hitCap = sourceResults.some((result) => result.context.hitCap);
 
   return {
     wave: sourceResults[0]?.wave ?? null,
@@ -236,9 +299,12 @@ export async function fetchWaveContext(params: WaveContextParams) {
     context: {
       from: fromMs ? new Date(fromMs).toISOString() : null,
       to: toMs ? new Date(toMs).toISOString() : null,
+      mode: includeAllHistory ? "all" : explicitWindow ? "window" : "recent",
+      includeAllHistory,
       maxMessages,
       maxMessagesPerWave,
       searchedMessages: sourceResults.reduce((sum, result) => sum + result.context.searchedMessages, 0),
+      hitCap,
       explicitWindow,
       sources: sourcesContext,
     },
@@ -247,14 +313,25 @@ export async function fetchWaveContext(params: WaveContextParams) {
 
 export async function previewWaveContext(params: WaveContextParams) {
   const waveContext = await fetchWaveContext(params);
-  const ordered = sortDropsChronologically(waveContext.drops);
+
+  return buildWaveContextPreview({
+    waveId: params.waveId,
+    waveContext,
+  });
+}
+
+export function buildWaveContextPreview(params: {
+  waveId: string;
+  waveContext: WaveContextResult;
+}) {
+  const ordered = sortDropsChronologically(params.waveContext.drops);
 
   return {
     waveId: params.waveId,
     dropCount: ordered.length,
     fromDropId: ordered[0]?.id ?? null,
     toDropId: ordered.at(-1)?.id ?? null,
-    context: waveContext.context,
+    context: params.waveContext.context,
     sampleDrops: ordered.slice(-5).map((drop) => ({
       id: drop.id,
       serialNo: drop.serial_no ?? null,

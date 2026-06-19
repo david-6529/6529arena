@@ -91,7 +91,7 @@ describe("POST /api/admin/briefs/:id/review", () => {
 
   it("returns source-gate approval failures from the review service", async () => {
     vi.mocked(reviewWaveBrief).mockRejectedValue(
-      Object.assign(new Error("Cannot approve summary because 1 cited source drop is missing from the stored wave context."), {
+      Object.assign(new Error("Cannot mark check-in checked because 1 cited source drop is missing from the stored wave context."), {
         status: 422,
       }),
     );
@@ -106,6 +106,6 @@ describe("POST /api/admin/briefs/:id/review", () => {
     const body = await response.json();
 
     expect(response.status).toBe(422);
-    expect(body.error).toBe("Cannot approve summary because 1 cited source drop is missing from the stored wave context.");
+    expect(body.error).toBe("Cannot mark check-in checked because 1 cited source drop is missing from the stored wave context.");
   });
 });

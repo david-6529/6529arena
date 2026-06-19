@@ -13,6 +13,9 @@ function renderDropIds(ids: string[]) {
 }
 
 export function renderWaveBrief(brief: WaveBriefPayload) {
+  const evidenceLimitations = brief.evidence_coverage.limitations.length
+    ? brief.evidence_coverage.limitations.map((item) => `- ${item}`).join("\n")
+    : "- No evidence limitations were supplied.";
   const changes = brief.changes_since_previous.length
     ? brief.changes_since_previous
       .map((item) => `- ${item.change}${renderDropIds(item.source_drop_ids)}`)
@@ -47,6 +50,11 @@ export function renderWaveBrief(brief: WaveBriefPayload) {
 **Executive summary**
 ${brief.executive_summary}
 
+**Evidence coverage**
+${brief.evidence_coverage.summary || "No evidence coverage supplied."}
+
+${evidenceLimitations}
+
 **What changed since last summary**
 ${changes}
 
@@ -79,7 +87,7 @@ export function renderWaveBriefPost(params: {
   briefId: string;
   content: string;
 }) {
-  return `Agent-assisted wave summary:
+  return `Agent-assisted wave check-in:
 
 ${params.content}`;
 }

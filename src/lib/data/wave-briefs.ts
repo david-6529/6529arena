@@ -217,6 +217,7 @@ export async function createWaveBriefDraft(params: {
   contextFrom?: string;
   contextTo?: string;
   maxMessages?: number;
+  includeAllHistory?: boolean;
   relatedWaves?: Array<{
     waveId: string;
     label?: string;
@@ -225,12 +226,13 @@ export async function createWaveBriefDraft(params: {
   modelName?: string;
 }) {
   const db = getPrisma();
-  const requestText = params.requestText || "Create a clear catch-up summary for this 6529 wave.";
+  const requestText = params.requestText || "Create a clear wave check-in for this 6529 wave.";
   const waveContext = await fetchWaveContext({
     waveId: params.waveId,
     contextFrom: params.contextFrom,
     contextTo: params.contextTo,
     maxMessages: params.maxMessages,
+    includeAllHistory: params.includeAllHistory,
     relatedWaves: params.relatedWaves,
   });
 
@@ -266,6 +268,7 @@ export async function createWaveBriefDraft(params: {
       waveId: params.waveId,
       requestText,
       drops: waveContext.drops,
+      context: waveContext.context,
       provider: params.provider,
       modelName: params.modelName,
       previousSummary: previousBrief ?? undefined,
@@ -277,7 +280,7 @@ export async function createWaveBriefDraft(params: {
       entityType: "wave",
       entityId: params.waveId,
       actor: "operator",
-      message: "Wave summary generation was rejected before draft creation.",
+      message: "Wave check-in generation was rejected before draft creation.",
       metadata: {
         waveId: params.waveId,
         requestedProvider: params.provider ?? process.env.WAVE_BRIEF_PROVIDER ?? "openai",
@@ -327,7 +330,7 @@ export async function createWaveBriefDraft(params: {
     entityType: "wave_brief",
     entityId: brief.id,
     actor: "operator",
-    message: "Wave summary draft generated from 6529 wave context.",
+    message: "Wave check-in draft generated from 6529 wave context.",
     metadata: {
       waveId: brief.waveId,
       provider: brief.provider,
@@ -361,21 +364,21 @@ export async function reviewWaveBrief(params: {
   const existing = await db.waveBrief.findUnique({ where: { id: params.briefId } });
 
   if (!existing) {
-    throw Object.assign(new Error("Wave summary not found."), { status: 404 });
+    throw Object.assign(new Error("Wave check-in not found."), { status: 404 });
   }
 
   if (existing.status === "posted" && params.action !== "update") {
-    throw Object.assign(new Error("Posted summaries cannot be approved or rejected again."), { status: 409 });
+    throw Object.assign(new Error("Posted check-ins cannot be checked or discarded again."), { status: 409 });
   }
 
   if (existing.status === "rejected" && params.action !== "update") {
-    throw Object.assign(new Error("Rejected summaries cannot be approved or rejected again. Create a new summary for revisions."), {
+    throw Object.assign(new Error("Discarded check-ins cannot be checked or discarded again. Create a new check-in for revisions."), {
       status: 409,
     });
   }
 
   if (existing.status === "posting" && params.action !== "update") {
-    throw Object.assign(new Error("Posting summaries cannot be approved or rejected while the 6529 post is in progress."), {
+    throw Object.assign(new Error("Posting check-ins cannot be checked or discarded while the 6529 post is in progress."), {
       status: 409,
     });
   }
@@ -387,18 +390,18 @@ export async function reviewWaveBrief(params: {
 
   if (lockedContentChanged) {
     if (existing.status === "posted") {
-      throw Object.assign(new Error("Posted summaries cannot change title or content. Create a new summary for public revisions."), {
+      throw Object.assign(new Error("Posted check-ins cannot change title or content. Create a new check-in for public revisions."), {
         status: 409,
       });
     }
 
     if (existing.status === "posting") {
-      throw Object.assign(new Error("Posting summaries cannot change title or content while the 6529 post is in progress."), {
+      throw Object.assign(new Error("Posting check-ins cannot change title or content while the 6529 post is in progress."), {
         status: 409,
       });
     }
 
-    throw Object.assign(new Error("Rejected summaries cannot change title or content. Create a new summary for revisions."), {
+    throw Object.assign(new Error("Discarded check-ins cannot change title or content. Create a new check-in for revisions."), {
       status: 409,
     });
   }
@@ -434,7 +437,7 @@ export async function reviewWaveBrief(params: {
         entityType: "wave_brief",
         entityId: existing.id,
         actor: params.reviewedBy ?? "operator",
-        message: "Blocked wave summary approval because the final summary content cites drops outside stored context.",
+        message: "Blocked wave check-in because the final check-in content cites drops outside stored context.",
         metadata: {
           waveId: existing.waveId,
           missingDropIds: sourceCheck.missingDropIds,
@@ -443,7 +446,7 @@ export async function reviewWaveBrief(params: {
       });
       throw Object.assign(
         new Error(
-          `Cannot approve summary because ${sourceCheck.missingDropIds.length} cited source drop${
+          `Cannot mark check-in checked because ${sourceCheck.missingDropIds.length} cited source drop${
             sourceCheck.missingDropIds.length === 1 ? " is" : "s are"
           } missing from the stored wave context.`,
         ),
@@ -474,7 +477,7 @@ export async function reviewWaveBrief(params: {
     entityType: "wave_brief",
     entityId: brief.id,
     actor: params.reviewedBy ?? "operator",
-    message: `Wave summary ${params.action}.`,
+    message: `Wave check-in ${params.action === "approve" ? "checked" : params.action === "reject" ? "discarded" : "updated"}.`,
     metadata: {
       waveId: brief.waveId,
       status: brief.status,
@@ -494,11 +497,11 @@ export async function previewWaveBriefPost(params: {
   const brief = await getWaveBrief(params.briefId);
 
   if (!brief) {
-    throw Object.assign(new Error("Wave summary not found."), { status: 404 });
+    throw Object.assign(new Error("Wave check-in not found."), { status: 404 });
   }
 
   if (brief.status === "rejected") {
-    throw Object.assign(new Error("Rejected summaries cannot be posted."), { status: 409 });
+    throw Object.assign(new Error("Discarded check-ins cannot be posted."), { status: 409 });
   }
 
   return buildWaveBriefPostPreview({
@@ -515,19 +518,19 @@ export async function postWaveBriefTo6529(params: {
   const brief = await db.waveBrief.findUnique({ where: { id: params.briefId } });
 
   if (!brief) {
-    throw Object.assign(new Error("Wave summary not found."), { status: 404 });
+    throw Object.assign(new Error("Wave check-in not found."), { status: 404 });
   }
 
   if (brief.status === "rejected") {
-    throw Object.assign(new Error("Rejected summaries cannot be posted."), { status: 409 });
+    throw Object.assign(new Error("Discarded check-ins cannot be posted."), { status: 409 });
   }
 
   if (brief.status === "posting") {
-    throw Object.assign(new Error("A 6529 post is already in progress for this summary."), { status: 409 });
+    throw Object.assign(new Error("A 6529 post is already in progress for this check-in."), { status: 409 });
   }
 
   if (brief.status !== "approved" && brief.status !== "posted") {
-    throw Object.assign(new Error("Approve the summary before posting it to 6529."), { status: 422 });
+    throw Object.assign(new Error("Mark the check-in checked before posting it to 6529."), { status: 422 });
   }
 
   if (brief.postDropId) {
@@ -535,7 +538,7 @@ export async function postWaveBriefTo6529(params: {
       type: "wave_brief.post_idempotent_reuse",
       entityType: "wave_brief",
       entityId: brief.id,
-      message: "Skipped 6529 post because wave summary was already posted.",
+      message: "Skipped 6529 post because wave check-in was already posted.",
       metadata: { postDropId: brief.postDropId },
     });
     return brief;
@@ -550,7 +553,7 @@ export async function postWaveBriefTo6529(params: {
       entityType: "wave_brief",
       entityId: brief.id,
       actor: "operator",
-      message: "Blocked 6529 post because the final summary content cites drops outside stored context.",
+      message: "Blocked 6529 post because the final check-in content cites drops outside stored context.",
       metadata: {
         waveId: brief.waveId,
         missingDropIds: sourceCheck.missingDropIds,
@@ -559,7 +562,7 @@ export async function postWaveBriefTo6529(params: {
     });
     throw Object.assign(
       new Error(
-        `Cannot post summary because ${sourceCheck.missingDropIds.length} cited source drop${
+        `Cannot post check-in because ${sourceCheck.missingDropIds.length} cited source drop${
           sourceCheck.missingDropIds.length === 1 ? " is" : "s are"
         } missing from the stored wave context.`,
       ),
@@ -586,17 +589,17 @@ export async function postWaveBriefTo6529(params: {
         type: "wave_brief.post_idempotent_reuse",
         entityType: "wave_brief",
         entityId: current.id,
-        message: "Skipped 6529 post because wave summary was already posted.",
+        message: "Skipped 6529 post because wave check-in was already posted.",
         metadata: { postDropId: current.postDropId },
       });
       return current;
     }
 
     if (current?.status === "posting") {
-      throw Object.assign(new Error("A 6529 post is already in progress for this summary."), { status: 409 });
+      throw Object.assign(new Error("A 6529 post is already in progress for this check-in."), { status: 409 });
     }
 
-    throw Object.assign(new Error("Approve the summary before posting it to 6529."), { status: 422 });
+    throw Object.assign(new Error("Mark the check-in checked before posting it to 6529."), { status: 422 });
   }
 
   const preview = buildWaveBriefPostPreview({
@@ -631,7 +634,7 @@ export async function postWaveBriefTo6529(params: {
       type: "wave_brief.posted_to_6529",
       entityType: "wave_brief",
       entityId: updated.id,
-      message: "Wave summary posted to 6529.",
+      message: "Wave check-in posted to 6529.",
       metadata: {
         waveId: updated.waveId,
         postDropId: updated.postDropId,
@@ -659,7 +662,7 @@ export async function postWaveBriefTo6529(params: {
       entityType: "wave_brief",
       entityId: brief.id,
       actor: "operator",
-      message: "Wave summary post to 6529 failed.",
+      message: "Wave check-in post to 6529 failed.",
       metadata: {
         waveId: brief.waveId,
         postDropId,

@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "6529 SwarmOps",
-  description: "An optimized summarizer for anyone catching up on a busy 6529 wave.",
+  title: "The Doom Signal",
+  description: "A source-aware wave check-in tool for busy 6529 waves.",
 };
 
 export default function RootLayout({

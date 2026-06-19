@@ -40,10 +40,10 @@ Required for first production:
 - `ANTHROPIC_API_KEY`: optional if Anthropic agents are active.
 - `GOOGLE_API_KEY`: optional if Gemini agents are active.
 - `MAX_BATTLE_ESTIMATED_COST_USD`: rejects evaluation battle runs whose selected agents' configured max costs exceed this cap.
-- `WAVE_BRIEF_PROVIDER`: optional provider for operator-only wave summaries, default `openai`. The matching provider key must be non-empty before summary generation; missing keys block generation before rate-limit buckets or model work.
-- `WAVE_BRIEF_MODEL`: optional model override for operator-only wave summaries.
-- `MAX_WAVE_BRIEF_ESTIMATED_COST_USD`: rejects operator-only wave summaries before the provider call when estimated prompt plus max-output cost exceeds this cap, default `0.25`. Explicit invalid or non-positive values block generation before any model work.
-- `WAVE_BRIEF_RATE_LIMIT_PER_HOUR`: operator wave summary generation limit per request fingerprint, default `10`. Explicit invalid, non-integer, or non-positive values block generation before any rate-limit bucket or model work.
+- `WAVE_BRIEF_PROVIDER`: optional provider for protected wave check-ins, default `openai`. The matching provider key must be non-empty before check-in generation; missing keys block generation before rate-limit buckets or model work.
+- `WAVE_BRIEF_MODEL`: optional model override for protected wave check-ins.
+- `MAX_WAVE_BRIEF_ESTIMATED_COST_USD`: rejects protected wave check-ins before the provider call when estimated prompt plus max-output cost exceeds this cap, default `0.25`. Explicit invalid or non-positive values block generation before any model work.
+- `WAVE_BRIEF_RATE_LIMIT_PER_HOUR`: wave check-in generation limit per request fingerprint, default `10`. Explicit invalid, non-integer, or non-positive values block generation before any rate-limit bucket or model work.
 - `PUBLIC_AGENT_SUBMISSIONS_ENABLED`: enables `/submit` intake when set to `true`.
 - `EXTERNAL_AGENT_ENDPOINT_SUBMISSIONS_ENABLED`: enables endpoint URL submissions when set to `true`; keep disabled initially.
 - `AGENT_SUBMISSION_RATE_LIMIT_PER_DAY`: daily submission limit per request fingerprint.
@@ -73,7 +73,7 @@ The command creates `.env.6529-smoke.local`, refuses to overwrite it unless `--f
 
 Use the generated `6529_BOT_WALLET_ADDRESS` and `6529_BOT_PRIVATE_KEY` values in `.env.local` for local live tests or in the Vercel encrypted environment for production. Do not paste the private key into chat, docs, issues, or commits.
 
-The app can authenticate and post with a configured 6529 wallet. It does not currently create a normal 6529 profile or public wave. For the first manual smoke test, use the dedicated wallet to create the requested 6529 username `testing12345`, create a test wave in 6529, add at least 10 comments, then use that wave ID in `/operator/briefs`.
+The app can authenticate and post with a configured 6529 wallet. It does not currently create a normal 6529 profile or public wave. For the first manual smoke test, use the dedicated wallet to create the requested 6529 username `testing12345`, create a test wave in 6529, add at least 10 comments, then use that wave ID in `/`.
 
 ## Vercel Setup
 
@@ -93,13 +93,13 @@ npx prisma migrate deploy
 npm run db:seed
 ```
 
-7. Open `/operator`, sign in with `ADMIN_API_KEY`, and confirm the SwarmOps Operator Console loads.
+7. Open `/operator`, sign in with `ADMIN_API_KEY`, and confirm the Doom Signal Operator Console loads.
 8. Open `/operator/readiness` and confirm launch blockers are green.
-9. Open `/operator/briefs`, search for a wave by name or enter a wave ID, generate a test wave summary, edit it, save edits before approving, previewing, or posting, add a human score, approve it only after the saved final-content source gate passes, confirm later title or content edits move the summary back to draft until re-approved, confirm the preview post source gate is clear, preview it, and post only after the final content source check passes.
-10. Generate a second test summary for the same wave and confirm it links to the previous reviewed summary and includes "What changed since last summary".
-11. Open `/operator/tasks`, review suggested tasks from the summary, and confirm that edit, assign, claim, confirm, complete, and reject actions work.
-12. Generate or seed a repeated open action item and confirm the existing task updates its seen count and last-seen summary metadata.
-13. Confirm Recent Events records summary, task, posting, and posting failure activity when a post fails.
+9. Open `/`, search for a wave by name or enter a wave ID, generate a test wave check-in, edit it, save edits before marking checked, previewing, or posting, add a human score, mark it checked only after the saved final-content source gate passes, confirm later title or content edits move the check-in back to draft until it is checked again, confirm the preview post source gate is clear, preview it, and post only after the final content source check passes.
+10. Generate a second test check-in for the same wave and confirm it links to the previous checked check-in and includes "What changed since last summary".
+11. Open `/operator/tasks`, review suggested tasks from the check-in, and confirm that edit, assign, claim, confirm, complete, and reject actions work.
+12. Generate or seed a repeated open action item and confirm the existing task updates its seen count and last-seen check-in metadata.
+13. Confirm Recent Events records check-in, task, posting, and posting failure activity when a post fails.
 Optional evaluation smoke test:
 
 1. Set `SIMPLE_LAUNCH_MODE=false`.
@@ -110,7 +110,7 @@ Optional evaluation smoke test:
 6. Use Preview Post to inspect the exact 6529 reply body.
 7. Post to 6529 only after the output is acceptable.
 
-For the simplest launch, keep the public product to the wave-summary assistant and keep battles as feature-gated evaluation infrastructure. Public submissions, wallet identity, builder self-tests, and multi-category navigation are hidden when `SIMPLE_LAUNCH_MODE` is enabled.
+For the simplest launch, keep the public product to The Doom Signal wave check-in assistant and keep battles as feature-gated evaluation infrastructure. Public submissions, wallet identity, builder self-tests, and multi-category navigation are hidden when `SIMPLE_LAUNCH_MODE` is enabled.
 
 Use `/api/health` for public uptime checks. It returns only service health and coarse database status; detailed readiness stays behind `/operator`.
 
@@ -148,38 +148,38 @@ Operators can run the same cleanup without processing queued model work from `/o
 Operator CSV exports are available from `/operator` and `/api/admin/export`:
 
 - `type=leaderboard`: current category and cost-tier ranking inputs.
-- `type=wave-summaries`: wave summary review, posting, cost, latency, score, source-gate count/status, and task-count metadata.
+- `type=wave-check-ins`: wave check-in review, posting, cost, latency, score, source-gate count/status, and task-count metadata. `wave-summaries` remains a compatibility alias.
 - `type=wave-tasks`: wave task status, workflow, ownership, claim, repeat-seen, source-drop-id, outcome-score, and comment-count metadata.
 - `type=battles`: battle status, source, winner, and related row counts.
 - `type=votes`: vote rows with battle category/status and voter fields.
 - `type=agent-runs`: run status, provider/model, token, cost, latency, and output length.
 
-In simple launch mode, `/operator` shows leaderboard, wave summary, and wave task exports. Battle, vote, and run exports return in the UI when `SIMPLE_LAUNCH_MODE=false`; the API routes remain admin protected.
+In simple launch mode, `/operator` shows leaderboard, wave check-in, and wave task exports. Battle, vote, and run exports return in the UI when `SIMPLE_LAUNCH_MODE=false`; the API routes remain admin protected.
 
-Exports are intended for operations and prompt/cost analysis. They intentionally avoid raw wave snapshots, raw summary content, prompts, comments, reviewer note bodies, and full model outputs because those can contain private context.
+Exports are intended for operations and prompt/cost analysis. They intentionally avoid raw wave snapshots, raw check-in content, prompts, comments, reviewer note bodies, and full model outputs because those can contain private context.
 
 ## Production Smoke Test
 
 After deploy:
 
 1. `/operator` redirects to `/operator/login` when `ADMIN_API_KEY` is configured.
-2. `/operator` shows the SwarmOps Operator Console with Production Readiness, Recent Summaries with source-gate status, Summary Review Rollups, Summary Cost Rollups, Outcome Rollups, Wave Rollups, Workflow Rollups, Owner Rollups, and Follow-Up Queue.
-3. `/operator/readiness` has database, production URL, app access key, cron secret, rate-limit salt, summary cost cap, 6529 posting, and the selected summary AI provider configured.
-4. `/operator/briefs` lets an operator search saved waves by name or enter a wave ID in a separate field, generates, edits, scores, blocks approval when saved final content cites drops outside stored context, moves approved summaries back to draft when title or content changes, locks rejected summary content so revisions require a new summary, locks posting summary content while the 6529 call is in flight, blocks approval/preview/post while title or content has unsaved edits, previews with source-gate metadata, claims posting before the 6529 call to prevent duplicate posts, and optionally posts a real test summary after final content source checks pass.
-5. Missing-source warnings on `/operator/briefs` identify the exact summary section that cited a drop outside stored context, and the visible source gate blocks approval and posting for final content that still cites missing drops.
-6. A repeat summary for the same wave links to the previous reviewed summary and renders "What changed since last summary".
+2. `/operator` shows The Doom Signal Console with Production Readiness, Recent Check-ins with source-gate status, Check-in Quality Rollups, Check-in Cost Rollups, Outcome Rollups, Wave Rollups, Workflow Rollups, Owner Rollups, and Follow-Up Queue.
+3. `/operator/readiness` has database, production URL, app access key, cron secret, rate-limit salt, check-in cost cap, 6529 posting, and the selected check-in AI provider configured.
+4. `/` lets a reviewer search saved waves by name or paste a wave link/ID in one field, generates, edits, scores, blocks marking checked when saved final content cites drops outside stored context, moves checked check-ins back to draft when title or content changes, locks discarded check-in content so revisions require a new check-in, locks posting check-in content while the 6529 call is in flight, blocks checking/preview/post while title or content has unsaved edits, previews with source-gate metadata, claims posting before the 6529 call to prevent duplicate posts, and optionally posts a real test check-in after final content source checks pass.
+5. Missing-source warnings on `/` identify the exact check-in section that cited a drop outside stored context, and the visible source gate blocks marking checked and posting for final content that still cites missing drops.
+6. A repeat check-in for the same wave links to the previous checked check-in and renders "What changed since last summary".
 7. `/operator/tasks` shows suggested follow-ups and supports edit, assign, claim, confirm, complete, and reject actions.
-8. Repeated open tasks update seen count and last-seen summary metadata instead of creating duplicates.
+8. Repeated open tasks update seen count and last-seen check-in metadata instead of creating duplicates.
 9. Task cards support append-only comments for follow-up notes and handoffs.
 10. Completed follow-ups can be scored 1-5 with outcome score notes.
-11. Summary Review Rollups show generated, reviewed, reviewed-scored, unscored reviewed, posted, and average reviewed scores.
-12. Summary Cost Rollups show costed summaries, total/average/max cost, average latency, and total tokens.
+11. Check-in Quality Rollups show generated, checked, scored, unscored checked, posted, and average usefulness scores.
+12. Check-in Cost Rollups show costed check-ins, total/average/max cost, average latency, and total tokens.
 13. Outcome Rollups show completed, evidence-linked, scored, unscored, average scored, strong, weak, and score-distribution follow-ups.
 14. Wave Rollups show open load, repeated open work, completed work, proof, scored completions, average score, and weak outcomes by wave.
 15. Workflow Rollups show open load, repeated open work, completed work, proof, scored completions, average score, and weak outcomes by standard task workflow.
 16. Owner Rollups show open load, completed work, proof, scored completions, average score, and weak outcomes by resolved task owner.
-17. Recent Events shows summary, task, post, and post-failure events.
-18. Summary and task cards show their own change history from audit events.
+17. Recent Events shows check-in, task, post, and post-failure events.
+18. Check-in and task cards show their own change history from audit events.
 19. When `SIMPLE_LAUNCH_MODE=false`, a test battle queues, processes, renders two options, and closes without affecting official leaderboard scores.
 
 ## API Error IDs

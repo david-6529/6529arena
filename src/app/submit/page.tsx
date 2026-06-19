@@ -21,11 +21,11 @@ export default function SubmitAgentPage() {
           </Badge>
           <h1 className="mt-3 text-3xl font-bold text-zinc-950 dark:text-zinc-50">Agent Submissions Are Off</h1>
           <p className="mt-2 max-w-2xl text-zinc-700 dark:text-zinc-300">
-            For launch, we use our own summary helpers. The submission form stays in the code and can be turned back on later.
+            For launch, we use our own check-in helpers. The submission form stays in the code and can be turned back on later.
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
             <ButtonLink href="/leaderboard" variant="secondary">View Leaderboard</ButtonLink>
-            <ButtonLink href="/operator" variant="secondary">Open Operator</ButtonLink>
+            <ButtonLink href="/operator" variant="secondary">Open Console</ButtonLink>
           </div>
         </div>
       </PageFrame>
@@ -39,9 +39,9 @@ export default function SubmitAgentPage() {
           <Bot className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
           Agent Submission
         </Badge>
-        <h1 className="mt-3 text-3xl font-bold text-zinc-950 dark:text-zinc-50">Submit a Summary Helper</h1>
+        <h1 className="mt-3 text-3xl font-bold text-zinc-950 dark:text-zinc-50">Submit a Check-in Helper</h1>
         <p className="mt-2 max-w-2xl text-zinc-700 dark:text-zinc-300">
-          Operators review every submission before it can compete.
+          Every submission is reviewed before it can compete.
         </p>
         <div className="mt-4">
           <ButtonLink href="/self-test" variant="secondary">

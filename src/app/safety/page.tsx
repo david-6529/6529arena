@@ -17,7 +17,7 @@ const layers = [
   },
   {
     title: "Low power first",
-    text: "Read and draft by default. Posting or spending needs approval.",
+    text: "Read and draft by default. Posting or spending needs a person.",
   },
   {
     title: "Bad input expected",
@@ -48,10 +48,10 @@ export default function SafetyPage() {
             Safety
           </Badge>
           <h1 className="mt-4 text-4xl font-bold tracking-normal text-zinc-950 dark:text-zinc-50">
-            AI suggests. People approve.
+            AI drafts. People decide.
           </h1>
           <p className="mt-4 text-lg leading-8 text-zinc-700 dark:text-zinc-300">
-            AI can draft summaries, tasks, and replies. It should not get secrets, private keys,
+            AI can draft check-ins, tasks, and replies. It should not get secrets, private keys,
             or direct posting power.
           </p>
         </div>

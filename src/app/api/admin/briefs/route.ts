@@ -12,7 +12,8 @@ const createBriefSchema = z.object({
   requestText: z.string().trim().min(1).max(1000).optional(),
   contextFrom: z.string().trim().min(1).optional(),
   contextTo: z.string().trim().min(1).optional(),
-  maxMessages: z.number().int().min(1).max(5000).optional(),
+  maxMessages: z.number().int().min(1).max(20000).optional(),
+  includeAllHistory: z.boolean().optional(),
   relatedWaves: z
     .array(
       z.object({
@@ -45,7 +46,7 @@ export async function POST(request: Request) {
       provider: body.provider,
       modelName: body.modelName,
       actor: "operator",
-      actorLabel: "Operator",
+      actorLabel: "Signal user",
     });
 
     if (!configGate.ok) {
@@ -58,7 +59,7 @@ export async function POST(request: Request) {
       scope: "admin_wave_brief",
       limit: configGate.limit,
       actor: "operator",
-      actorLabel: "Operator",
+      actorLabel: "Signal user",
     });
 
     if (!rateLimitGate.ok) {

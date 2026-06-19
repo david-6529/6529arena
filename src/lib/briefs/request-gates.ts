@@ -52,7 +52,7 @@ export async function checkWaveBriefGenerationConfig(params: {
       entityType: "wave",
       entityId: params.waveId,
       actor: params.actor,
-      message: `${params.actorLabel} wave summary generation blocked by invalid rate-limit configuration.`,
+      message: `${params.actorLabel} wave check-in generation blocked by invalid rate-limit configuration.`,
       metadata: {
         waveId: params.waveId,
         envName: "WAVE_BRIEF_RATE_LIMIT_PER_HOUR",
@@ -62,7 +62,7 @@ export async function checkWaveBriefGenerationConfig(params: {
     return {
       ok: false,
       response: json(
-        { error: "Wave summary generation is disabled because WAVE_BRIEF_RATE_LIMIT_PER_HOUR must be a positive integer." },
+        { error: "Wave check-in generation is disabled because WAVE_BRIEF_RATE_LIMIT_PER_HOUR must be a positive integer." },
         { status: 503 },
       ),
     };
@@ -75,7 +75,7 @@ export async function checkWaveBriefGenerationConfig(params: {
       entityType: "wave",
       entityId: params.waveId,
       actor: params.actor,
-      message: `${params.actorLabel} wave summary generation blocked by invalid cost-cap configuration.`,
+      message: `${params.actorLabel} wave check-in generation blocked by invalid cost-cap configuration.`,
       metadata: {
         waveId: params.waveId,
         envName: "MAX_WAVE_BRIEF_ESTIMATED_COST_USD",
@@ -85,7 +85,7 @@ export async function checkWaveBriefGenerationConfig(params: {
     return {
       ok: false,
       response: json(
-        { error: "Wave summary generation is disabled because MAX_WAVE_BRIEF_ESTIMATED_COST_USD must be a positive number." },
+        { error: "Wave check-in generation is disabled because MAX_WAVE_BRIEF_ESTIMATED_COST_USD must be a positive number." },
         { status: 503 },
       ),
     };
@@ -98,7 +98,7 @@ export async function checkWaveBriefGenerationConfig(params: {
       entityType: "wave",
       entityId: params.waveId,
       actor: params.actor,
-      message: `${params.actorLabel} wave summary generation blocked by missing provider key.`,
+      message: `${params.actorLabel} wave check-in generation blocked by missing provider key.`,
       metadata: {
         waveId: params.waveId,
         provider: providerConfig.provider,
@@ -110,7 +110,7 @@ export async function checkWaveBriefGenerationConfig(params: {
     return {
       ok: false,
       response: json(
-        { error: `Wave summary generation is disabled because ${providerConfig.keyName} is not configured.` },
+        { error: `Wave check-in generation is disabled because ${providerConfig.keyName} is not configured.` },
         { status: 503 },
       ),
     };
@@ -145,7 +145,7 @@ export async function consumeWaveBriefGenerationRateLimit(params: {
       entityType: "wave",
       entityId: params.waveId,
       actor: `${params.actor}:${fingerprint}`,
-      message: `${params.actorLabel} wave summary generation rejected by rate limit.`,
+      message: `${params.actorLabel} wave check-in generation rejected by rate limit.`,
       metadata: {
         waveId: params.waveId,
         resetAt: rateLimit.resetAt.toISOString(),
@@ -156,7 +156,7 @@ export async function consumeWaveBriefGenerationRateLimit(params: {
       ok: false,
       rateLimit,
       response: json(
-        { error: "Wave summary generation rate limit exceeded.", resetAt: rateLimit.resetAt.toISOString() },
+        { error: "Wave check-in generation rate limit exceeded.", resetAt: rateLimit.resetAt.toISOString() },
         {
           status: 429,
           headers: {

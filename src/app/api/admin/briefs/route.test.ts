@@ -56,7 +56,7 @@ describe("POST /api/admin/briefs", () => {
 
     expect(response.status).toBe(503);
     expect(body).toEqual({
-      error: "Wave summary generation is disabled because WAVE_BRIEF_RATE_LIMIT_PER_HOUR must be a positive integer.",
+      error: "Wave check-in generation is disabled because WAVE_BRIEF_RATE_LIMIT_PER_HOUR must be a positive integer.",
     });
     expect(consumeRateLimit).not.toHaveBeenCalled();
     expect(createWaveBriefDraft).not.toHaveBeenCalled();
@@ -87,7 +87,7 @@ describe("POST /api/admin/briefs", () => {
 
     expect(response.status).toBe(503);
     expect(body).toEqual({
-      error: "Wave summary generation is disabled because WAVE_BRIEF_RATE_LIMIT_PER_HOUR must be a positive integer.",
+      error: "Wave check-in generation is disabled because WAVE_BRIEF_RATE_LIMIT_PER_HOUR must be a positive integer.",
     });
     expect(consumeRateLimit).not.toHaveBeenCalled();
     expect(createWaveBriefDraft).not.toHaveBeenCalled();
@@ -119,7 +119,7 @@ describe("POST /api/admin/briefs", () => {
 
     expect(response.status).toBe(503);
     expect(body).toEqual({
-      error: "Wave summary generation is disabled because MAX_WAVE_BRIEF_ESTIMATED_COST_USD must be a positive number.",
+      error: "Wave check-in generation is disabled because MAX_WAVE_BRIEF_ESTIMATED_COST_USD must be a positive number.",
     });
     expect(consumeRateLimit).not.toHaveBeenCalled();
     expect(createWaveBriefDraft).not.toHaveBeenCalled();
@@ -152,7 +152,7 @@ describe("POST /api/admin/briefs", () => {
 
     expect(response.status).toBe(503);
     expect(body).toEqual({
-      error: "Wave summary generation is disabled because OPENAI_API_KEY is not configured.",
+      error: "Wave check-in generation is disabled because OPENAI_API_KEY is not configured.",
     });
     expect(consumeRateLimit).not.toHaveBeenCalled();
     expect(createWaveBriefDraft).not.toHaveBeenCalled();
@@ -173,7 +173,7 @@ describe("POST /api/admin/briefs", () => {
     );
   });
 
-  it("rate-limits summary generation before creating a draft", async () => {
+  it("rate-limits check-in generation before creating a draft", async () => {
     process.env.WAVE_BRIEF_PROVIDER = "openai";
     process.env.OPENAI_API_KEY = "test-key";
     const resetAt = new Date("2026-06-18T12:00:00.000Z");
@@ -193,7 +193,7 @@ describe("POST /api/admin/briefs", () => {
 
     expect(response.status).toBe(429);
     expect(body).toEqual({
-      error: "Wave summary generation rate limit exceeded.",
+      error: "Wave check-in generation rate limit exceeded.",
       resetAt: resetAt.toISOString(),
     });
     expect(response.headers.get("x-ratelimit-remaining")).toBe("0");
@@ -279,6 +279,8 @@ describe("POST /api/admin/briefs", () => {
       createRequest({
         waveId: "wave-parent",
         requestText: "Summarize the PR pipeline.",
+        includeAllHistory: true,
+        maxMessages: 20000,
         relatedWaves: [
           {
             waveId: "https://6529.io/waves/wave-firehose",
@@ -292,6 +294,8 @@ describe("POST /api/admin/briefs", () => {
     expect(createWaveBriefDraft).toHaveBeenCalledWith({
       waveId: "wave-parent",
       requestText: "Summarize the PR pipeline.",
+      includeAllHistory: true,
+      maxMessages: 20000,
       relatedWaves: [
         {
           waveId: "https://6529.io/waves/wave-firehose",

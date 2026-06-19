@@ -56,29 +56,29 @@ export default async function AdminReadinessPage() {
       action: "Set RATE_LIMIT_SALT so request fingerprints stored in the database are not reversible.",
     },
     {
-      label: "Summary AI provider",
+      label: "Check-in AI provider",
       ok: status.waveBriefProvider.configured,
       detail: status.waveBriefProvider.configured
-        ? `${status.waveBriefProvider.provider} summaries can run with ${status.waveBriefProvider.keyName}.`
+        ? `${status.waveBriefProvider.provider} check-ins can run with ${status.waveBriefProvider.keyName}.`
         : `WAVE_BRIEF_PROVIDER is ${status.waveBriefProvider.provider}, but ${status.waveBriefProvider.keyName} is missing.`,
       action: `Set ${status.waveBriefProvider.keyName} or change WAVE_BRIEF_PROVIDER to a configured provider.`,
     },
     {
-      label: "Summary cost cap",
+      label: "Check-in cost cap",
       ok: status.costCaps.waveBriefEstimatedCostUsd !== null,
       detail:
         status.costCaps.waveBriefEstimatedCostUsd === null
           ? "MAX_WAVE_BRIEF_ESTIMATED_COST_USD is missing or invalid."
-          : `Wave summaries are capped at $${status.costCaps.waveBriefEstimatedCostUsd.toFixed(2)} estimated cost before provider calls.`,
+          : `Wave check-ins are capped at $${status.costCaps.waveBriefEstimatedCostUsd.toFixed(2)} estimated cost before provider calls.`,
       action: "Set MAX_WAVE_BRIEF_ESTIMATED_COST_USD to a conservative positive dollar amount for the pilot.",
     },
     {
-      label: "Summary rate limit",
+      label: "Check-in rate limit",
       ok: status.rateLimits.waveBriefPerHour !== null,
       detail:
         status.rateLimits.waveBriefPerHour === null
           ? "WAVE_BRIEF_RATE_LIMIT_PER_HOUR is missing or invalid."
-          : `Wave summary generation is limited to ${status.rateLimits.waveBriefPerHour} requests per hour per fingerprint.`,
+          : `Wave check-in generation is limited to ${status.rateLimits.waveBriefPerHour} requests per hour per fingerprint.`,
       action: "Set WAVE_BRIEF_RATE_LIMIT_PER_HOUR to a conservative positive integer for the pilot.",
     },
     {
@@ -101,7 +101,7 @@ export default async function AdminReadinessPage() {
       label: "Simple launch mode",
       ok: simpleLaunch,
       detail: simpleLaunch
-        ? "The operator console starts with wave summaries, and evaluation battles stay hidden from the launch path."
+        ? "The console starts with wave check-ins, and evaluation battles stay hidden from the launch path."
         : "Full product surfaces are visible.",
       action: "Set SIMPLE_LAUNCH_MODE=true or omit it for the simplest first launch.",
     },
@@ -147,16 +147,16 @@ export default async function AdminReadinessPage() {
         <div>
           <Badge className="border-zinc-300 bg-white text-zinc-800 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200">
             <ClipboardCheck className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
-            Operator
+            Console
           </Badge>
           <h1 className="mt-3 text-3xl font-bold text-zinc-950 dark:text-zinc-50">Production Readiness</h1>
           <p className="mt-2 max-w-3xl text-zinc-700 dark:text-zinc-300">
-            Concrete deployment checks for the first production SwarmOps summary loop.
+            Concrete deployment checks for the first production check-in loop for The Doom Signal.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <ButtonLink href="/operator" variant="secondary">
-            Operator Console
+            Console
           </ButtonLink>
           <AdminLogoutButton />
         </div>

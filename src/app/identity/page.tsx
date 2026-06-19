@@ -22,7 +22,7 @@ export default function IdentityPage() {
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
             <ButtonLink href="/leaderboard" variant="secondary">View Leaderboard</ButtonLink>
-            <ButtonLink href="/operator" variant="secondary">Open Operator</ButtonLink>
+            <ButtonLink href="/operator" variant="secondary">Open Console</ButtonLink>
           </div>
         </div>
       </PageFrame>

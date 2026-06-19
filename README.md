@@ -1,28 +1,28 @@
-# 6529 SwarmOps
+# The Doom Signal
 
 ## ELI5
 
-6529 SwarmOps helps anyone in a 6529 wave keep noisy conversations from losing the plot.
+The Doom Signal helps anyone in a 6529 wave find the signal inside noisy conversations.
 
-The problem is that important decisions, open questions, follow-ups, and facts get buried inside fast wave conversations. SwarmOps is an optimized wave summarizer: it catches you up on what changed since the last reviewed summary, what happened, what was decided, what is still open, who owns follow-up, and what needs checking.
+The problem is that important decisions, open questions, follow-ups, and facts get buried inside fast wave conversations. The Doom Signal is the simple wave check-in tool: paste or search for a wave, generate a sourced catch-up note, see what needs checking, and decide whether anything should be shared back.
 
-Agents do the first pass. Humans stay in charge. The system keeps source drops, review notes, human scores, costs, votes, and outcomes so people can see which agents are actually useful.
+Agents do the first pass. Humans stay in charge. A check-in can be read privately right away. Checks matter before posting, assigning follow-ups, or treating a claim as verified.
 
-6529 Agent Arena is the evaluation layer inside SwarmOps. It can compare two agents on the same wave and update the leaderboard, but battles are infrastructure. The user-facing product is the wave assistant: summarize the wave, show what changed, identify open questions, suggest follow-ups, and keep sources attached.
+6529 Agent Arena is the feature-gated evaluation layer under The Doom Signal. It can compare two agents on the same wave and update the leaderboard, but battles are infrastructure. The user-facing product is the wave assistant: show what changed, identify open questions, suggest follow-ups, and keep sources attached.
 
 The simplest launch is this loop:
 
 1. Search for a 6529 wave by name or enter its ID.
-2. Generate a clear catch-up summary.
-3. Review changes since the previous summary, decisions, open questions, follow-ups, checks, and section-level source warnings.
+2. Generate a clear sourced check-in.
+3. Review changes since the previous check-in, decisions, open questions, follow-ups, checks, and section-level source warnings.
 4. Keep it private, share it with collaborators, or post a public recap back to the wave.
 5. Track useful follow-ups in the review queue, see when the same task comes up again, assign an owner, and record who claimed the work.
 
-Some 6529 work is split across a parent wave and subwaves. For example, a project can keep raw PR cards in one wave, readable summaries in another, and team coordination in a third. SwarmOps now supports that pattern by letting an operator summarize one main wave plus related waves while keeping each cited drop tied to its source wave.
+Some 6529 work is split across a parent wave and subwaves. For example, a project can keep raw PR cards in one wave, readable summaries in another, and team coordination in a third. The Doom Signal supports that pattern by letting a user summarize one main wave plus related waves while keeping each cited drop tied to its source wave.
 
-Battles, public agent submissions, wallet identity, and extra categories stay behind feature gates until the summary loop works well in public.
+Battles, public agent submissions, wallet identity, and extra categories stay behind feature gates until the check-in loop works well in public.
 
-The broader SwarmOps path adds reviewed wave summaries, follow-up tracking, outcome evidence, assignments, specialist agents, a 6529 bot profile for mentions and DMs, project workspaces, a Chrome extension inside the 6529 app, and eventually safe external agent intake.
+The broader Doom Signal path adds follow-up tracking, outcome evidence, assignments, specialist agents, a 6529 bot profile for mentions and DMs, project workspaces, a Chrome extension inside the 6529 app, and eventually safe external agent intake.
 
 
 ## Stack
@@ -36,7 +36,7 @@ The broader SwarmOps path adds reviewed wave summaries, follow-up tracking, outc
 
 ## Environment
 
-Copy `.env.example` to `.env` and fill in production values:
+Copy `.example.env` to `.env` and fill in local or production values. `.env.example` is kept as a terse compatibility template; `.example.env` is the commented version to start from.
 
 ```bash
 DATABASE_URL="postgresql://..."
@@ -83,11 +83,11 @@ SENTRY_DSN=""
 
 Do not deploy without `ADMIN_API_KEY`. Operator pages redirect to `/operator/login` when this is set, and protected API routes accept the login session cookie, `x-admin-api-key`, or `Authorization: Bearer`. When `ADMIN_API_KEY` is not set locally, operator pages are open and show `Open dev access` instead of a sign-out button.
 
-## Operator vs 6529 Wave Admin
+## Access And Posting Authority
 
-SwarmOps keeps the `/admin` API namespace and `ADMIN_API_KEY` env var as technical names, but the product role is an operator: the person who reviews AI output before it becomes shared or actionable. The primary UI path is `/operator`; `/admin` remains a compatibility path for now.
+The Doom Signal keeps the `/admin` API namespace and `ADMIN_API_KEY` env var as technical names. The normal user path is `/`: paste or search for a wave, preview sources, generate a check-in, and decide what to do with it. The protected operations console stays at `/operator` for launch-readiness checks, exports, maintenance, and broader review tooling.
 
-The operator does not always need to be the 6529 wave admin. Anyone should eventually be able to use SwarmOps privately to catch up. Posting a recap back to a wave, assigning public follow-ups, or running anything that spends money should require an approved operator for that workspace, and posting back to a 6529 wave should require either the wave admin, the wave creator, or someone they explicitly delegate.
+The user does not always need to be the 6529 wave admin. Anyone should eventually be able to use The Doom Signal privately to catch up. Posting a recap back to a wave, assigning public follow-ups, or running anything that spends money should require checked workspace access, and posting back to a 6529 wave should require either the wave admin, the wave creator, or someone they explicitly delegate.
 
 Never paste private keys into chat, tickets, or commit history. Put the 6529 bot key only in `.env` locally and in the deployment provider's encrypted secret store.
 
@@ -112,12 +112,15 @@ SIMPLE_LAUNCH_MODE="true"
 
 In this mode the production workflow stays intentionally narrow:
 
-- public homepage presents the SwarmOps draft site
-- public nav shows Problem, Use Cases, Safety, and Operator
+- public homepage starts with the product: one wave search/paste box, a Doom Signal-style spotlight, and same-page preview/generate actions
+- public nav shows Signal and Safety
 - leaderboard is locked to Wave Summarization
-- `/operator` opens the summary-first SwarmOps Operator Console
-- operator-only Wave Summary Drafts are available at `/operator/briefs`
-- Wave Summary Drafts can include related wave URLs or IDs for parent/subwave workspaces such as PR firehose, digest, and team-chat flows, with context preview before generation and source-wave rollups on review cards
+- `/` opens The Doom Signal flow
+- `/operator` remains the protected operations console for readiness, exports, maintenance, and broader review tooling
+- the compatibility route `/operator/briefs` opens the fuller check-in console
+- Wave Check-ins can include related wave URLs or IDs for parent/subwave workspaces such as PR firehose, digest, and team-chat flows
+- check-in generation defaults to recent context, supports explicit date windows, and has an all-history mode that fetches every available page up to a visible safety cap
+- check-in previews and review cards show source-wave coverage, cap warnings, pre-generation cost/token estimates, cited-source checks, actual model cost, token usage, and human review status
 - operator-only Wave Tasks are available at `/operator/tasks`, including seen counts for repeated open follow-ups
 - the manual battle runner is hidden behind `SIMPLE_LAUNCH_MODE=false`
 - public submissions, wallet identity, and self-test pages are parked behind explanatory screens
@@ -146,7 +149,7 @@ SEED_DEMO_DATA=true npm run db:seed
 
 Detailed setup: [docs/production-runbook.md](docs/production-runbook.md).
 Production launch checklist: [docs/production-launch-checklist.md](docs/production-launch-checklist.md).
-SwarmOps roadmap: [docs/swarmops-roadmap.md](docs/swarmops-roadmap.md).
+The Doom Signal roadmap: [docs/swarmops-roadmap.md](docs/swarmops-roadmap.md).
 Agent security model: [docs/agent-safety-model.md](docs/agent-safety-model.md).
 Backup and restore: [docs/backup-restore-runbook.md](docs/backup-restore-runbook.md).
 Non-Vercel deploy notes: [docs/non-vercel-deploy.md](docs/non-vercel-deploy.md).
@@ -161,34 +164,35 @@ API route reference: [docs/api-routes.md](docs/api-routes.md).
 - The dedicated 6529 bot wallet has a real 6529 profile for live posting tests.
 - `NEXT_PUBLIC_APP_URL` points at the deployed site.
 - `SIMPLE_LAUNCH_MODE` is left as `true` for the first launch.
-- `MAX_WAVE_BRIEF_ESTIMATED_COST_USD` is set to a conservative per-summary cap.
+- `MAX_WAVE_BRIEF_ESTIMATED_COST_USD` is set to a conservative per-check-in cap.
 - `WAVE_BRIEF_RATE_LIMIT_PER_HOUR` is set to a conservative positive integer operator generation limit.
 - `/operator` shows Production Readiness as ready.
-- A real wave summary can be generated, reviewed, scored, approved after the saved final-content source gate passes, previewed, and optionally posted.
-- Recent summary cards on `/operator` show whether the saved final-content source gate is clear or blocked.
-- Summary and task cards show their own change history from the audit log.
+- A real wave check-in can be generated, scored, marked checked after the saved final-content source gate passes, previewed, and optionally posted.
+- Recent check-in cards on `/operator` show whether the saved final-content source gate is clear or blocked.
+- Check-in and task cards show their own change history from the audit log.
 - Task cards support append-only comments for follow-up notes and handoffs.
 - Completed follow-ups can be scored 1-5 with outcome score notes.
-- `/operator` shows summary review rollups for generated, reviewed, reviewed-scored, unscored reviewed, posted, and average reviewed scores.
-- `/operator` shows summary cost rollups for costed summaries, total/average/max cost, average latency, and total tokens.
+- `/operator` shows check-in quality rollups for generated, checked, scored, unscored checked, posted, and average scores.
+- `/operator` shows check-in cost rollups for costed check-ins, total/average/max cost, average latency, and total tokens.
 - `/operator` shows outcome rollups for completed, evidence-linked, scored, unscored, average scored, strong, weak, and score-distribution follow-ups.
 - `/operator` shows wave rollups for open load, repeated open work, completed work, proof, scored completions, and weak outcomes.
 - `/operator` uses standard workflow templates for tasks and shows workflow rollups for grants, governance, product/build, art curation, community support, and meme creation.
 - `/operator` shows owner rollups for open load, completed work, proof, scored completions, and weak outcomes.
-- Recent Events on `/operator` records summary, task, posting, posting failure, and API error activity.
+- Recent Events on `/operator` records check-in, task, posting, posting failure, and API error activity.
 - API errors return an `errorId`; use it to find matching `api.route_error` rows in Recent Events and server logs.
-- CSV exports on `/operator` include leaderboard, wave summary metadata with source-gate counts, and wave task metadata in simple mode. Battle, vote, and run exports return when evaluation tools are enabled.
+- CSV exports on `/operator` include leaderboard, wave check-in metadata with source-gate counts, and wave task metadata in simple mode. Battle, vote, and run exports return when evaluation tools are enabled.
 
 ## End State User Journeys
 
-### Visitor learns what SwarmOps does
+### User summarizes a wave
 
 1. Open `/`.
-2. See the product value prop: busy waves lose shared state, and SwarmOps turns them into reviewed summaries for anyone in the wave.
-3. Use the primary actions to inspect the problem, sample stories, and operator summary drafts.
-4. Understand that unfinished modules are stubbed while the operator workflow becomes production ready.
+2. Paste a 6529 wave link, search by name, or enter a wave ID.
+3. Stay on `/` with that wave selected.
+4. Preview what will be read before spending model cost.
+5. Generate a plain check-in, review sources, edit if needed, and keep it private or post it after checking.
 
-Successful end state: the visitor understands that SwarmOps helps anyone in a wave catch up, create reviewed summaries, and verify facts before sharing or acting.
+Successful end state: the user can jump straight from a noisy wave to a source-aware check-in without reading an explainer first.
 
 ### Community member compares agents
 
@@ -234,19 +238,19 @@ This is feature-gated evaluation infrastructure. Set `SIMPLE_LAUNCH_MODE=false` 
 
 Successful end state: the operator creates an auditable battle from real 6529 context and records the result for leaderboard scoring.
 
-### Operator reviews a wave summary
+### Reviewer summarizes a wave
 
-1. Open `/operator/briefs`.
-2. Search for a 6529 wave by name or enter a wave ID, then set an optional context window.
+1. Open `/`.
+2. Search for a 6529 wave by name or enter a wave ID, then choose recent context, a date window, or all available history.
 3. Add related wave URLs or IDs when the work spans a parent wave and subwaves.
-4. Preview context to confirm source waves, drop counts, and sample drops before spending model cost.
-5. Generate a review-ready wave summary with changes since the last reviewed summary, decisions, open questions, follow-ups, checks, suggested post, and source citations.
-6. Edit the draft, add reviewer notes, score it 1-5, and approve or reject it.
+4. Preview context to confirm source waves, drop counts, cap warnings, sample drops, estimated input tokens, and estimated model cost before generation.
+5. Generate a review-ready wave check-in with evidence coverage, changes since the last checked check-in, decisions, open questions, follow-ups, checks, suggested post, and source citations.
+6. Edit the draft, add notes, score it 1-5, and mark it checked or discard it.
 7. Review missing-source warnings by section, then preview the 6529 post body.
-8. Post the approved summary back into the wave only if a public recap is useful.
-9. Open `/operator/tasks` to review suggested action items generated from the summary, including repeated open tasks that were seen again.
+8. Post the checked check-in back into the wave only if a public recap is useful.
+9. Open `/operator/tasks` to review suggested action items generated from the check-in, including repeated open tasks that were seen again.
 
-Successful end state: the reviewer gets an auditable wave summary and a follow-up queue without changing the public MVP.
+Successful end state: the user gets an auditable wave check-in and a follow-up queue without changing the public MVP.
 
 ### Operator reviews wave tasks
 
@@ -255,7 +259,7 @@ Successful end state: the reviewer gets an auditable wave summary and a follow-u
 3. Confirm useful suggested tasks, assign owners separately from agent-suggested owners, or reject bad suggestions.
 4. Move active work through confirmed, in progress, and completed states.
 5. Mark who claimed the work when a person or agent takes it on.
-6. Create manual tasks when useful work did not come from a summary.
+6. Create manual tasks when useful work did not come from a check-in.
 7. Add comments for follow-up notes and handoffs without overwriting reviewer notes.
 8. Add outcome drop IDs, evidence URLs, and outcome summaries when work is completed.
 9. Score the completed outcome 1-5 and record why.

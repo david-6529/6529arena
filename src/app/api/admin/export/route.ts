@@ -9,7 +9,7 @@ import { logEvent } from "@/lib/observability/events";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const exportSchema = z.enum(["leaderboard", "wave-summaries", "wave-tasks", "battles", "votes", "agent-runs"]);
+const exportSchema = z.enum(["leaderboard", "wave-check-ins", "wave-summaries", "wave-tasks", "battles", "votes", "agent-runs"]);
 
 function csvResponse(filename: string, csv: string) {
   return new Response(csv, {
@@ -37,7 +37,7 @@ export async function GET(request: Request) {
     await logEvent({
       type: "admin.csv_exported",
       actor: getRequestFingerprint(request),
-      message: "Operator exported CSV data.",
+      message: "CSV data exported from The Doom Signal console.",
       metadata: { exportType: type, limit, count, filename },
     });
 
@@ -59,7 +59,7 @@ async function buildExport(type: z.infer<typeof exportSchema>, limit: number) {
 
   const db = getPrisma();
 
-  if (type === "wave-summaries") {
+  if (type === "wave-check-ins" || type === "wave-summaries") {
     const rows = await db.waveBrief.findMany({
       take: limit,
       orderBy: { createdAt: "desc" },
@@ -73,7 +73,7 @@ async function buildExport(type: z.infer<typeof exportSchema>, limit: number) {
     });
 
     return {
-      filename: "swarmops-wave-summaries.csv",
+      filename: "doom-signal-wave-check-ins.csv",
       csv: toCsv(rows, waveSummaryColumns),
       count: rows.length,
     };
@@ -93,7 +93,7 @@ async function buildExport(type: z.infer<typeof exportSchema>, limit: number) {
     });
 
     return {
-      filename: "swarmops-wave-tasks.csv",
+      filename: "doom-signal-wave-tasks.csv",
       csv: toCsv(rows, waveTaskColumns),
       count: rows.length,
     };
@@ -258,9 +258,9 @@ function waveSummarySourceGateMetadata(row: WaveSummaryExportRow): WaveSummarySo
 }
 
 const waveSummaryColumns: CsvColumn<WaveSummaryExportRow>[] = [
-  { header: "summary_id", value: (row) => row.id },
+  { header: "checkin_id", value: (row) => row.id },
   { header: "wave_id", value: (row) => row.waveId },
-  { header: "previous_summary_id", value: (row) => row.previousBriefId },
+  { header: "previous_checkin_id", value: (row) => row.previousBriefId },
   { header: "trigger_drop_id", value: (row) => row.triggerDropId },
   { header: "status", value: (row) => row.status },
   { header: "title", value: (row) => row.title },
@@ -324,7 +324,7 @@ function sourceDropIds(value: unknown) {
 
 const waveTaskColumns: CsvColumn<WaveTaskExportRow>[] = [
   { header: "task_id", value: (row) => row.id },
-  { header: "summary_id", value: (row) => row.waveBriefId },
+  { header: "checkin_id", value: (row) => row.waveBriefId },
   { header: "wave_id", value: (row) => row.waveId },
   { header: "title", value: (row) => row.title },
   { header: "status", value: (row) => row.status },
@@ -333,7 +333,7 @@ const waveTaskColumns: CsvColumn<WaveTaskExportRow>[] = [
   { header: "assigned_to", value: (row) => row.assignedTo },
   { header: "claimed_by", value: (row) => row.claimedBy },
   { header: "claimed_at", value: (row) => row.claimedAt },
-  { header: "last_seen_summary_id", value: (row) => row.lastSeenBriefId },
+  { header: "last_seen_checkin_id", value: (row) => row.lastSeenBriefId },
   { header: "last_seen_at", value: (row) => row.lastSeenAt },
   { header: "seen_count", value: (row) => row.seenCount },
   { header: "source_drop_ids", value: (row) => sourceDropIds(row.sourceDropIdsJson) },

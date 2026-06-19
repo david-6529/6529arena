@@ -103,6 +103,84 @@ describe("fetchWaveContext", () => {
       }),
     ]);
   });
+
+  it("can collect all available history beyond 500 drops", async () => {
+    const makeDrop = (serial: number) => ({
+      id: `drop-${serial}`,
+      serial_no: serial,
+      created_at: Date.parse("2026-06-18T00:00:00.000Z") + serial,
+      content: `Drop ${serial}`,
+    });
+    vi.mocked(getWaveDrops).mockImplementation(async (waveId: string, params?: { serialNoLimit?: number }) => {
+      const wave = {
+        id: waveId,
+        name: "Long Wave",
+        total_drops_count: 525,
+      };
+
+      if (!params?.serialNoLimit) {
+        return {
+          wave,
+          drops: Array.from({ length: 200 }, (_, index) => makeDrop(600 - index)),
+        };
+      }
+
+      if (params.serialNoLimit === 401) {
+        return {
+          wave,
+          drops: Array.from({ length: 200 }, (_, index) => makeDrop(400 - index)),
+        };
+      }
+
+      if (params.serialNoLimit === 201) {
+        return {
+          wave,
+          drops: Array.from({ length: 125 }, (_, index) => makeDrop(200 - index)),
+        };
+      }
+
+      return {
+        wave,
+        drops: [],
+      };
+    });
+
+    const context = await fetchWaveContext({
+      waveId: "wave-long",
+      includeAllHistory: true,
+    });
+
+    expect(context.drops).toHaveLength(525);
+    expect(context.context.mode).toBe("all");
+    expect(context.context.includeAllHistory).toBe(true);
+    expect(context.context.hitCap).toBe(false);
+    expect(context.context.sources).toEqual([
+      expect.objectContaining({
+        waveId: "wave-long",
+        availableDropCount: 525,
+        dropCount: 525,
+        searchedMessages: 525,
+        hitCap: false,
+      }),
+    ]);
+    expect(getWaveDrops).toHaveBeenCalledTimes(3);
+    expect(getWaveDrops).toHaveBeenLastCalledWith("wave-long", expect.objectContaining({ serialNoLimit: 201 }));
+  });
+
+  it("rejects all-history requests that also include a date window", async () => {
+    await expect(
+      fetchWaveContext({
+        waveId: "wave-main",
+        includeAllHistory: true,
+        contextFrom: "2026-06-18T00:00:00.000Z",
+      }),
+    ).rejects.toMatchObject({
+      message: "Use either all available history or a date window, not both.",
+      status: 400,
+    });
+
+    expect(getWaveDrops).not.toHaveBeenCalled();
+  });
 });
 
 describe("previewWaveContext", () => {

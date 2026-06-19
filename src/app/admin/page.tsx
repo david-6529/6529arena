@@ -48,7 +48,7 @@ export default async function AdminPage() {
   const visibleCategories = simpleLaunch ? [] : visibleArenaCategories(arenaCategories);
   const visibleAgents = simpleLaunch ? [] : agents;
   const openSummaryCount = summaries.filter((summary) => summary.status === "draft").length;
-  const approvedSummaryCount = summaries.filter((summary) => summary.status === "approved" || summary.status === "posted").length;
+  const checkedSummaryCount = summaries.filter((summary) => summary.status === "approved" || summary.status === "posted").length;
   const openTaskCount = tasks.filter((task) => ["suggested", "confirmed", "in_progress"].includes(task.status)).length;
 
   return (
@@ -57,17 +57,17 @@ export default async function AdminPage() {
         <div>
           <Badge className="border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200">
             <ClipboardCheck className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
-            Operator
+            Console
           </Badge>
-          <h1 className="mt-3 text-3xl font-bold text-zinc-950 dark:text-zinc-50">SwarmOps Operator Console</h1>
+          <h1 className="mt-3 text-3xl font-bold text-zinc-950 dark:text-zinc-50">The Doom Signal Console</h1>
           <p className="mt-2 max-w-3xl text-zinc-700 dark:text-zinc-300">
-            Review wave summaries, post only when useful, then track follow-ups. Operators do not have to be 6529 wave admins unless they are posting back to that wave.
+            Create wave check-ins, post only when useful, then track follow-ups. You only need wave-level permission when posting back to 6529.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <ButtonLink href="/operator/briefs">
             <FileText className="h-4 w-4" aria-hidden="true" />
-            Create Summary
+            Create Check-in
           </ButtonLink>
           <ButtonLink href="/operator/tasks" variant="secondary">
             <ListTodo className="h-4 w-4" aria-hidden="true" />
@@ -106,29 +106,29 @@ export default async function AdminPage() {
       <section className="mb-6 grid gap-4 lg:grid-cols-4">
         <LaunchStep
           label="1"
-          title="Create Summary"
-          detail="Pick a wave and generate the catch-up note from real 6529 context."
+          title="Create Check-in"
+          detail="Pick a wave and generate a catch-up note from real 6529 context."
           href="/operator/briefs"
-          action="Open Summaries"
+          action="Open Signal"
         />
         <LaunchStep
           label="2"
-          title="Review And Score"
-          detail={`There ${openSummaryCount === 1 ? "is" : "are"} ${openSummaryCount} draft ${openSummaryCount === 1 ? "summary" : "summaries"} waiting in the latest list.`}
+          title="Check And Score"
+          detail={`There ${openSummaryCount === 1 ? "is" : "are"} ${openSummaryCount} draft ${openSummaryCount === 1 ? "check-in" : "check-ins"} waiting in the latest list.`}
           href="/operator/briefs"
-          action="Review Drafts"
+          action="Check Drafts"
         />
         <LaunchStep
           label="3"
           title="Track Follow-Ups"
-          detail={`${openTaskCount} open ${openTaskCount === 1 ? "task" : "tasks"} from summaries or manual review.`}
+          detail={`${openTaskCount} open ${openTaskCount === 1 ? "task" : "tasks"} from check-ins or manual review.`}
           href="/operator/tasks"
           action="Open Tasks"
         />
         <LaunchStep
           label="4"
           title="Check Readiness"
-          detail="Confirm production URL, operator auth, cron auth, model provider, rate limits, and 6529 posting config."
+          detail="Confirm production URL, access key auth, cron auth, model provider, rate limits, and 6529 posting config."
           href="/operator/readiness"
           action="Run Checks"
         />
@@ -137,9 +137,9 @@ export default async function AdminPage() {
       <section className="mb-6 rounded-md border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
         <div className="grid gap-4 px-5 py-4 lg:grid-cols-[1fr_1.1fr] lg:items-center">
           <div>
-            <h2 className="font-bold text-zinc-950 dark:text-zinc-50">Summary Review Rollups</h2>
+            <h2 className="font-bold text-zinc-950 dark:text-zinc-50">Check-in Quality Rollups</h2>
             <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-              Summaries should be reviewed and scored before they teach the routing layer anything.
+              Score check-ins for usefulness before they teach the routing layer anything.
             </p>
           </div>
           <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-6">
@@ -159,9 +159,9 @@ export default async function AdminPage() {
       <section className="mb-6 rounded-md border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
         <div className="grid gap-4 px-5 py-4 lg:grid-cols-[1fr_1.1fr] lg:items-center">
           <div>
-            <h2 className="font-bold text-zinc-950 dark:text-zinc-50">Summary Cost Rollups</h2>
+            <h2 className="font-bold text-zinc-950 dark:text-zinc-50">Check-in Cost Rollups</h2>
             <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-              Track spend, token volume, and latency before expanding summary usage.
+              Track spend, token volume, and latency before expanding check-in usage.
             </p>
           </div>
           <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-6">
@@ -180,7 +180,7 @@ export default async function AdminPage() {
           <div>
             <h2 className="font-bold text-zinc-950 dark:text-zinc-50">Outcome Rollups</h2>
             <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-              Completed follow-ups should be scored so the swarm can learn which work actually helped.
+              Completed follow-ups should be scored so the system can learn which work actually helped.
             </p>
           </div>
           <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-7">
@@ -236,12 +236,12 @@ export default async function AdminPage() {
         <div className="rounded-md border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
           <div className="flex flex-col justify-between gap-2 border-b border-zinc-200 px-5 py-4 dark:border-zinc-800 sm:flex-row sm:items-center">
             <div>
-              <h2 className="font-bold text-zinc-950 dark:text-zinc-50">Recent Summaries</h2>
+              <h2 className="font-bold text-zinc-950 dark:text-zinc-50">Recent Check-ins</h2>
               <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-                Review source gate, quality, cost, and posting status before anything goes back to a wave.
+                Check citations, quality, cost, and posting status before anything goes back to a wave.
               </p>
             </div>
-            <Badge>{approvedSummaryCount} approved or posted</Badge>
+            <Badge>{checkedSummaryCount} checked or posted</Badge>
           </div>
           <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
             {summaries.length ? (
@@ -262,14 +262,14 @@ export default async function AdminPage() {
                       </p>
                     </div>
                     <ButtonLink href="/operator/briefs" variant="quiet" size="sm">
-                      Review
+                      Check
                     </ButtonLink>
                   </div>
                 );
               })
             ) : (
               <div className="px-5 py-8 text-sm text-zinc-600 dark:text-zinc-400">
-                No wave summaries generated yet.
+                No wave check-ins generated yet.
               </div>
             )}
           </div>
@@ -279,7 +279,7 @@ export default async function AdminPage() {
           <div className="border-b border-zinc-200 px-5 py-4 dark:border-zinc-800">
             <h2 className="font-bold text-zinc-950 dark:text-zinc-50">Follow-Up Queue</h2>
             <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-              Suggested work stays human-reviewed before it becomes official.
+              Suggested work stays human-checked before it becomes official.
             </p>
           </div>
           <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
@@ -572,7 +572,9 @@ function StatusBadge({ status }: { status: string }) {
           ? "border-red-800 bg-red-950/30 text-red-200"
           : "border-amber-800 bg-amber-950/30 text-amber-200";
 
-  return <Badge className={className}>{status}</Badge>;
+  const label = status === "approved" ? "checked" : status === "rejected" ? "discarded" : status;
+
+  return <Badge className={className}>{label}</Badge>;
 }
 
 function SourceGateBadge({ missingCount }: { missingCount: number }) {
@@ -608,7 +610,7 @@ function SystemStatusPanel({ status }: { status: SystemStatus }) {
         : status.app.publicUrl ?? "missing NEXT_PUBLIC_APP_URL",
     },
     {
-      label: "Operator API key",
+      label: "Access key",
       ok: status.security.adminKeyConfigured,
       detail: status.security.adminKeyConfigured ? "enabled" : "not set",
     },
@@ -632,14 +634,14 @@ function SystemStatusPanel({ status }: { status: SystemStatus }) {
           : "missing wallet or private key",
     },
     {
-      label: "Summary AI",
+      label: "Check-in AI",
       ok: status.waveBriefProvider.configured,
       detail: status.waveBriefProvider.configured
         ? status.waveBriefProvider.provider
         : `missing ${status.waveBriefProvider.keyName}`,
     },
     {
-      label: "Summary cap",
+      label: "Check-in cap",
       ok: status.costCaps.waveBriefEstimatedCostUsd !== null,
       detail:
         status.costCaps.waveBriefEstimatedCostUsd === null
@@ -647,7 +649,7 @@ function SystemStatusPanel({ status }: { status: SystemStatus }) {
           : `$${status.costCaps.waveBriefEstimatedCostUsd.toFixed(2)} max`,
     },
     {
-      label: "Summary rate",
+      label: "Check-in rate",
       ok: status.rateLimits.waveBriefPerHour !== null,
       detail:
         status.rateLimits.waveBriefPerHour === null

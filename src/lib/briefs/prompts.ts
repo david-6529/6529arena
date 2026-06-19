@@ -8,6 +8,10 @@ const jsonContract = `Return strict JSON with this exact shape:
 {
   "title": "string",
   "executive_summary": "string",
+  "evidence_coverage": {
+    "summary": "string",
+    "limitations": ["string"]
+  },
   "summary_bullets": ["string"],
   "changes_since_previous": [
     { "change": "string", "source_drop_ids": ["string"] }
@@ -56,26 +60,44 @@ function formatDrop(drop: WaveDrop) {
 }
 
 function buildContext(drops: WaveDrop[]) {
-  const chunks: string[] = [];
+  const chunksNewestFirst: string[] = [];
   let used = 0;
+  let omittedDropCount = 0;
 
-  for (const drop of drops) {
+  for (let index = drops.length - 1; index >= 0; index -= 1) {
+    const drop = drops[index]!;
     const chunk = formatDrop(drop);
-    const separator = chunks.length ? "\n\n---\n\n" : "";
+    const separator = chunksNewestFirst.length ? "\n\n---\n\n" : "";
 
     if (used + separator.length + chunk.length > MAX_PROMPT_CONTEXT_CHARS) {
-      chunks.push(
-        `Context budget reached. ${drops.length - chunks.length} older drops were stored with the summary but omitted from this model prompt.`,
-      );
+      omittedDropCount = index + 1;
       break;
     }
 
-    chunks.push(chunk);
+    chunksNewestFirst.push(chunk);
     used += separator.length + chunk.length;
   }
 
-  return chunks.join("\n\n---\n\n");
+  const chunks = chunksNewestFirst.reverse();
+
+  if (omittedDropCount) {
+    chunks.unshift(
+      `Prompt context includes the newest ${chunks.length} of ${drops.length} fetched drops. ${omittedDropCount} older fetched drops are stored for operator audit but omitted from this model prompt because of the context budget.`,
+    );
+  }
+
+  return {
+    text: chunks.join("\n\n---\n\n"),
+    includedDropCount: chunksNewestFirst.length,
+    omittedDropCount,
+  };
 }
+
+export type WaveBriefPromptStats = {
+  fetchedDropCount: number;
+  promptDropCount: number;
+  promptOmittedDropCount: number;
+};
 
 function sortDropsChronologically(drops: WaveDrop[]) {
   return [...drops].sort((a, b) => {
@@ -128,10 +150,10 @@ function buildWaveSourcesContext(drops: WaveDrop[]) {
 
 function buildPreviousSummaryContext(previousSummary: PreviousWaveSummary | undefined) {
   if (!previousSummary) {
-    return "No previous reviewed summary was found for this wave.";
+    return "No previous checked check-in was found for this wave.";
   }
 
-  return `previous_summary_id=${previousSummary.id} status=${previousSummary.status} created=${previousSummary.createdAt.toISOString()}${previousSummary.postDropId ? ` posted_drop=${previousSummary.postDropId}` : ""}
+  return `previous_checkin_id=${previousSummary.id} status=${previousSummary.status} created=${previousSummary.createdAt.toISOString()}${previousSummary.postDropId ? ` posted_drop=${previousSummary.postDropId}` : ""}
 title=${previousSummary.title}
 ${truncateText(previousSummary.content.replace(/\s+/g, " ").trim(), 6_000)}`;
 }
@@ -145,35 +167,114 @@ export type PreviousWaveSummary = {
   postDropId?: string | null;
 };
 
+export type WaveBriefPromptContext = {
+  from?: string | null;
+  to?: string | null;
+  mode?: string;
+  includeAllHistory?: boolean;
+  maxMessages?: number;
+  maxMessagesPerWave?: number;
+  searchedMessages?: number;
+  hitCap?: boolean;
+  explicitWindow?: boolean;
+  sources?: Array<{
+    waveId: string;
+    label: string;
+    primary: boolean;
+    name: string | null;
+    availableDropCount?: number | null;
+    dropCount: number;
+    hitCap?: boolean;
+    oldestDropAt?: string | null;
+    newestDropAt?: string | null;
+    searchedMessages: number;
+  }>;
+};
+
+function buildEvidenceCoverageContext(params: {
+  context?: WaveBriefPromptContext;
+  fetchedDropCount: number;
+  includedDropCount: number;
+  omittedDropCount: number;
+}) {
+  const context = params.context;
+
+  if (!context) {
+    return [
+      `coverage_mode=unknown fetched_drops=${params.fetchedDropCount} prompt_drops=${params.includedDropCount} prompt_omitted_drops=${params.omittedDropCount}`,
+      "No fetch metadata was supplied with this check-in request.",
+    ].join("\n");
+  }
+
+  const lines = [
+    `coverage_mode=${context.mode ?? "unknown"} include_all_history=${context.includeAllHistory === true} explicit_window=${context.explicitWindow === true}`,
+    `window_from=${context.from ?? "none"} window_to=${context.to ?? "none"}`,
+    `fetched_drops=${params.fetchedDropCount} searched_messages=${context.searchedMessages ?? "unknown"} max_messages=${context.maxMessages ?? "unknown"} max_messages_per_wave=${context.maxMessagesPerWave ?? "unknown"}`,
+    `prompt_drops=${params.includedDropCount} prompt_omitted_drops=${params.omittedDropCount} hit_fetch_cap=${context.hitCap === true}`,
+  ];
+
+  if (context.sources?.length) {
+    lines.push("source_coverage:");
+
+    for (const source of context.sources) {
+      lines.push(
+        `- ${source.name ?? source.waveId} (${source.waveId}) role=${source.label} primary=${source.primary} fetched=${source.dropCount} available=${source.availableDropCount ?? "unknown"} searched=${source.searchedMessages} hit_cap=${source.hitCap === true} oldest=${source.oldestDropAt ?? "unknown"} newest=${source.newestDropAt ?? "unknown"}`,
+      );
+    }
+  }
+
+  return lines.join("\n");
+}
+
 export function buildWaveBriefPrompts(params: {
   waveId: string;
   requestText: string;
   drops: WaveDrop[];
+  context?: WaveBriefPromptContext;
   previousSummary?: PreviousWaveSummary;
 }) {
   const orderedDrops = sortDropsChronologically(params.drops);
-  const context = buildContext(orderedDrops);
+  const promptContext = buildContext(orderedDrops);
   const previousSummaryContext = buildPreviousSummaryContext(params.previousSummary);
   const waveSourcesContext = buildWaveSourcesContext(orderedDrops);
+  const evidenceCoverageContext = buildEvidenceCoverageContext({
+    context: params.context,
+    fetchedDropCount: orderedDrops.length,
+    includedDropCount: promptContext.includedDropCount,
+    omittedDropCount: promptContext.omittedDropCount,
+  });
 
   return {
-    systemPrompt: `You are a source-grounded 6529 wave summarizer.
+    stats: {
+      fetchedDropCount: orderedDrops.length,
+      promptDropCount: promptContext.includedDropCount,
+      promptOmittedDropCount: promptContext.omittedDropCount,
+    } satisfies WaveBriefPromptStats,
+    systemPrompt: `You are a source-grounded 6529 wave check-in assistant.
 
-Your job is to help anyone in the wave catch up quickly. Turn wave discussion into a clear summary with decisions, open questions, follow-ups, risks, suggested public recap, and source citations. Preserve uncertainty, do not invent consensus, and cite only provided drop IDs. Keep claims source-linked. Do not include secrets or private assumptions.
+Your job is to help anyone in the wave catch up quickly. Turn wave discussion into a clear check-in note with decisions, open questions, follow-ups, risks, suggested public recap, evidence coverage, and source citations. Preserve uncertainty, do not invent consensus, and cite only provided drop IDs. Keep claims source-linked. Do not include secrets or private assumptions.
+
+When source waves include raw bot feeds, bot digests, and human coordination chats, keep those layers distinct. Explain what appears automated, what appears human-reviewed or human-coordinated, and what cannot be proven from the provided drops.
+
+Use evidence_coverage to state what was fetched and what was not directly in the model prompt. If prompt_omitted_drops is greater than 0, say older stored drops should be checked before treating the note as complete-history analysis.
+Use "check-in" language for the user-facing note. Checks are for citations, follow-ups, and posting safety; the note itself can be read privately without approval. The JSON field names are legacy names, but the output should read like a check-in note.
 
 ${jsonContract}`,
     userPrompt: `Wave ID: ${params.waveId}
-Summary request: ${params.requestText}
+Check-in request: ${params.requestText}
+
+Evidence coverage metadata:
+${evidenceCoverageContext}
 
 Wave sources covered:
 ${waveSourcesContext}
 
-Previous reviewed summary:
+Previous checked check-in:
 ${previousSummaryContext}
 
 Recent wave drops:
-${context || "No drops were returned for this wave."}
+${promptContext.text || "No drops were returned for this wave."}
 
-Generate a concise but actionable wave summary. Focus on what changed since the previous reviewed summary, what happened, what needs a decision, what follow-ups emerged, what risks exist, and what public recap someone could send back into the wave if useful. If a previous summary exists, fill changes_since_previous with material changes supported by current source drops. If no previous summary exists, keep changes_since_previous empty and use summary_bullets for the first catch-up.`,
+Generate a concise but actionable wave check-in. Focus on what changed since the previous checked check-in, what happened, what needs a decision, what follow-ups emerged, what risks exist, and what public recap someone could send back into the wave if useful. If a previous check-in exists, fill changes_since_previous with material changes supported by current source drops. If no previous check-in exists, keep changes_since_previous empty and use summary_bullets for the first catch-up.`,
   };
 }

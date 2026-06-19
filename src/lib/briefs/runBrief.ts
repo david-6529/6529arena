@@ -3,14 +3,14 @@ import { generateWithGoogle } from "@/lib/ai/google";
 import { generateWithOpenAI } from "@/lib/ai/openai";
 import { estimateCostUsd } from "@/lib/ai/pricing";
 import { runProviderCall } from "@/lib/ai/retry";
-import { buildWaveBriefPrompts, type PreviousWaveSummary } from "@/lib/briefs/prompts";
+import { buildWaveBriefPrompts, type PreviousWaveSummary, type WaveBriefPromptContext } from "@/lib/briefs/prompts";
 import { renderWaveBrief } from "@/lib/briefs/render";
 import { parseWaveBrief, type WaveBriefPayload } from "@/lib/briefs/schema";
 import type { WaveDrop } from "@/lib/6529/types";
 
 export type BriefProvider = "openai" | "anthropic" | "google";
 
-const defaultMaxOutputTokens = 1800;
+export const defaultWaveBriefMaxOutputTokens = 1800;
 
 export type WaveBriefRunResult = {
   provider: BriefProvider;
@@ -22,6 +22,20 @@ export type WaveBriefRunResult = {
   completionTokens?: number;
   costUsd?: number;
   latencyMs: number;
+};
+
+export type WaveBriefCostPreview = {
+  provider: BriefProvider;
+  modelName: string;
+  promptTokens: number;
+  maxOutputTokens: number;
+  estimatedCostUsd: number | null;
+  costCapUsd: number | null;
+  costCapExceeded: boolean;
+  pricingAvailable: boolean;
+  promptDropCount: number;
+  promptOmittedDropCount: number;
+  fetchedDropCount: number;
 };
 
 function configuredProvider(value?: string): BriefProvider {
@@ -73,7 +87,7 @@ function assertProviderConfigured(provider: BriefProvider) {
   const { keyName, configured } = getWaveBriefProviderConfig({ provider });
 
   if (!configured) {
-    throw Object.assign(new Error(`${keyName} is required to generate ${provider} wave summaries.`), {
+    throw Object.assign(new Error(`${keyName} is required to generate ${provider} wave check-ins.`), {
       status: 422,
       code: "provider_not_configured",
     });
@@ -111,10 +125,55 @@ export function estimateWaveBriefRunCost(params: {
   };
 }
 
+export function estimateWaveBriefDraftCost(params: {
+  waveId: string;
+  requestText: string;
+  drops: WaveDrop[];
+  context?: WaveBriefPromptContext;
+  provider?: string;
+  modelName?: string;
+  maxOutputTokens?: number;
+  previousSummary?: PreviousWaveSummary;
+}): WaveBriefCostPreview {
+  const providerConfig = getWaveBriefProviderConfig(params);
+  const maxOutputTokens = params.maxOutputTokens ?? defaultWaveBriefMaxOutputTokens;
+  const prompts = buildWaveBriefPrompts({
+    waveId: params.waveId,
+    requestText: params.requestText,
+    drops: params.drops,
+    context: params.context,
+    previousSummary: params.previousSummary,
+  });
+  const estimate = estimateWaveBriefRunCost({
+    provider: providerConfig.provider,
+    modelName: providerConfig.modelName,
+    systemPrompt: prompts.systemPrompt,
+    userPrompt: prompts.userPrompt,
+    maxOutputTokens,
+  });
+  const costCapUsd = getWaveBriefEstimatedCostCapUsd();
+  const estimatedCostUsd = estimate.estimatedCostUsd ?? null;
+
+  return {
+    provider: providerConfig.provider,
+    modelName: providerConfig.modelName,
+    promptTokens: estimate.promptTokens,
+    maxOutputTokens,
+    estimatedCostUsd,
+    costCapUsd,
+    costCapExceeded: Boolean(costCapUsd != null && estimatedCostUsd != null && estimatedCostUsd > costCapUsd),
+    pricingAvailable: estimatedCostUsd != null,
+    promptDropCount: prompts.stats.promptDropCount,
+    promptOmittedDropCount: prompts.stats.promptOmittedDropCount,
+    fetchedDropCount: prompts.stats.fetchedDropCount,
+  };
+}
+
 export async function runWaveBrief(params: {
   waveId: string;
   requestText: string;
   drops: WaveDrop[];
+  context?: WaveBriefPromptContext;
   provider?: string;
   modelName?: string;
   maxOutputTokens?: number;
@@ -123,11 +182,12 @@ export async function runWaveBrief(params: {
   const providerConfig = getWaveBriefProviderConfig(params);
   const provider = providerConfig.provider;
   const modelName = providerConfig.modelName;
-  const maxOutputTokens = params.maxOutputTokens ?? defaultMaxOutputTokens;
+  const maxOutputTokens = params.maxOutputTokens ?? defaultWaveBriefMaxOutputTokens;
   const prompts = buildWaveBriefPrompts({
     waveId: params.waveId,
     requestText: params.requestText,
     drops: params.drops,
+    context: params.context,
     previousSummary: params.previousSummary,
   });
   const costCap = getWaveBriefEstimatedCostCapUsd();
@@ -141,7 +201,7 @@ export async function runWaveBrief(params: {
 
   if (costCap === null) {
     throw Object.assign(
-      new Error("MAX_WAVE_BRIEF_ESTIMATED_COST_USD must be a positive number to generate wave summaries."),
+      new Error("MAX_WAVE_BRIEF_ESTIMATED_COST_USD must be a positive number to generate wave check-ins."),
       {
         status: 503,
         code: "wave_brief_cost_cap_invalid",
@@ -150,7 +210,7 @@ export async function runWaveBrief(params: {
   }
 
   if (estimate.estimatedCostUsd === undefined) {
-    throw Object.assign(new Error(`Wave summary cost cap requires pricing for ${provider}/${modelName}.`), {
+    throw Object.assign(new Error(`Wave check-in cost cap requires pricing for ${provider}/${modelName}.`), {
       status: 422,
     });
   }
@@ -159,7 +219,7 @@ export async function runWaveBrief(params: {
 
   if (estimatedCostUsd > costCap) {
     throw Object.assign(
-      new Error(`Estimated wave summary cost $${estimatedCostUsd.toFixed(2)} exceeds cap $${costCap.toFixed(2)}.`),
+      new Error(`Estimated wave check-in cost $${estimatedCostUsd.toFixed(2)} exceeds cap $${costCap.toFixed(2)}.`),
       { status: 422 },
     );
   }

@@ -13,7 +13,7 @@ Use `errorId` to correlate with `api.route_error` events and server logs.
 
 Admin routes accept an admin session cookie, `x-admin-api-key: $ADMIN_API_KEY`, or `Authorization: Bearer $ADMIN_API_KEY`. Worker routes also accept `Authorization: Bearer $CRON_SECRET`.
 
-The `/api/admin/*` path is a technical namespace. Product copy calls this role an operator: the human reviewer who approves summaries, posts, follow-ups, exports, and maintenance actions.
+The `/api/admin/*` path is a technical namespace. Product copy calls this protected area the console. Internally, older route names still use admin/operator/brief terminology; the user-facing product is a wave check-in flow.
 
 ## Public
 
@@ -181,7 +181,7 @@ Admin. Closes a battle, calculates human vote scores, final scores, and winner.
 
 ### `POST /api/bot/mention`
 
-Admin/bot. Handles a detected `@AgentArena` mention by creating a Wave Summary Draft through the same cost-cap, provider-key, rate-limit, and audit gates used by `/api/admin/briefs`. The route does not run battles or public autoposts. If an old caller sends `autoPost=true`, the response marks `publicPostSkipped=true` and returns an operator review URL.
+Admin/bot. Handles a detected bot mention by creating a wave check-in draft through the same cost-cap, provider-key, rate-limit, and audit gates used by `/api/admin/briefs`. The route does not run battles or public autoposts. If an old caller sends `autoPost=true`, the response marks `publicPostSkipped=true` and returns a console URL.
 
 Body:
 
@@ -200,6 +200,7 @@ Body:
   ],
   "contextFrom": "optional ISO date",
   "contextTo": "optional ISO date",
+  "includeAllHistory": false,
   "maxMessages": 500,
   "provider": "openai",
   "modelName": "optional model override",
@@ -207,7 +208,7 @@ Body:
 }
 ```
 
-Repeated events with the same `waveId` and `dropId` return the existing draft instead of creating a duplicate. Public posting still requires an operator to review and approve the draft.
+Repeated events with the same `waveId` and `dropId` return the existing draft instead of creating a duplicate. Public posting still requires a human to check citations and explicitly post the draft. By default the route fetches recent context; set `includeAllHistory=true` to fetch every available page up to the 20,000-message safety cap, or use `contextFrom`/`contextTo` for a specific window. Do not combine `includeAllHistory=true` with date-window fields.
 
 ### `GET /api/admin/jobs/process`
 
@@ -232,39 +233,43 @@ Operator or cron. Same as GET, with JSON body:
 
 Admin. Runs cleanup without processing model jobs: stale job recovery, expired rate-limit cleanup, old job cleanup, and old event cleanup.
 
-## Wave Summaries
+## Wave Check-ins
 
 ### `GET /api/admin/briefs`
 
-Admin. Lists recent wave summary drafts with previous-summary metadata when available. The route keeps the existing `/briefs` path for compatibility.
+Admin. Lists recent wave check-ins with previous-check-in metadata when available. The route keeps the existing `/briefs` path for compatibility.
 
 ### `POST /api/admin/briefs`
 
-Admin. Generates a draft wave summary from 6529 wave context. `relatedWaves` can include parent/subwave workspace context such as a raw PR firehose, digest wave, or team-chat wave; every stored drop keeps source-wave metadata for review and citation checks. If the same wave already has an approved or posted summary, the new draft stores `previousBriefId` and asks the model to fill `changes_since_previous`. Requests are rate-limited by `WAVE_BRIEF_RATE_LIMIT_PER_HOUR` and return `x-ratelimit-*` headers. If the rate-limit env is invalid, non-integer, or non-positive, if the cost-cap env is invalid or non-positive, or if the selected provider key is missing, generation fails closed before consuming a rate-limit bucket, creating a draft, or calling a model provider. Invalid rate-limit config logs `wave_brief.rate_limit_config_invalid`; invalid cost-cap config logs `wave_brief.cost_cap_config_invalid`; missing provider keys log `wave_brief.provider_config_missing`.
+Admin. Generates a draft wave check-in from 6529 wave context. `relatedWaves` can include parent/subwave workspace context such as a raw PR firehose, digest wave, or team-chat wave; every stored drop keeps source-wave metadata for review and citation checks. If the same wave already has a checked or posted check-in, the new draft stores `previousBriefId` and asks the model to fill `changes_since_previous`. Requests are rate-limited by `WAVE_BRIEF_RATE_LIMIT_PER_HOUR` and return `x-ratelimit-*` headers. If the rate-limit env is invalid, non-integer, or non-positive, if the cost-cap env is invalid or non-positive, or if the selected provider key is missing, generation fails closed before consuming a rate-limit bucket, creating a draft, or calling a model provider. Invalid rate-limit config logs `wave_brief.rate_limit_config_invalid`; invalid cost-cap config logs `wave_brief.cost_cap_config_invalid`; missing provider keys log `wave_brief.provider_config_missing`.
 
 Body:
 
 ```json
 {
   "waveId": "string",
+  "requestText": "optional check-in request for cost preview",
   "relatedWaves": [
     {
       "waveId": "optional related wave URL or ID",
       "label": "optional source role, e.g. Raw PR feed"
     }
   ],
-  "requestText": "optional summary request",
+  "requestText": "optional check-in request",
   "contextFrom": "optional ISO date",
   "contextTo": "optional ISO date",
+  "includeAllHistory": false,
   "maxMessages": 500,
   "provider": "openai",
   "modelName": "optional model override"
 }
 ```
 
+Without dates, check-ins use recent mode and fetch the last 24 hours up to 500 messages. Set `includeAllHistory=true` to fetch every available page up to the 20,000-message safety cap. Do not combine all-history mode with `contextFrom` or `contextTo`. Generated drafts store full source-wave coverage metadata and render an evidence coverage section; if a source hits the cap, raise `maxMessages` or narrow the date window before treating the result as complete-history analysis.
+
 ### `POST /api/admin/briefs/:id/review`
 
-Admin. Updates, approves, or rejects a wave summary draft. Approval validates the final summary content against the stored wave context and fails closed when cited drops are missing. Updates can still save work-in-progress edits while sources are being fixed.
+Admin. Updates, marks checked, or discards a wave check-in draft. The internal API action is still named `approve` for compatibility, but product copy treats that as "mark checked." Checking validates the final content against the stored wave context and fails closed when cited drops are missing. Updates can still save work-in-progress edits while sources are being fixed.
 
 Body:
 
@@ -280,21 +285,21 @@ Body:
 }
 ```
 
-`action` can be `update`, `approve`, or `reject`. Missing final-content source drops block `approve` and log `wave_brief.approve_blocked`. Updating title or content on an approved summary moves it back to `draft` and clears `approvedAt`; metadata-only updates keep the approval. Posting, posted, and rejected summaries lock title and content; use `update` only for reviewer notes, reviewer identity, human score, and score notes after those terminal states. Create a new summary for revisions after rejection.
+`action` can be `update`, `approve`, or `reject`. `approve` means "mark checked" in the current UI. Missing final-content source drops block `approve` and log `wave_brief.approve_blocked`. Updating title or content on a checked check-in moves it back to `draft` and clears `approvedAt`; metadata-only updates keep the checked state. Posting, posted, and discarded check-ins lock title and content; use `update` only for reviewer notes, reviewer identity, human score, and score notes after those terminal states. Create a new check-in for revisions after rejection.
 
 ### `GET /api/admin/briefs/:id/post-to-6529`
 
-Admin. Dry-run render of the 6529 wave summary post body. The response includes final-content source-gate metadata so clients can see whether posting would be blocked by missing cited drops.
+Admin. Dry-run render of the 6529 wave check-in post body. The response includes final-content source-gate metadata so clients can see whether posting would be blocked by missing cited drops.
 
 ### `POST /api/admin/briefs/:id/post-to-6529`
 
-Admin. Posts an approved wave summary back into the source 6529 wave. The final rendered summary content is checked against the stored wave context before any 6529 call; missing source drops block posting and log `wave_brief.post_blocked`. Posting uses a DB-backed `approved -> posting -> posted` claim so concurrent requests do not create duplicate 6529 drops. Failed 6529 post attempts restore the summary to `approved` when no drop id was returned and log `wave_brief.post_failed` with the brief id, wave id, content length, upstream status when available, and error message.
+Admin. Posts a checked wave check-in back into the source 6529 wave. The final rendered content is checked against the stored wave context before any 6529 call; missing source drops block posting and log `wave_brief.post_blocked`. Posting uses a DB-backed `approved -> posting -> posted` claim so concurrent requests do not create duplicate 6529 drops. Failed 6529 post attempts restore the check-in to the checked state when no drop id was returned and log `wave_brief.post_failed` with the brief id, wave id, content length, upstream status when available, and error message.
 
 ## Wave Tasks
 
 ### `GET /api/admin/tasks`
 
-Admin. Lists recent wave tasks suggested from Wave Summary Draft action items. Repeated open tasks include `seenCount`, `lastSeenAt`, and `lastSeenBriefId` so operators can tell when a later summary reinforced existing work.
+Admin. Lists recent wave tasks suggested from wave check-in action items. Repeated open tasks include `seenCount`, `lastSeenAt`, and `lastSeenBriefId` so the console can show when a later check-in reinforced existing work.
 
 ### `POST /api/admin/tasks`
 
@@ -379,7 +384,7 @@ Admin. Checks bot wallet auth against 6529 without posting.
 
 ### `POST /api/admin/6529/context`
 
-Admin. Previews normalized 6529 wave context. Accepts the same optional `relatedWaves` shape used by Wave Summary Drafts so a parent wave plus subwaves can be checked before generation.
+Admin. Previews normalized 6529 wave context. Accepts the same optional `relatedWaves` shape used by Wave Check-ins so a parent wave plus subwaves can be checked before generation.
 
 Body:
 
@@ -394,15 +399,18 @@ Body:
   ],
   "contextFrom": "optional ISO date",
   "contextTo": "optional ISO date",
-  "maxMessages": 500
+  "includeAllHistory": false,
+  "maxMessages": 500,
+  "provider": "openai",
+  "modelName": "optional model override"
 }
 ```
 
-Response `preview.context.sources` lists each source wave, its label, searched messages, and collected drop count. `sampleDrops` includes source-wave metadata for drops from related waves.
+Response `preview.context.sources` lists each source wave, its label, available drop count when reported by 6529, searched messages, collected drop count, oldest/newest collected timestamps, and whether that source hit the safety cap. `sampleDrops` includes source-wave metadata for drops from related waves. When `requestText` is supplied, `preview.briefEstimate` includes provider/model, estimated input tokens, max output tokens, estimated cost when pricing is known, cost-cap status, prompt drop count, fetched drop count, and omitted prompt-drop count. Do not combine `includeAllHistory=true` with `contextFrom` or `contextTo`.
 
 ### `GET /api/admin/6529/waves/search`
 
-Admin. Searches waves by name using the 6529 waves endpoint, then fills in any matching saved summary history. Direct wave ID entry is handled by the operator form and does not call this search route.
+Admin. Searches waves by name using the 6529 waves endpoint, then fills in any matching saved summary history. Direct wave ID entry is handled by the `/` form and does not call this search route.
 
 Query:
 
@@ -452,10 +460,10 @@ Admin. CSV exports.
 
 Query:
 
-- `type`: `leaderboard`, `wave-summaries`, `wave-tasks`, `battles`, `votes`, or `agent-runs`.
+- `type`: `leaderboard`, `wave-check-ins`, `wave-summaries`, `wave-tasks`, `battles`, `votes`, or `agent-runs`. `wave-summaries` is kept as a compatibility alias for `wave-check-ins`.
 - `limit`: optional, max 10000 for table exports.
 
-Wave summary and wave task exports include operational metadata only. Wave summary exports include source-gate counts and clear/blocked status, but intentionally exclude raw wave drops, raw summary content, prompts, comments, reviewer note bodies, and full model outputs.
+Wave check-in and wave task exports include operational metadata only. Wave check-in exports include source-gate counts and clear/blocked status, but intentionally exclude raw wave drops, raw check-in content, prompts, comments, reviewer note bodies, and full model outputs.
 
 ### `POST /api/admin/agent-submissions/:id/review`
 

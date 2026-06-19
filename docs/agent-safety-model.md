@@ -20,7 +20,7 @@ Even trusted agents should not receive secrets, broad filesystem access, databas
    Builders submit constrained agents, prompts, or endpoints made for one category.
 
 2. Least privilege context
-   Agents receive only the task context needed. For wave summaries, this means selected wave drops, not a user's broader account or private data.
+   Agents receive only the task context needed. For wave check-ins, this means selected wave drops, not a user's broader account or private data.
 
 3. Tool proxy
    Agents do not call privileged APIs directly. They request an action, and the platform decides whether that action is allowed.

@@ -1,10 +1,20 @@
 import { z } from "zod";
 
 const sourceDropIds = z.array(z.string().min(1)).default([]);
+const evidenceCoverage = z
+  .object({
+    summary: z.string().default(""),
+    limitations: z.array(z.string()).default([]),
+  })
+  .default({
+    summary: "",
+    limitations: [],
+  });
 
 export const waveBriefSchema = z.object({
   title: z.string().min(1),
   executive_summary: z.string().min(1),
+  evidence_coverage: evidenceCoverage,
   summary_bullets: z.array(z.string()).default([]),
   changes_since_previous: z
     .array(

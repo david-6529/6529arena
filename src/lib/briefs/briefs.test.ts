@@ -85,7 +85,7 @@ describe("isWaveBriefApprovalBlocked", () => {
 });
 
 describe("isWaveBriefContentLocked", () => {
-  it("locks posted, rejected, and in-flight posting summary content", () => {
+  it("locks posted, rejected, and in-flight posting check-in content", () => {
     expect(isWaveBriefContentLocked("draft")).toBe(false);
     expect(isWaveBriefContentLocked("approved")).toBe(false);
     expect(isWaveBriefContentLocked("posted")).toBe(true);
@@ -95,7 +95,7 @@ describe("isWaveBriefContentLocked", () => {
 });
 
 describe("buildWaveBriefPrompts", () => {
-  it("orders source drops and includes the wave summary contract", () => {
+  it("orders source drops and includes the wave check-in contract", () => {
     const drops: WaveDrop[] = [
       { id: "drop-2", serial_no: 2, content: "Second", author: { handle: "bob" } },
       { id: "drop-1", serial_no: 1, content: "First", author: { handle: "alice" } },
@@ -106,21 +106,21 @@ describe("buildWaveBriefPrompts", () => {
       drops,
     });
 
-    expect(prompts.systemPrompt).toContain("source-grounded 6529 wave summarizer");
+    expect(prompts.systemPrompt).toContain("source-grounded 6529 wave check-in assistant");
     expect(prompts.systemPrompt).toContain("Return strict JSON with this exact shape");
     expect(prompts.userPrompt.indexOf("drop_id=drop-1")).toBeLessThan(prompts.userPrompt.indexOf("drop_id=drop-2"));
-    expect(prompts.userPrompt).toContain("Summary request: Summarize this wave.");
+    expect(prompts.userPrompt).toContain("Check-in request: Summarize this wave.");
   });
 
-  it("includes previous reviewed summary context when available", () => {
+  it("includes previous checked check-in context when available", () => {
     const prompts = buildWaveBriefPrompts({
       waveId: "wave-1",
       requestText: "Summarize this wave.",
       drops: [{ id: "drop-1", serial_no: 1, content: "New decision", author: { handle: "alice" } }],
       previousSummary: {
         id: "brief-old",
-        title: "Yesterday summary",
-        content: "The previous summary said the grant rubric was still open.",
+        title: "Yesterday check-in",
+        content: "The previous check-in said the grant rubric was still open.",
         status: "approved",
         createdAt: new Date("2026-06-18T00:00:00.000Z"),
         postDropId: "drop-old",
@@ -128,8 +128,8 @@ describe("buildWaveBriefPrompts", () => {
     });
 
     expect(prompts.systemPrompt).toContain("changes_since_previous");
-    expect(prompts.userPrompt).toContain("previous_summary_id=brief-old");
-    expect(prompts.userPrompt).toContain("Yesterday summary");
+    expect(prompts.userPrompt).toContain("previous_checkin_id=brief-old");
+    expect(prompts.userPrompt).toContain("Yesterday check-in");
     expect(prompts.userPrompt).toContain("fill changes_since_previous with material changes");
   });
 });
@@ -159,6 +159,7 @@ describe("parseWaveBrief", () => {
     expect(brief.open_questions).toEqual([]);
     expect(brief.action_items).toEqual([]);
     expect(brief.risks).toEqual([]);
+    expect(brief.evidence_coverage).toEqual({ summary: "", limitations: [] });
     expect(brief.confidence).toBe(0.5);
   });
 });
@@ -168,6 +169,10 @@ describe("renderWaveBrief", () => {
     const output = renderWaveBrief({
       title: "Daily wave summary",
       executive_summary: "The wave aligned on next steps.",
+      evidence_coverage: {
+        summary: "Fetched recent wave context.",
+        limitations: ["Older drops were not requested."],
+      },
       summary_bullets: ["A summary was requested."],
       changes_since_previous: [{ change: "The owner changed.", source_drop_ids: ["drop-5"] }],
       decisions_needed: [{ title: "Pick owners", why: "Tasks need accountability", source_drop_ids: ["drop-1"] }],
@@ -180,6 +185,8 @@ describe("renderWaveBrief", () => {
     });
 
     expect(output).toContain("**Daily wave summary**");
+    expect(output).toContain("**Evidence coverage**");
+    expect(output).toContain("Fetched recent wave context.");
     expect(output).toContain("**What changed since last summary**");
     expect(output).toContain("The owner changed. Sources: drop-5");
     expect(output).toContain("**What happened**");
@@ -192,14 +199,14 @@ describe("renderWaveBrief", () => {
 });
 
 describe("renderWaveBriefPost", () => {
-  it("wraps the approved summary for posting", () => {
+  it("wraps the checked check-in for posting", () => {
     const output = renderWaveBriefPost({
       appUrl: "https://arena.example",
       briefId: "brief-1",
       content: "Approved content",
     });
 
-    expect(output).toContain("Agent-assisted wave summary:");
+    expect(output).toContain("Agent-assisted wave check-in:");
     expect(output).toContain("Approved content");
     expect(output).not.toContain("/admin/briefs");
   });

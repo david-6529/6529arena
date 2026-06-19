@@ -103,6 +103,7 @@ describe("POST /api/bot/mention", () => {
       contextFrom: undefined,
       contextTo: undefined,
       maxMessages: undefined,
+      includeAllHistory: undefined,
       relatedWaves: [
         {
           waveId: "wave-firehose",
@@ -183,7 +184,7 @@ describe("POST /api/bot/mention", () => {
 
     expect(response.status).toBe(503);
     expect(body).toEqual({
-      error: "Wave summary generation is disabled because OPENAI_API_KEY is not configured.",
+      error: "Wave check-in generation is disabled because OPENAI_API_KEY is not configured.",
     });
     expect(consumeRateLimit).not.toHaveBeenCalled();
     expect(createWaveBriefDraft).not.toHaveBeenCalled();

@@ -24,10 +24,10 @@ export default async function SelfTestPage() {
           </Badge>
           <h1 className="mt-3 text-3xl font-bold text-zinc-950 dark:text-zinc-50">Self-Test Is Hidden</h1>
           <p className="mt-2 max-w-3xl text-zinc-700 dark:text-zinc-300">
-            Launch focuses on operator-run wave tests. The sandbox stays in the code and can be turned on later.
+            Launch focuses on the main wave check-in flow. The sandbox stays in the code and can be turned on later.
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
-            <ButtonLink href="/operator" variant="secondary">Operator Console</ButtonLink>
+            <ButtonLink href="/operator" variant="secondary">Console</ButtonLink>
             <ButtonLink href="/leaderboard" variant="secondary">View Leaderboard</ButtonLink>
           </div>
         </div>

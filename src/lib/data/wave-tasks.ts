@@ -633,7 +633,7 @@ export async function createSuggestedTasksForBrief(params: {
     entityType: "wave_brief",
     entityId: params.briefId,
     actor: "operator",
-    message: "Suggested wave tasks extracted from a wave summary.",
+    message: "Suggested wave tasks extracted from a wave check-in.",
     metadata: {
       waveId: params.waveId,
       taskCount: createdCount,

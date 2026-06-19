@@ -5,7 +5,11 @@ export type WaveBriefSourceSummary = {
   name: string | null;
   label: string | null;
   primary: boolean;
+  availableDropCount: number | null;
   dropCount: number | null;
+  hitCap: boolean | null;
+  oldestDropAt: string | null;
+  newestDropAt: string | null;
   searchedMessages: number | null;
 };
 
@@ -19,6 +23,10 @@ function asText(value: unknown) {
 
 function asNumber(value: unknown) {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function asBoolean(value: unknown) {
+  return typeof value === "boolean" ? value : null;
 }
 
 function normalizeSource(raw: unknown): WaveBriefSourceSummary | null {
@@ -37,7 +45,11 @@ function normalizeSource(raw: unknown): WaveBriefSourceSummary | null {
     name: asText(raw["name"]),
     label: asText(raw["label"]),
     primary: raw["primary"] === true,
+    availableDropCount: asNumber(raw["availableDropCount"]) ?? asNumber(raw["available_drop_count"]),
     dropCount: asNumber(raw["dropCount"]) ?? asNumber(raw["drop_count"]),
+    hitCap: asBoolean(raw["hitCap"]) ?? asBoolean(raw["hit_cap"]),
+    oldestDropAt: asText(raw["oldestDropAt"]) ?? asText(raw["oldest_drop_at"]),
+    newestDropAt: asText(raw["newestDropAt"]) ?? asText(raw["newest_drop_at"]),
     searchedMessages: asNumber(raw["searchedMessages"]) ?? asNumber(raw["searched_messages"]),
   };
 }
@@ -63,6 +75,10 @@ export function getWaveBriefSourceSummaries(contextJson: unknown): WaveBriefSour
     name: wave?.["name"],
     label: "Primary wave",
     primary: true,
+    availableDropCount: null,
+    hitCap: null,
+    oldestDropAt: null,
+    newestDropAt: null,
   });
 
   return fallback ? [fallback] : [];

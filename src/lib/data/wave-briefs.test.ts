@@ -341,7 +341,7 @@ describe("postWaveBriefTo6529", () => {
         appUrl: "https://arena.example",
       }),
     ).rejects.toMatchObject({
-      message: "Cannot post summary because 1 cited source drop is missing from the stored wave context.",
+      message: "Cannot post check-in because 1 cited source drop is missing from the stored wave context.",
       status: 422,
     });
 
@@ -405,7 +405,7 @@ describe("postWaveBriefTo6529", () => {
     );
   });
 
-  it("rejects duplicate post attempts while a summary is already posting", async () => {
+  it("rejects duplicate post attempts while a check-in is already posting", async () => {
     waveBrief.findUnique.mockResolvedValue({
       ...baseBrief,
       status: "posting",
@@ -420,7 +420,7 @@ describe("postWaveBriefTo6529", () => {
         appUrl: "https://arena.example",
       }),
     ).rejects.toMatchObject({
-      message: "A 6529 post is already in progress for this summary.",
+      message: "A 6529 post is already in progress for this check-in.",
       status: 409,
     });
 
@@ -453,7 +453,7 @@ describe("postWaveBriefTo6529", () => {
         appUrl: "https://arena.example",
       }),
     ).rejects.toMatchObject({
-      message: "A 6529 post is already in progress for this summary.",
+      message: "A 6529 post is already in progress for this check-in.",
       status: 409,
     });
 
@@ -516,7 +516,7 @@ describe("previewWaveBriefPost", () => {
       appUrl: "https://arena.example",
     });
 
-    expect(preview.content).toContain("Agent-assisted wave summary:");
+    expect(preview.content).toContain("Agent-assisted wave check-in:");
     expect(preview.sourceCheck.missingDropIds).toEqual(["missing-drop"]);
     expect(preview.sourceCheck.missingReferences).toEqual([
       expect.objectContaining({
@@ -567,6 +567,10 @@ describe("createWaveBriefDraft", () => {
       structured: {
         title: "New summary",
         executive_summary: "New update happened.",
+        evidence_coverage: {
+          summary: "Fetched one related wave drop.",
+          limitations: [],
+        },
         summary_bullets: ["New update"],
         changes_since_previous: [{ change: "The plan changed.", source_drop_ids: ["drop-1"] }],
         decisions_needed: [],
@@ -593,6 +597,7 @@ describe("createWaveBriefDraft", () => {
       contextFrom: undefined,
       contextTo: undefined,
       maxMessages: undefined,
+      includeAllHistory: undefined,
       relatedWaves: [{ waveId: "wave-firehose", label: "Raw PR feed" }],
     });
     expect(waveBrief.findFirst).toHaveBeenCalledWith({
@@ -650,7 +655,7 @@ describe("createWaveBriefDraft", () => {
   });
 
   it("logs rejected summary generations before a draft is created", async () => {
-    const rejection = Object.assign(new Error("OPENAI_API_KEY is required to generate openai wave summaries."), {
+    const rejection = Object.assign(new Error("OPENAI_API_KEY is required to generate openai wave check-ins."), {
       status: 422,
     });
     waveBrief.findFirst.mockResolvedValue(null);
@@ -684,7 +689,7 @@ describe("createWaveBriefDraft", () => {
           requestedProvider: "openai",
           requestedModel: "gpt-4.1-mini",
           status: 422,
-          error: "OPENAI_API_KEY is required to generate openai wave summaries.",
+          error: "OPENAI_API_KEY is required to generate openai wave check-ins.",
         }),
       }),
     );
@@ -750,7 +755,7 @@ describe("reviewWaveBrief", () => {
         reviewedBy: "alice",
       }),
     ).rejects.toMatchObject({
-      message: "Cannot approve summary because 1 cited source drop is missing from the stored wave context.",
+      message: "Cannot mark check-in checked because 1 cited source drop is missing from the stored wave context.",
       status: 422,
     });
 
@@ -967,7 +972,7 @@ describe("reviewWaveBrief", () => {
         content: "Posted content",
       }),
     ).rejects.toMatchObject({
-      message: "Posted summaries cannot change title or content. Create a new summary for public revisions.",
+      message: "Posted check-ins cannot change title or content. Create a new check-in for public revisions.",
       status: 409,
     });
 
@@ -987,7 +992,7 @@ describe("reviewWaveBrief", () => {
         action: "approve",
       }),
     ).rejects.toMatchObject({
-      message: "Rejected summaries cannot be approved or rejected again. Create a new summary for revisions.",
+      message: "Discarded check-ins cannot be checked or discarded again. Create a new check-in for revisions.",
       status: 409,
     });
 
@@ -1011,7 +1016,7 @@ describe("reviewWaveBrief", () => {
         content: "Rejected content",
       }),
     ).rejects.toMatchObject({
-      message: "Rejected summaries cannot change title or content. Create a new summary for revisions.",
+      message: "Discarded check-ins cannot change title or content. Create a new check-in for revisions.",
       status: 409,
     });
 
@@ -1032,7 +1037,7 @@ describe("reviewWaveBrief", () => {
         action: "reject",
       }),
     ).rejects.toMatchObject({
-      message: "Posting summaries cannot be approved or rejected while the 6529 post is in progress.",
+      message: "Posting check-ins cannot be checked or discarded while the 6529 post is in progress.",
       status: 409,
     });
 
@@ -1055,7 +1060,7 @@ describe("reviewWaveBrief", () => {
         content: "Posting content",
       }),
     ).rejects.toMatchObject({
-      message: "Posting summaries cannot change title or content while the 6529 post is in progress.",
+      message: "Posting check-ins cannot change title or content while the 6529 post is in progress.",
       status: 409,
     });
 

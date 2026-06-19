@@ -8,8 +8,8 @@ const exports = [
     evaluationOnly: false,
   },
   {
-    label: "Wave Summaries CSV",
-    href: "/api/admin/export?type=wave-summaries",
+    label: "Wave Check-ins CSV",
+    href: "/api/admin/export?type=wave-check-ins",
     evaluationOnly: false,
   },
   {
@@ -45,8 +45,8 @@ export function AdminExportPanel({ simpleLaunch = false }: { simpleLaunch?: bool
       </div>
       <p className="mt-1 max-w-2xl text-sm text-zinc-600 dark:text-zinc-400">
         {simpleLaunch
-          ? "Download summary, task, and leaderboard metadata. Battle, vote, and run exports return when evaluation tools are enabled."
-          : "Download operational data for summary review, task follow-up, leaderboard analysis, vote reconciliation, and run-cost review."}
+          ? "Download check-in, task, and leaderboard metadata. Battle, vote, and run exports return when evaluation tools are enabled."
+          : "Download operational data for check-in review, task follow-up, leaderboard analysis, vote reconciliation, and run-cost review."}
       </p>
       <div className="mt-4 flex flex-wrap gap-2">
         {visibleExports.map((item) => (

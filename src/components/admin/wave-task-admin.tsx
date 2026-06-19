@@ -358,12 +358,12 @@ export function WaveTaskAdmin({ tasks }: { tasks: WaveTaskRow[] }) {
               type="password"
               value={adminKey}
               onChange={(event) => setAdminKey(event.target.value)}
-              placeholder="Optional after operator login"
+              placeholder="Optional after sign-in"
             />
           </label>
           <label className="block text-sm font-semibold text-zinc-800 dark:text-zinc-200 lg:col-span-3">
             <span className="mb-1 block">Reviewer</span>
-            <Input value={reviewedBy} onChange={(event) => setReviewedBy(event.target.value)} placeholder="operator handle" />
+            <Input value={reviewedBy} onChange={(event) => setReviewedBy(event.target.value)} placeholder="your handle" />
           </label>
         </div>
 
@@ -384,7 +384,7 @@ export function WaveTaskAdmin({ tasks }: { tasks: WaveTaskRow[] }) {
         <div className="mb-4 border-b border-zinc-200 pb-4 dark:border-zinc-800">
           <h2 className="font-bold text-zinc-950 dark:text-zinc-50">Create Manual Task</h2>
           <p className="mt-1 text-sm leading-6 text-zinc-600 dark:text-zinc-400">
-            Add known work directly when it does not need a fresh summary generation pass.
+            Add known work directly when it does not need a fresh check-in generation pass.
           </p>
         </div>
         <div className="grid gap-4 lg:grid-cols-[0.5fr_1fr_0.5fr]">
@@ -462,7 +462,7 @@ export function WaveTaskAdmin({ tasks }: { tasks: WaveTaskRow[] }) {
                   <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
                     Suggested {formatDate(task.createdAt)}
                     {task.lastSeenAt ? ` · last seen ${formatDate(task.lastSeenAt)}` : ""}
-                    {task.lastSeenBriefId ? ` · latest summary ${task.lastSeenBriefId.slice(0, 8)}` : ""}
+                    {task.lastSeenBriefId ? ` · latest check-in ${task.lastSeenBriefId.slice(0, 8)}` : ""}
                     {task.claimedAt ? ` · claimed ${formatDate(task.claimedAt)}` : ""}
                     {task.completedAt ? ` · completed ${formatDate(task.completedAt)}` : ""}
                     {task.outcomeRecordedAt ? ` · outcome ${formatDate(task.outcomeRecordedAt)}` : ""}
@@ -471,7 +471,7 @@ export function WaveTaskAdmin({ tasks }: { tasks: WaveTaskRow[] }) {
                 </div>
                 {task.brief ? (
                   <div className="max-w-xl text-sm text-zinc-700 dark:text-zinc-300">
-                    <p className="font-semibold text-zinc-950 dark:text-zinc-50">From summary</p>
+                    <p className="font-semibold text-zinc-950 dark:text-zinc-50">From check-in</p>
                     <p>{task.brief.title}</p>
                     <p className="text-zinc-500 dark:text-zinc-500">
                       {task.brief.status}

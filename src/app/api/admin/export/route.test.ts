@@ -48,7 +48,7 @@ function exportRequest(type: string) {
 }
 
 describe("GET /api/admin/export", () => {
-  it("exports wave summary metadata without raw summary content or source JSON", async () => {
+  it("exports wave check-in metadata without raw model content or source JSON", async () => {
     vi.mocked(getPrisma).mockReturnValue(db as never);
     db.waveBrief.findMany.mockResolvedValue([
       {
@@ -57,7 +57,7 @@ describe("GET /api/admin/export", () => {
         waveId: "wave-1",
         triggerDropId: "drop-trigger",
         status: "approved",
-        title: "Summary title",
+        title: "Check-in title",
         requestText: "private prompt text",
         contextJson: { private: "context" },
         dropsJson: { drops: [{ id: "drop-1", content: "raw wave text" }] },
@@ -86,14 +86,14 @@ describe("GET /api/admin/export", () => {
       },
     ]);
 
-    const response = await GET(exportRequest("wave-summaries"));
+    const response = await GET(exportRequest("wave-check-ins"));
     const csv = await response.text();
 
     expect(response.status).toBe(200);
-    expect(response.headers.get("content-disposition")).toContain("swarmops-wave-summaries.csv");
-    expect(csv).toContain("summary_id,wave_id,previous_summary_id");
+    expect(response.headers.get("content-disposition")).toContain("doom-signal-wave-check-ins.csv");
+    expect(csv).toContain("checkin_id,wave_id,previous_checkin_id");
     expect(csv).toContain("brief-1,wave-1,brief-0");
-    expect(csv).toContain("Summary title");
+    expect(csv).toContain("Check-in title");
     expect(csv).toContain("openai,gpt-4.1-mini");
     expect(csv).toContain("structured_source_references,structured_missing_sources,final_source_references,final_missing_sources,final_source_gate");
     expect(csv).toContain("2,1,2,1,blocked");
@@ -118,9 +118,9 @@ describe("GET /api/admin/export", () => {
       expect.objectContaining({
         type: "admin.csv_exported",
         metadata: expect.objectContaining({
-          exportType: "wave-summaries",
+          exportType: "wave-check-ins",
           count: 1,
-          filename: "swarmops-wave-summaries.csv",
+          filename: "doom-signal-wave-check-ins.csv",
         }),
       }),
     );
@@ -167,8 +167,8 @@ describe("GET /api/admin/export", () => {
     const csv = await response.text();
 
     expect(response.status).toBe(200);
-    expect(response.headers.get("content-disposition")).toContain("swarmops-wave-tasks.csv");
-    expect(csv).toContain("task_id,summary_id,wave_id,title,status,workflow");
+    expect(response.headers.get("content-disposition")).toContain("doom-signal-wave-tasks.csv");
+    expect(csv).toContain("task_id,checkin_id,wave_id,title,status,workflow");
     expect(csv).toContain("task-1,brief-1,wave-1,Verify cited claim,completed,grants");
     expect(csv).toContain("drop-1 drop-2");
     expect(csv).toContain("drop-outcome,https://example.com/evidence");

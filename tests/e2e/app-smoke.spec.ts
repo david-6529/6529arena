@@ -1,19 +1,22 @@
 import { expect, test } from "@playwright/test";
 
 test.describe("public pages", () => {
-  test("homepage presents the SwarmOps draft site", async ({ page }) => {
+  test("homepage starts with the Signal workspace", async ({ page }) => {
     await page.goto("/");
 
-    await expect(page.getByRole("heading", { name: "Keep noisy 6529 waves from losing the plot." })).toBeVisible();
-    await expect(page.getByRole("link", { name: /Open Summaries/i })).toBeVisible();
-    await expect(page.getByRole("link", { name: /See Example/i })).toBeVisible();
-    await expect(page.getByText("Busy waves lose shared state.")).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Create the summary" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Check before sharing" })).toBeVisible();
-    await expect(page.getByText("Example Wave Summary")).toBeVisible();
-    await expect(page.locator("#workflows").getByText("Use Cases")).toBeVisible();
-    await expect(page.locator("#case-studies").getByText("Sample Stories")).toBeVisible();
-    await expect(page.locator("#case-studies").getByText("Meme Grants Room")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "The Doom Signal." })).toBeVisible();
+    await expect(page.getByText("Keep noisy 6529 waves from losing the plot.")).toBeVisible();
+    await expect(page.getByRole("link", { name: "Signal", exact: true }).first()).toHaveAttribute("aria-current", "page");
+    await expect(page.getByLabel("Wave name, link, or ID")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Preview" })).toBeDisabled();
+    await expect(page.getByRole("button", { name: "Generate" })).toBeDisabled();
+    await expect(page.getByText("Busy waves lose shared state.")).toHaveCount(0);
+
+    await page.getByLabel("Wave name, link, or ID").fill("https://6529.io/waves/49f0e595-ec7c-4235-8695-a527f61b69f4");
+    expect(page.url()).not.toContain("/summarize");
+    await expect(page.getByText("Selected wave 49f0e595-ec7c-4235-8695-a527f61b69f4")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Preview" })).toBeEnabled();
+    await expect(page.getByRole("button", { name: "Generate" })).toBeEnabled();
   });
 
   test("leaderboard shows cost groups and metric tooltips", async ({ page }) => {
@@ -32,10 +35,10 @@ test.describe("public pages", () => {
     await expect(page.getByRole("tooltip").filter({ hasText: "rewards quality and penalizes higher cost" })).toBeVisible();
   });
 
-  test("safety page explains approval", async ({ page }) => {
+  test("safety page explains human control", async ({ page }) => {
     await page.goto("/safety");
 
-    await expect(page.getByRole("heading", { name: "AI suggests. People approve." })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "AI drafts. People decide." })).toBeVisible();
     await expect(page.getByText("It should not get secrets")).toBeVisible();
   });
 
@@ -51,30 +54,30 @@ test.describe("operator and submission flows", () => {
   test("operator login can create a dev session when admin key is not configured", async ({ page }) => {
     await page.goto("/operator/login");
 
-    await expect(page.getByRole("heading", { name: "Sign in to manage SwarmOps" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Sign in to The Doom Signal" })).toBeVisible();
     await page.getByLabel("App access key").fill("dev-admin-key");
     await page.getByRole("button", { name: "Sign In" }).click();
     await expect(page).toHaveURL(/\/operator$/);
-    await expect(page.getByRole("heading", { name: "SwarmOps Operator Console" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "The Doom Signal Console" })).toBeVisible();
     await expect(page.getByText("Open dev access")).toBeVisible();
   });
 
   test("operator console exposes the simple launch workflow", async ({ page }) => {
     await page.goto("/operator");
 
-    await expect(page.getByRole("heading", { name: "SwarmOps Operator Console" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "The Doom Signal Console" })).toBeVisible();
     await expect(page.getByText("Production URL", { exact: true })).toBeVisible();
     await expect(page.getByText("Cron auth", { exact: true })).toBeVisible();
     await expect(page.getByText("Rate-limit salt", { exact: true })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Create Summary" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Review And Score" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Create Check-in" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Check And Score" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Track Follow-Ups" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Recent Summaries" })).toBeVisible();
-    await expect(page.getByText("Review source gate, quality, cost, and posting status")).toBeVisible();
-    await expect(page.getByText("No wave summaries generated yet.")).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Summary Review Rollups" })).toBeVisible();
-    await expect(page.getByText("Summaries should be reviewed and scored")).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Summary Cost Rollups" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Recent Check-ins" })).toBeVisible();
+    await expect(page.getByText("Check citations, quality, cost, and posting status")).toBeVisible();
+    await expect(page.getByText("No wave check-ins generated yet.")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Check-in Quality Rollups" })).toBeVisible();
+    await expect(page.getByText("Score check-ins for usefulness")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Check-in Cost Rollups" })).toBeVisible();
     await expect(page.getByText("Track spend, token volume, and latency")).toBeVisible();
     await expect(page.getByRole("heading", { name: "Outcome Rollups" })).toBeVisible();
     await expect(page.getByText("Avg score").first()).toBeVisible();
@@ -89,7 +92,7 @@ test.describe("operator and submission flows", () => {
     await expect(page.getByRole("heading", { name: "Evaluation Battle Runner" })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Run Maintenance" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Leaderboard CSV" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Wave Summaries CSV" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Wave Check-ins CSV" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Wave Tasks CSV" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Battles CSV" })).toHaveCount(0);
   });
@@ -115,19 +118,19 @@ test.describe("operator and submission flows", () => {
     await expect(page.getByRole("button", { name: "Post to 6529" })).toBeVisible();
   });
 
-  test("wave summary operator exposes generation and review controls", async ({ page }) => {
+  test("wave check-ins page exposes generation and review controls", async ({ page }) => {
     await page.goto("/operator/briefs");
 
-    await expect(page.getByRole("heading", { name: "Wave Summary Drafts" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Generate Wave Summary" })).toBeVisible();
-    await expect(page.getByText("Review, score 1-5, and approve after the source gate passes.")).toBeVisible();
-    await expect(page.getByText("final-content source gate before approval or posting")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Wave Check-ins" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Start with a wave" })).toBeVisible();
+    await expect(page.getByText("Search or paste a wave, preview the sources, then generate a check-in.")).toBeVisible();
     await expect(page.getByLabel("Wave name")).toBeVisible();
     await expect(page.getByLabel("Wave ID")).toBeVisible();
+    await expect(page.getByLabel("Use all available wave history")).toBeVisible();
     await expect(page.getByLabel("Provider")).toBeVisible();
-    await expect(page.getByLabel("Summary request")).toContainText("Create a clear catch-up summary");
-    await expect(page.getByRole("button", { name: "Preview Context" })).toBeDisabled();
-    await expect(page.getByRole("button", { name: "Generate Summary" })).toBeDisabled();
+    await expect(page.getByLabel("Check-in request")).toContainText("Create a clear wave check-in");
+    await expect(page.getByRole("button", { name: "Preview Sources" })).toBeDisabled();
+    await expect(page.getByRole("button", { name: "Generate Check-in" })).toBeDisabled();
     await page.route("**/api/admin/6529/context", async (route) => {
       await route.fulfill({
         contentType: "application/json",
@@ -137,12 +140,28 @@ test.describe("operator and submission flows", () => {
             dropCount: 2,
             fromDropId: "drop-1",
             toDropId: "drop-2",
+            briefEstimate: {
+              provider: "openai",
+              modelName: "gpt-4.1-mini",
+              promptTokens: 1234,
+              maxOutputTokens: 1800,
+              estimatedCostUsd: 0.003374,
+              costCapUsd: 0.25,
+              costCapExceeded: false,
+              pricingAvailable: true,
+              promptDropCount: 2,
+              promptOmittedDropCount: 0,
+              fetchedDropCount: 2,
+            },
             context: {
               from: null,
               to: null,
+              mode: "recent",
+              includeAllHistory: false,
               maxMessages: 500,
               maxMessagesPerWave: 250,
               searchedMessages: 3,
+              hitCap: false,
               explicitWindow: false,
               sources: [
                 {
@@ -150,7 +169,11 @@ test.describe("operator and submission flows", () => {
                   label: "Primary wave",
                   primary: true,
                   name: "Follow The Repo",
+                  availableDropCount: 1,
                   dropCount: 1,
+                  hitCap: false,
+                  oldestDropAt: "2026-06-18T11:00:00.000Z",
+                  newestDropAt: "2026-06-18T11:00:00.000Z",
                   searchedMessages: 1,
                 },
                 {
@@ -158,7 +181,11 @@ test.describe("operator and submission flows", () => {
                   label: "Raw PR feed",
                   primary: false,
                   name: "PR Firehose",
+                  availableDropCount: 1,
                   dropCount: 1,
+                  hitCap: false,
+                  oldestDropAt: "2026-06-18T12:00:00.000Z",
+                  newestDropAt: "2026-06-18T12:00:00.000Z",
                   searchedMessages: 2,
                 },
               ],
@@ -180,12 +207,18 @@ test.describe("operator and submission flows", () => {
       });
     });
     await page.getByLabel("Wave ID").fill("wave-1");
-    await page.getByRole("button", { name: "Preview Context" }).click();
-    await expect(page.getByRole("heading", { name: "Context Preview" })).toBeVisible();
-    await expect(page.getByText("2 drops collected after searching 3 messages.")).toBeVisible();
+    await page.getByRole("button", { name: "Preview Sources" }).click();
+    await expect(page.getByRole("heading", { name: "Sources Preview" })).toBeVisible();
+    await expect(page.getByText("2 drops collected in recent mode after searching 3 messages.")).toBeVisible();
+    await expect(page.getByText("Est. cost")).toBeVisible();
+    await expect(page.getByText("Est. input")).toBeVisible();
+    await expect(page.getByText("1234")).toBeVisible();
+    await expect(page.getByText("Prompt drops")).toBeVisible();
     await expect(page.getByRole("link", { name: "PR Firehose · Raw PR feed · 1 drops" })).toBeVisible();
     await expect(page.getByText("Raw GitHub PR card.")).toBeVisible();
-    await expect(page.getByText("No wave summaries generated yet.")).toBeVisible();
+    await expect(page.getByText("No wave check-ins generated yet.")).toBeVisible();
+    await page.getByLabel("Model override").fill("gpt-4.1");
+    await expect(page.getByRole("heading", { name: "Sources Preview" })).toBeHidden();
   });
 
   test("wave task operator exposes the review queue", async ({ page }) => {
@@ -208,7 +241,7 @@ test.describe("operator and submission flows", () => {
     await page.goto("/submit");
 
     await expect(page.getByRole("heading", { name: "Agent Submissions Are Off" })).toBeVisible();
-    await expect(page.getByText("For launch, we use our own summary helpers.")).toBeVisible();
+    await expect(page.getByText("For launch, we use our own check-in helpers.")).toBeVisible();
   });
 
   test("submission review has status, category, and provider filters", async ({ page }) => {
