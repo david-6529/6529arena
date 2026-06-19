@@ -101,6 +101,39 @@ type PostPreview = {
   sourceCheck: SourceCheck;
 };
 
+type ContextPreview = {
+  waveId: string;
+  dropCount: number;
+  fromDropId: string | null;
+  toDropId: string | null;
+  context: {
+    from: string | null;
+    to: string | null;
+    maxMessages: number;
+    maxMessagesPerWave?: number;
+    searchedMessages: number;
+    explicitWindow: boolean;
+    sources?: Array<{
+      waveId: string;
+      label: string;
+      primary: boolean;
+      name: string | null;
+      dropCount: number;
+      searchedMessages: number;
+    }>;
+  };
+  sampleDrops: Array<{
+    id: string;
+    serialNo: number | null;
+    author: string;
+    createdAt: string | null;
+    sourceWaveId: string;
+    sourceWaveName: string | null;
+    sourceWaveRole: string | null;
+    preview: string;
+  }>;
+};
+
 type WaveSearchOption = {
   id: string;
   name: string;
@@ -206,6 +239,7 @@ export function WaveBriefAdmin({ briefs }: { briefs: WaveBriefRow[] }) {
   const [drafts, setDrafts] = useState<Record<string, Draft>>(() =>
     Object.fromEntries(briefs.map((brief) => [brief.id, defaultDraft(brief)])),
   );
+  const [contextPreview, setContextPreview] = useState<ContextPreview | null>(null);
   const [previewById, setPreviewById] = useState<Record<string, PostPreview>>({});
   const [state, setState] = useState<ApiState>({});
 
@@ -287,24 +321,57 @@ export function WaveBriefAdmin({ briefs }: { briefs: WaveBriefRow[] }) {
   function selectWave(option: WaveSearchOption) {
     setWaveQuery(option.name);
     setWaveId(option.id);
+    setContextPreview(null);
     setWavePickerOpen(false);
+  }
+
+  function contextPayload() {
+    const relatedWaves = parseRelatedWaves(relatedWavesText);
+
+    return {
+      waveId,
+      relatedWaves: relatedWaves.length ? relatedWaves : undefined,
+      contextFrom: contextFrom ? new Date(contextFrom).toISOString() : undefined,
+      contextTo: contextTo ? new Date(contextTo).toISOString() : undefined,
+      maxMessages: maxMessages ? Number(maxMessages) : undefined,
+    };
+  }
+
+  async function previewContext() {
+    setState({ loading: "context-preview" });
+
+    try {
+      const response = await fetch("/api/admin/6529/context", {
+        method: "POST",
+        headers: headers(),
+        body: JSON.stringify(contextPayload()),
+      });
+      const json = await response.json();
+
+      if (!response.ok) {
+        throw new Error(errorMessage(json));
+      }
+
+      setContextPreview(json.preview);
+      const sourceCount = json.preview.context.sources?.length ?? 1;
+      setState({
+        message: `Previewed ${json.preview.dropCount} drops across ${sourceCount} source wave${sourceCount === 1 ? "" : "s"}.`,
+      });
+    } catch (error) {
+      setState({ error: error instanceof Error ? error.message : "Context preview failed." });
+    }
   }
 
   async function generateBrief() {
     setState({ loading: "generate" });
 
     try {
-      const relatedWaves = parseRelatedWaves(relatedWavesText);
       const response = await fetch("/api/admin/briefs", {
         method: "POST",
         headers: headers(),
         body: JSON.stringify({
-          waveId,
-          relatedWaves: relatedWaves.length ? relatedWaves : undefined,
+          ...contextPayload(),
           requestText,
-          contextFrom: contextFrom ? new Date(contextFrom).toISOString() : undefined,
-          contextTo: contextTo ? new Date(contextTo).toISOString() : undefined,
-          maxMessages: maxMessages ? Number(maxMessages) : undefined,
           provider,
           modelName: modelName || undefined,
         }),
@@ -470,7 +537,10 @@ export function WaveBriefAdmin({ briefs }: { briefs: WaveBriefRow[] }) {
             <span className="mb-1 block">Wave ID</span>
             <Input
               value={waveId}
-              onChange={(event) => setWaveId(event.target.value)}
+              onChange={(event) => {
+                setWaveId(event.target.value);
+                setContextPreview(null);
+              }}
               placeholder="Paste wave ID"
             />
           </label>
@@ -479,7 +549,10 @@ export function WaveBriefAdmin({ briefs }: { briefs: WaveBriefRow[] }) {
             <Textarea
               className="min-h-24"
               value={relatedWavesText}
-              onChange={(event) => setRelatedWavesText(event.target.value)}
+              onChange={(event) => {
+                setRelatedWavesText(event.target.value);
+                setContextPreview(null);
+              }}
               placeholder="Raw PR feed | https://6529.io/waves/..."
             />
             <span className="mt-1 block text-xs font-medium text-zinc-500 dark:text-zinc-400">
@@ -504,11 +577,25 @@ export function WaveBriefAdmin({ briefs }: { briefs: WaveBriefRow[] }) {
           </label>
           <label className="block text-sm font-semibold text-zinc-800 dark:text-zinc-200">
             <span className="mb-1 block">From</span>
-            <Input type="datetime-local" value={contextFrom} onChange={(event) => setContextFrom(event.target.value)} />
+            <Input
+              type="datetime-local"
+              value={contextFrom}
+              onChange={(event) => {
+                setContextFrom(event.target.value);
+                setContextPreview(null);
+              }}
+            />
           </label>
           <label className="block text-sm font-semibold text-zinc-800 dark:text-zinc-200">
             <span className="mb-1 block">To</span>
-            <Input type="datetime-local" value={contextTo} onChange={(event) => setContextTo(event.target.value)} />
+            <Input
+              type="datetime-local"
+              value={contextTo}
+              onChange={(event) => {
+                setContextTo(event.target.value);
+                setContextPreview(null);
+              }}
+            />
           </label>
           <label className="block text-sm font-semibold text-zinc-800 dark:text-zinc-200">
             <span className="mb-1 block">Max messages total</span>
@@ -517,13 +604,20 @@ export function WaveBriefAdmin({ briefs }: { briefs: WaveBriefRow[] }) {
               min={1}
               max={5000}
               value={maxMessages}
-              onChange={(event) => setMaxMessages(event.target.value)}
+              onChange={(event) => {
+                setMaxMessages(event.target.value);
+                setContextPreview(null);
+              }}
               placeholder="500 total"
             />
           </label>
         </div>
 
         <div className="mt-4 flex flex-wrap items-center gap-3">
+          <Button type="button" variant="secondary" onClick={previewContext} disabled={state.loading !== undefined || !waveId.trim()}>
+            <Eye className="h-4 w-4" aria-hidden="true" />
+            {state.loading === "context-preview" ? "Previewing" : "Preview Context"}
+          </Button>
           <Button type="button" onClick={generateBrief} disabled={state.loading !== undefined || !waveId.trim()}>
             <Plus className="h-4 w-4" aria-hidden="true" />
             {state.loading === "generate" ? "Generating" : "Generate Summary"}
@@ -544,6 +638,54 @@ export function WaveBriefAdmin({ briefs }: { briefs: WaveBriefRow[] }) {
             <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
             {state.message}
           </p>
+        ) : null}
+        {contextPreview ? (
+          <div className="mt-5 border-t border-zinc-200 pt-4 dark:border-zinc-800">
+            <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-end">
+              <div>
+                <h3 className="font-semibold text-zinc-950 dark:text-zinc-50">Context Preview</h3>
+                <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+                  {contextPreview.dropCount} drops collected after searching {contextPreview.context.searchedMessages} messages.
+                  {contextPreview.context.from && contextPreview.context.to
+                    ? ` Window ${formatDate(contextPreview.context.from)} to ${formatDate(contextPreview.context.to)}.`
+                    : ""}
+                </p>
+              </div>
+              <div className="text-xs font-medium text-zinc-500 dark:text-zinc-500">
+                {contextPreview.fromDropId ?? "n/a"} to {contextPreview.toDropId ?? "n/a"}
+              </div>
+            </div>
+            {contextPreview.context.sources?.length ? (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {contextPreview.context.sources.map((source) => (
+                  <a
+                    key={source.waveId}
+                    href={`https://6529.io/waves/${source.waveId}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="cursor-pointer rounded-md border border-zinc-200 px-2 py-1 text-xs font-semibold text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:bg-zinc-950"
+                  >
+                    {(source.name ?? source.waveId)} · {source.label} · {source.dropCount} drops
+                  </a>
+                ))}
+              </div>
+            ) : null}
+            {contextPreview.sampleDrops.length ? (
+              <div className="mt-4 divide-y divide-zinc-200 border-y border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
+                {contextPreview.sampleDrops.map((drop) => (
+                  <div key={drop.id} className="py-3 text-sm">
+                    <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-zinc-500 dark:text-zinc-500">
+                      <span>{drop.sourceWaveName ?? drop.sourceWaveId}</span>
+                      {drop.sourceWaveRole ? <span>{drop.sourceWaveRole}</span> : null}
+                      <span>{drop.author}</span>
+                      {drop.createdAt ? <span>{formatDate(drop.createdAt)}</span> : null}
+                    </div>
+                    <p className="mt-1 text-zinc-700 dark:text-zinc-300">{drop.preview || "No text preview."}</p>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </div>
         ) : null}
       </section>
 

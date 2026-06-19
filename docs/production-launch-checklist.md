@@ -128,23 +128,24 @@ Use a real test wave where posting is acceptable.
 7. Confirm launch blockers are green.
 8. Open `/operator/briefs`.
 9. Search for the test wave by name or enter the test wave ID.
-10. Generate a test wave summary.
-11. Confirm the quality badge and review notes match the generated summary.
-12. Confirm missing-source warnings show the exact summary section when a cited drop is not in stored context.
-13. Add a human score and score note.
-14. Save an edit, confirm approval is blocked while final content cites missing source drops, confirm approval, preview, and post are blocked while title or content has unsaved changes, approve the summary after the saved final-content source gate passes, confirm later title or content edits move an approved summary back to draft until re-approved, preview the 6529 post, and post only if the final content source check passes.
-15. Generate a second test summary for the same wave and confirm it links to the previous reviewed summary.
-16. Confirm the second summary includes a "What changed since last summary" section.
-17. Generate one parent/subwave summary and confirm the review card shows source-wave links, labels, and drop counts.
-18. Open `/operator/tasks` and confirm suggested tasks appear for summary action items.
-19. Generate or seed a repeated open action item and confirm its seen count and last-seen summary metadata update instead of creating a duplicate.
-20. Confirm, assign, claim, complete, and reject at least one test task.
-21. Create one manual task and delete or reject it after the smoke test.
-22. Add outcome evidence and a 1-5 outcome score to one completed test task and confirm both render on the task card.
-23. Confirm Wave Rollups show wave load, repeated-open count, proof count, score count, average score, and weak outcome count.
-24. Pick a standard workflow label on one task and confirm Workflow Rollups show workflow load, repeated-open count, proof count, score count, average score, and weak outcome count.
-25. Confirm Owner Rollups show the task owner load, proof count, score count, average score, and weak outcome count.
-26. Confirm Recent Events records summary, task, posting, and posting failure activity when a post fails.
+10. Preview context and confirm the source waves, searched message count, collected drop count, and sample drops look right before generation.
+11. Generate a test wave summary.
+12. Confirm the quality badge and review notes match the generated summary.
+13. Confirm missing-source warnings show the exact summary section when a cited drop is not in stored context.
+14. Add a human score and score note.
+15. Save an edit, confirm approval is blocked while final content cites missing source drops, confirm approval, preview, and post are blocked while title or content has unsaved changes, approve the summary after the saved final-content source gate passes, confirm later title or content edits move an approved summary back to draft until re-approved, preview the 6529 post, and post only if the final content source check passes.
+16. Generate a second test summary for the same wave and confirm it links to the previous reviewed summary.
+17. Confirm the second summary includes a "What changed since last summary" section.
+18. Generate one parent/subwave summary and confirm the review card shows source-wave links, labels, and drop counts.
+19. Open `/operator/tasks` and confirm suggested tasks appear for summary action items.
+20. Generate or seed a repeated open action item and confirm its seen count and last-seen summary metadata update instead of creating a duplicate.
+21. Confirm, assign, claim, complete, and reject at least one test task.
+22. Create one manual task and delete or reject it after the smoke test.
+23. Add outcome evidence and a 1-5 outcome score to one completed test task and confirm both render on the task card.
+24. Confirm Wave Rollups show wave load, repeated-open count, proof count, score count, average score, and weak outcome count.
+25. Pick a standard workflow label on one task and confirm Workflow Rollups show workflow load, repeated-open count, proof count, score count, average score, and weak outcome count.
+26. Confirm Owner Rollups show the task owner load, proof count, score count, average score, and weak outcome count.
+27. Confirm Recent Events records summary, task, posting, and posting failure activity when a post fails.
 
 ## First Evaluation Battle
 

@@ -126,7 +126,65 @@ test.describe("operator and submission flows", () => {
     await expect(page.getByLabel("Wave ID")).toBeVisible();
     await expect(page.getByLabel("Provider")).toBeVisible();
     await expect(page.getByLabel("Summary request")).toContainText("Create a clear catch-up summary");
+    await expect(page.getByRole("button", { name: "Preview Context" })).toBeDisabled();
     await expect(page.getByRole("button", { name: "Generate Summary" })).toBeDisabled();
+    await page.route("**/api/admin/6529/context", async (route) => {
+      await route.fulfill({
+        contentType: "application/json",
+        body: JSON.stringify({
+          preview: {
+            waveId: "wave-1",
+            dropCount: 2,
+            fromDropId: "drop-1",
+            toDropId: "drop-2",
+            context: {
+              from: null,
+              to: null,
+              maxMessages: 500,
+              maxMessagesPerWave: 250,
+              searchedMessages: 3,
+              explicitWindow: false,
+              sources: [
+                {
+                  waveId: "wave-1",
+                  label: "Primary wave",
+                  primary: true,
+                  name: "Follow The Repo",
+                  dropCount: 1,
+                  searchedMessages: 1,
+                },
+                {
+                  waveId: "wave-firehose",
+                  label: "Raw PR feed",
+                  primary: false,
+                  name: "PR Firehose",
+                  dropCount: 1,
+                  searchedMessages: 2,
+                },
+              ],
+            },
+            sampleDrops: [
+              {
+                id: "drop-2",
+                serialNo: 2,
+                author: "punk6529bot",
+                createdAt: "2026-06-18T12:00:00.000Z",
+                sourceWaveId: "wave-firehose",
+                sourceWaveName: "PR Firehose",
+                sourceWaveRole: "Raw PR feed",
+                preview: "Raw GitHub PR card.",
+              },
+            ],
+          },
+        }),
+      });
+    });
+    await page.getByLabel("Wave ID").fill("wave-1");
+    await page.getByRole("button", { name: "Preview Context" }).click();
+    await expect(page.getByRole("heading", { name: "Context Preview" })).toBeVisible();
+    await expect(page.getByText("2 drops collected after searching 3 messages.")).toBeVisible();
+    await expect(page.getByRole("link", { name: "PR Firehose · Raw PR feed · 1 drops" })).toBeVisible();
+    await expect(page.getByText("Raw GitHub PR card.")).toBeVisible();
     await expect(page.getByText("No wave summaries generated yet.")).toBeVisible();
   });
 

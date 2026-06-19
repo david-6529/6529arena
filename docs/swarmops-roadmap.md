@@ -94,6 +94,7 @@ The first operator-only version is now Wave Summary Drafts:
 - source drops
 - source-wave labels when a summary spans multiple related waves
 - suggested next post
+- pre-generation context preview with source waves, drop counts, and sample drops
 - edit, save-before-approve, source-gated approve, reject, preview, and post workflow
 - rejected-summary content lock so bad drafts remain auditable and revisions start from a new summary
 - 6529 post failure events with wave and brief context
