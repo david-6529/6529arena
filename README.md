@@ -117,7 +117,7 @@ In this mode the production workflow stays intentionally narrow:
 - leaderboard is locked to Wave Summarization
 - `/operator` opens the summary-first SwarmOps Operator Console
 - operator-only Wave Summary Drafts are available at `/operator/briefs`
-- Wave Summary Drafts can include related wave URLs or IDs for parent/subwave workspaces such as PR firehose, digest, and team-chat flows
+- Wave Summary Drafts can include related wave URLs or IDs for parent/subwave workspaces such as PR firehose, digest, and team-chat flows, and review cards show the source-wave rollup used for the draft
 - operator-only Wave Tasks are available at `/operator/tasks`, including seen counts for repeated open follow-ups
 - the manual battle runner is hidden behind `SIMPLE_LAUNCH_MODE=false`
 - public submissions, wallet identity, and self-test pages are parked behind explanatory screens

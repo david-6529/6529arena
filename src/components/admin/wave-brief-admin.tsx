@@ -58,6 +58,14 @@ export type WaveBriefRow = {
     postDropId: string | null;
     createdAt: string;
   } | null;
+  sourceWaves: Array<{
+    waveId: string;
+    name: string | null;
+    label: string | null;
+    primary: boolean;
+    dropCount: number | null;
+    searchedMessages: number | null;
+  }>;
   sourceCheck: SourceCheck;
   contentSourceCheck: SourceCheck;
   quality: {
@@ -169,6 +177,14 @@ function qualityClass(label: WaveBriefRow["quality"]["label"]) {
 
 function errorMessage(payload: { error?: string; errorId?: string }) {
   return payload.errorId ? `${payload.error ?? "Request failed."} (${payload.errorId})` : payload.error ?? "Request failed.";
+}
+
+function sourceWaveLabel(source: WaveBriefRow["sourceWaves"][number]) {
+  const name = source.name ?? source.waveId;
+  const role = source.label && source.label !== name ? ` · ${source.label}` : "";
+  const count = source.dropCount == null ? "" : ` · ${source.dropCount} drops`;
+
+  return `${name}${role}${count}`;
 }
 
 export function WaveBriefAdmin({ briefs }: { briefs: WaveBriefRow[] }) {
@@ -595,6 +611,24 @@ export function WaveBriefAdmin({ briefs }: { briefs: WaveBriefRow[] }) {
                       ? `Continues ${brief.previousBrief.title} (${brief.previousBrief.status}, ${formatDate(brief.previousBrief.createdAt)})`
                       : "First reviewed summary lineage for this wave."}
                   </p>
+                  {brief.sourceWaves.length ? (
+                    <div className="mt-3">
+                      <p className="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-500">Source waves</p>
+                      <div className="mt-1 flex flex-wrap gap-2">
+                        {brief.sourceWaves.map((source) => (
+                          <a
+                            key={source.waveId}
+                            href={`https://6529.io/waves/${source.waveId}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="cursor-pointer rounded-md border border-zinc-200 px-2 py-1 text-xs font-semibold text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:bg-zinc-950"
+                          >
+                            {sourceWaveLabel(source)}
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
                 <div className="grid gap-2 text-sm text-zinc-700 dark:text-zinc-300 sm:grid-cols-4">
                   <Metric label="Cost" value={formatUsd(brief.costUsd)} />

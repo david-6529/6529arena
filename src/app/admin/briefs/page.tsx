@@ -4,6 +4,7 @@ import { WaveBriefAdmin, type WaveBriefRow } from "@/components/admin/wave-brief
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
 import { PageFrame } from "@/components/site/shell";
+import { getWaveBriefSourceSummaries } from "@/lib/briefs/context-sources";
 import { scoreWaveBriefQuality } from "@/lib/briefs/quality";
 import { validateWaveBriefContentSources, validateWaveBriefSources } from "@/lib/briefs/source-validation";
 import { listWaveBriefs } from "@/lib/data/wave-briefs";
@@ -50,6 +51,7 @@ export default async function AdminBriefsPage() {
           createdAt: brief.previousBrief.createdAt.toISOString(),
         }
       : null,
+    sourceWaves: getWaveBriefSourceSummaries(brief.contextJson),
     sourceCheck: validateWaveBriefSources(brief.briefJson, brief.dropsJson),
     contentSourceCheck: validateWaveBriefContentSources(brief.content, brief.dropsJson),
     quality: scoreWaveBriefQuality(brief.briefJson, brief.dropsJson),

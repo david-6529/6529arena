@@ -135,15 +135,16 @@ Use a real test wave where posting is acceptable.
 14. Save an edit, confirm approval is blocked while final content cites missing source drops, confirm approval, preview, and post are blocked while title or content has unsaved changes, approve the summary after the saved final-content source gate passes, confirm later title or content edits move an approved summary back to draft until re-approved, preview the 6529 post, and post only if the final content source check passes.
 15. Generate a second test summary for the same wave and confirm it links to the previous reviewed summary.
 16. Confirm the second summary includes a "What changed since last summary" section.
-17. Open `/operator/tasks` and confirm suggested tasks appear for summary action items.
-18. Generate or seed a repeated open action item and confirm its seen count and last-seen summary metadata update instead of creating a duplicate.
-19. Confirm, assign, claim, complete, and reject at least one test task.
-20. Create one manual task and delete or reject it after the smoke test.
-21. Add outcome evidence and a 1-5 outcome score to one completed test task and confirm both render on the task card.
-22. Confirm Wave Rollups show wave load, repeated-open count, proof count, score count, average score, and weak outcome count.
-23. Pick a standard workflow label on one task and confirm Workflow Rollups show workflow load, repeated-open count, proof count, score count, average score, and weak outcome count.
-24. Confirm Owner Rollups show the task owner load, proof count, score count, average score, and weak outcome count.
-25. Confirm Recent Events records summary, task, posting, and posting failure activity when a post fails.
+17. Generate one parent/subwave summary and confirm the review card shows source-wave links, labels, and drop counts.
+18. Open `/operator/tasks` and confirm suggested tasks appear for summary action items.
+19. Generate or seed a repeated open action item and confirm its seen count and last-seen summary metadata update instead of creating a duplicate.
+20. Confirm, assign, claim, complete, and reject at least one test task.
+21. Create one manual task and delete or reject it after the smoke test.
+22. Add outcome evidence and a 1-5 outcome score to one completed test task and confirm both render on the task card.
+23. Confirm Wave Rollups show wave load, repeated-open count, proof count, score count, average score, and weak outcome count.
+24. Pick a standard workflow label on one task and confirm Workflow Rollups show workflow load, repeated-open count, proof count, score count, average score, and weak outcome count.
+25. Confirm Owner Rollups show the task owner load, proof count, score count, average score, and weak outcome count.
+26. Confirm Recent Events records summary, task, posting, and posting failure activity when a post fails.
 
 ## First Evaluation Battle
 

@@ -114,6 +114,7 @@ The first operator-only version is now Wave Summary Drafts:
 - operator summary review rollups for generated, reviewed, reviewed-scored, unscored reviewed, posted, and average reviewed scores
 - operator summary cost rollups for cost, latency, and token volume
 - operator recent-summary source-gate status before review or posting
+- operator source-wave rollups on summary review cards when drafts use related waves
 - deterministic summary quality checks for operator review
 - human 1-5 quality scoring and score notes
 
