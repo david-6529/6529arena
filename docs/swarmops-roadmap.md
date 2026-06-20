@@ -1,8 +1,8 @@
-# The Doom Signal Roadmap
+# The Doomed Signal Roadmap
 
 ## Product Decision
 
-Build toward **The Doom Signal**: a wave-native assistant that helps anyone in a 6529 wave catch up, understand what happened, and turn confusion into clear next steps.
+Build toward **The Doomed Signal**: a wave-native assistant that helps anyone in a 6529 wave catch up, understand what happened, and turn confusion into clear next steps.
 
 The product should not lead with battles or REP. The front door is a 6529 wave summarizer: what happened, what was decided, what is open, who owns follow-up, and what needs checking.
 
@@ -133,7 +133,7 @@ The safe first version:
 - dedicated 6529 bot profile and wallet
 - inbound mention and DM ingestion for allowlisted waves or workspaces
 - command parser for "summarize this wave", "catch me up since last check-in", and "what is open?"
-- identity mapping from 6529 handle or wallet to a Doom Signal workspace user
+- identity mapping from 6529 handle or wallet to a Doomed Signal workspace user
 - wallet sign-in for normal users, mapping 6529 hot-wallet identity to roles without requesting private keys
 - per-user, per-wave, and per-workspace rate limits
 - summary draft creation through the same cost cap, provider-key check, source gate, and audit log as `/`
@@ -211,14 +211,14 @@ Success criteria:
 
 ### Phase 4: 6529 App Extension
 
-Goal: put Doom Signal where people already read waves.
+Goal: put The Doomed Signal where people already read waves.
 
-Build a Chrome extension that injects a small Doom Signal bubble or side panel into the 6529 app. The extension should detect the current wave, let the user ask for a summary, and show decisions, open questions, follow-ups, and checks without leaving the 6529 interface.
+Build a Chrome extension that injects a small Doomed Signal bubble or side panel into the 6529 app. The extension should detect the current wave, let the user ask for a summary, and show decisions, open questions, follow-ups, and checks without leaving the 6529 interface.
 
 Start read-only:
 
 - current-wave detection
-- authenticated Doom Signal session
+- authenticated Doomed Signal session
 - summary request and response panel
 - source drop links back into 6529
 - private user notes
@@ -264,7 +264,17 @@ Success criteria:
 
 Goal: let third-party agents contribute without compromising safety.
 
-Start with proposal endpoints only:
+ARD changes the plan here, but not the MVP. The near-term version should publish The Doomed Signal's own capabilities through an Agentic Resource Discovery-style catalog once endpoints are stable. The later version can consume external catalogs only through the same permission and safety gates used for internal agents.
+
+Publish first:
+
+- `/.well-known/ai-catalog.json` or equivalent ARD catalog when the spec stabilizes
+- discoverable capabilities for one-wave check-in, related-wave check-in, cached-drop search, and user-activity search
+- protocol metadata for REST first, MCP/A2A later only when useful
+- cost hints, context limits, auth requirements, rate limits, and safety notes
+- publisher identity and verification metadata
+
+Consume later:
 
 - public wave context only
 - strict timeout
@@ -277,8 +287,11 @@ Start with proposal endpoints only:
 - no wallet keys
 - allowlisted domains
 - kill switch per agent, owner, provider, and domain
+- external resource records with protocol, endpoint, publisher, verification state, scopes, cost quote, and allowed egress
 
 Cost from external self-hosted agents is treated as quoted price, not verified provider cost. Trusted cost accounting only exists when the platform runs or proxies the model call.
+
+Agent discovery never grants authority by itself. A discovered capability still needs workspace permission, scope checks, rate limits, cost caps, and a human approval path for posting or assignments.
 
 Success criteria:
 
@@ -316,6 +329,7 @@ Success criteria:
 - internal prompt-config agents
 - AI provider adapters
 - 6529 wave context snapshots
+- cached 6529 drops by wave, author, timestamp, and raw JSON
 - battle entries and votes
 - admin auth
 - job queue
@@ -328,6 +342,8 @@ Success criteria:
 - `AgentRole` or role/category mapping
 - role-aware leaderboard scoring
 - workspace-level reviewer roles and budget caps
+- ARD-style capability catalog for The Doomed Signal's own public agent/API surface
+- `AgentCapability` / external resource registry for future MCP, A2A, API, and ARD endpoints
 
 ## Trust Model
 
@@ -343,7 +359,7 @@ Cryptography can prove who signed something and whether a record changed. It can
 
 The protocol and export formats should feel like public goods. The sustainable company is the hosted operator:
 
-- hosted Doom Signal workspaces
+- hosted Doomed Signal workspaces
 - usage-based agent runs
 - workflow templates
 - private deployments

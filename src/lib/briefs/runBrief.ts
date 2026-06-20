@@ -1,14 +1,16 @@
 import { generateWithAnthropic } from "@/lib/ai/anthropic";
 import { generateWithGoogle } from "@/lib/ai/google";
+import { generateWithOllama } from "@/lib/ai/ollama";
 import { generateWithOpenAI } from "@/lib/ai/openai";
 import { estimateCostUsd } from "@/lib/ai/pricing";
 import { runProviderCall } from "@/lib/ai/retry";
 import { buildWaveBriefPrompts, type PreviousWaveSummary, type WaveBriefPromptContext } from "@/lib/briefs/prompts";
 import { renderWaveBrief } from "@/lib/briefs/render";
 import { parseWaveBrief, type WaveBriefPayload } from "@/lib/briefs/schema";
+import { dropCreatedAtMs } from "@/lib/6529/normalize";
 import type { WaveDrop } from "@/lib/6529/types";
 
-export type BriefProvider = "openai" | "anthropic" | "google";
+export type BriefProvider = "openai" | "anthropic" | "google" | "ollama" | "local";
 
 export const defaultWaveBriefMaxOutputTokens = 1800;
 
@@ -38,15 +40,35 @@ export type WaveBriefCostPreview = {
   fetchedDropCount: number;
 };
 
+function localMockModeEnabled() {
+  return process.env.WAVE_BRIEF_LOCAL_MOCK_MODE === "true";
+}
+
 function configuredProvider(value?: string): BriefProvider {
-  if (value === "anthropic" || value === "google" || value === "openai") {
+  if (localMockModeEnabled()) {
+    return "local";
+  }
+
+  if (value === "local") {
+    return "local";
+  }
+
+  if (value === "anthropic" || value === "google" || value === "ollama" || value === "openai") {
     return value;
   }
 
-  return "openai";
+  return "ollama";
 }
 
 function defaultModel(provider: BriefProvider) {
+  if (provider === "local") {
+    return "extractive-check-in";
+  }
+
+  if (provider === "ollama") {
+    return "qwen3:14b";
+  }
+
   if (provider === "anthropic") {
     return "claude-sonnet-4-5";
   }
@@ -59,6 +81,14 @@ function defaultModel(provider: BriefProvider) {
 }
 
 function apiKeyName(provider: BriefProvider) {
+  if (provider === "local") {
+    return "WAVE_BRIEF_LOCAL_MOCK_MODE";
+  }
+
+  if (provider === "ollama") {
+    return "OLLAMA_BASE_URL";
+  }
+
   if (provider === "anthropic") {
     return "ANTHROPIC_API_KEY";
   }
@@ -72,18 +102,34 @@ function apiKeyName(provider: BriefProvider) {
 
 export function getWaveBriefProviderConfig(params?: { provider?: string; modelName?: string }) {
   const provider = configuredProvider(params?.provider ?? process.env.WAVE_BRIEF_PROVIDER);
-  const modelName = params?.modelName || process.env.WAVE_BRIEF_MODEL || defaultModel(provider);
+  const modelName = provider === "local" ? defaultModel(provider) : params?.modelName || process.env.WAVE_BRIEF_MODEL || defaultModel(provider);
   const keyName = apiKeyName(provider);
 
   return {
     provider,
     modelName,
     keyName,
-    configured: Boolean(process.env[keyName]?.trim()),
+    configured:
+      provider === "local"
+        ? localMockModeEnabled()
+        : provider === "ollama"
+          ? true
+          : Boolean(process.env[keyName]?.trim()),
   };
 }
 
 function assertProviderConfigured(provider: BriefProvider) {
+  if (provider === "local") {
+    if (localMockModeEnabled()) {
+      return;
+    }
+
+    throw Object.assign(new Error("WAVE_BRIEF_LOCAL_MOCK_MODE=true is required to generate local wave check-ins."), {
+      status: 422,
+      code: "provider_not_configured",
+    });
+  }
+
   const { keyName, configured } = getWaveBriefProviderConfig({ provider });
 
   if (!configured) {
@@ -113,6 +159,14 @@ export function estimateWaveBriefRunCost(params: {
 }) {
   const promptTokens = estimateTokenCount(`${params.systemPrompt}\n\n${params.userPrompt}`);
 
+  if (params.provider === "local" || params.provider === "ollama") {
+    return {
+      promptTokens,
+      maxOutputTokens: params.maxOutputTokens,
+      estimatedCostUsd: 0,
+    };
+  }
+
   return {
     promptTokens,
     maxOutputTokens: params.maxOutputTokens,
@@ -122,6 +176,183 @@ export function estimateWaveBriefRunCost(params: {
       promptTokens,
       completionTokens: params.maxOutputTokens,
     }),
+  };
+}
+
+function authorName(drop: WaveDrop) {
+  return drop.author?.handle ?? drop.author?.display ?? drop.author?.primary_wallet ?? "unknown";
+}
+
+function compactText(value: string | null | undefined, maxChars = 220) {
+  const text = (value ?? "")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/\bSources?\s*:/gi, "source mentions:")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (text.length <= maxChars) {
+    return text;
+  }
+
+  return `${text.slice(0, maxChars - 3).trimEnd()}...`;
+}
+
+function sentenceFromDrop(drop: WaveDrop) {
+  return compactText(drop.content || drop.title || "No text content.", 240);
+}
+
+function sortDropsChronologically(drops: WaveDrop[]) {
+  return [...drops].sort((a, b) => {
+    const aCreated = dropCreatedAtMs(a) ?? 0;
+    const bCreated = dropCreatedAtMs(b) ?? 0;
+
+    if (aCreated !== bCreated) {
+      return aCreated - bCreated;
+    }
+
+    return (a.serial_no ?? 0) - (b.serial_no ?? 0);
+  });
+}
+
+function matchesAny(text: string, patterns: RegExp[]) {
+  return patterns.some((pattern) => pattern.test(text));
+}
+
+function uniqueDrops(drops: WaveDrop[]) {
+  const seen = new Set<string>();
+  const result: WaveDrop[] = [];
+
+  for (const drop of drops) {
+    if (seen.has(drop.id)) {
+      continue;
+    }
+
+    seen.add(drop.id);
+    result.push(drop);
+  }
+
+  return result;
+}
+
+function selectDrops(drops: WaveDrop[], patterns: RegExp[], limit: number) {
+  return uniqueDrops(
+    drops.filter((drop) => matchesAny(`${drop.title ?? ""} ${drop.content ?? ""}`, patterns)),
+  ).slice(0, limit);
+}
+
+function renderDropLine(drop: WaveDrop) {
+  const serial = drop.serial_no == null ? "" : `#${drop.serial_no} `;
+  return `${serial}@${authorName(drop)}: ${sentenceFromDrop(drop)}`;
+}
+
+function buildLocalWaveBrief(params: {
+  waveId: string;
+  requestText: string;
+  drops: WaveDrop[];
+  context?: WaveBriefPromptContext;
+  previousSummary?: PreviousWaveSummary;
+}): WaveBriefPayload {
+  const ordered = sortDropsChronologically(params.drops);
+  const newest = [...ordered].reverse();
+  const citedDrops = uniqueDrops(newest.filter((drop) => compactText(drop.content || drop.title).length > 0)).slice(0, 8);
+  const citedIds = citedDrops.map((drop) => drop.id);
+  const fallbackIds = citedIds.slice(0, 3);
+  const questionDrops = selectDrops(newest, [/\?/, /\b(can we|should we|how do|what is|what are|why|when|who)\b/i], 3);
+  const actionDrops = selectDrops(
+    newest,
+    [/\b(todo|follow up|need to|needs to|should|please|pls|next|owner|assign|fix|build|ship|merge|check|review)\b/i],
+    4,
+  );
+  const riskDrops = selectDrops(
+    newest,
+    [/\b(risk|blocked|problem|issue|bug|break|fail|unsafe|wrong|confusing|concern|cap|quota|error|429|delay)\b/i],
+    3,
+  );
+  const decisionDrops = selectDrops(newest, [/\b(decide|decision|choose|pick|approve|ship|merge|cutoff|policy|plan)\b/i], 3);
+  const window =
+    params.context?.from || params.context?.to
+      ? ` Window: ${params.context.from ?? "start"} to ${params.context.to ?? "now"}.`
+      : "";
+  const capLimitations = params.context?.hitCap
+    ? ["One or more source waves hit the fetch cap, so this should not be treated as complete-history analysis."]
+    : [];
+  const promptLimitations =
+    params.drops.length > citedDrops.length
+      ? [`Local test mode cited ${citedDrops.length} of ${params.drops.length} fetched drops and may miss nuance.`]
+      : ["Local test mode used all fetched drops available to it."];
+
+  return {
+    title: "Local test check-in",
+    executive_summary: [
+      `Local test mode read ${params.drops.length} fetched drops and produced an extractive check-in without calling an AI provider.`,
+      citedDrops.length
+        ? `The newest cited items include ${citedDrops.slice(0, 3).map((drop) => `@${authorName(drop)}`).join(", ")}.`
+        : "No citable text drops were available.",
+    ].join(" "),
+    evidence_coverage: {
+      summary: `Fetched ${params.drops.length} drops in ${params.context?.mode ?? "unknown"} mode.${window}`,
+      limitations: [...capLimitations, ...promptLimitations],
+    },
+    summary_bullets: citedDrops.slice(0, 5).map(renderDropLine),
+    changes_since_previous: params.previousSummary
+      ? citedDrops.slice(0, 3).map((drop) => ({
+          change: `Recent source activity after the previous checked check-in: ${renderDropLine(drop)}`,
+          source_drop_ids: [drop.id],
+        }))
+      : [],
+    decisions_needed: decisionDrops.length
+      ? decisionDrops.map((drop) => ({
+          title: `Decide how to handle: ${sentenceFromDrop(drop)}`,
+          why: "This source drop used decision or shipping language.",
+          source_drop_ids: [drop.id],
+        }))
+      : [
+          {
+            title: "Decide whether this local test check-in is accurate enough to use.",
+            why: "This was generated by deterministic local extraction, not a reasoning model.",
+            source_drop_ids: fallbackIds,
+          },
+        ],
+    open_questions: questionDrops.length
+      ? questionDrops.map((drop) => ({
+          question: sentenceFromDrop(drop),
+          source_drop_ids: [drop.id],
+        }))
+      : [],
+    action_items: actionDrops.length
+      ? actionDrops.map((drop) => ({
+          task: `Follow up on: ${sentenceFromDrop(drop)}`,
+          suggested_owner: authorName(drop) === "unknown" ? "" : authorName(drop),
+          source_drop_ids: [drop.id],
+        }))
+      : [
+          {
+            task: "Review the cited drops and replace local test output with a model-generated check-in before sharing publicly.",
+            suggested_owner: "",
+            source_drop_ids: fallbackIds,
+          },
+        ],
+    risks: riskDrops.length
+      ? riskDrops.map((drop) => ({
+          risk: sentenceFromDrop(drop),
+          severity: "medium" as const,
+          source_drop_ids: [drop.id],
+        }))
+      : [
+          {
+            risk: "Local extractive mode is useful for UI testing, but it can miss implicit context and should not be treated as production-quality synthesis.",
+            severity: "medium" as const,
+            source_drop_ids: fallbackIds,
+          },
+        ],
+    suggested_post: citedDrops.length
+      ? `Local test check-in: ${citedDrops.slice(0, 3).map(renderDropLine).join(" ")}`
+      : "Local test check-in: no citable source text was found in the fetched context.",
+    citations: citedDrops.map((drop) => ({
+      drop_id: drop.id,
+      reason: "Used by local extractive test mode as source evidence.",
+    })),
+    confidence: 0.55,
   };
 }
 
@@ -226,6 +457,30 @@ export async function runWaveBrief(params: {
 
   assertProviderConfigured(provider);
 
+  if (provider === "local") {
+    const startedAt = Date.now();
+    const structured = buildLocalWaveBrief({
+      waveId: params.waveId,
+      requestText: params.requestText,
+      drops: params.drops,
+      context: params.context,
+      previousSummary: params.previousSummary,
+    });
+    const renderedOutput = renderWaveBrief(structured);
+
+    return {
+      provider,
+      modelName,
+      rawOutput: JSON.stringify(structured),
+      structured,
+      renderedOutput,
+      promptTokens: estimate.promptTokens,
+      completionTokens: estimateTokenCount(renderedOutput),
+      costUsd: 0,
+      latencyMs: Date.now() - startedAt,
+    };
+  }
+
   const startedAt = Date.now();
   const generation = await runProviderCall(`${provider}/${modelName}:wave-brief`, async () =>
     provider === "openai"
@@ -242,12 +497,19 @@ export async function runWaveBrief(params: {
             userPrompt: prompts.userPrompt,
             maxOutputTokens,
           })
-        : generateWithGoogle({
-            modelName,
-            systemPrompt: prompts.systemPrompt,
-            userPrompt: prompts.userPrompt,
-            maxOutputTokens,
-          }),
+        : provider === "google"
+          ? generateWithGoogle({
+              modelName,
+              systemPrompt: prompts.systemPrompt,
+              userPrompt: prompts.userPrompt,
+              maxOutputTokens,
+            })
+          : generateWithOllama({
+              modelName,
+              systemPrompt: prompts.systemPrompt,
+              userPrompt: prompts.userPrompt,
+              maxOutputTokens,
+            }),
   );
   const structured = parseWaveBrief(generation.text);
 

@@ -4,18 +4,17 @@ test.describe("public pages", () => {
   test("homepage starts with the Signal workspace", async ({ page }) => {
     await page.goto("/");
 
-    await expect(page.getByRole("heading", { name: "The Doom Signal." })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "The Doomed Signal" })).toBeVisible();
     await expect(page.getByText("Keep noisy 6529 waves from losing the plot.")).toBeVisible();
     await expect(page.getByRole("link", { name: "Signal", exact: true }).first()).toHaveAttribute("aria-current", "page");
     await expect(page.getByLabel("Wave name, link, or ID")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Preview" })).toBeDisabled();
+    await expect(page.getByRole("button", { name: "Check sources" })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Generate" })).toBeDisabled();
     await expect(page.getByText("Busy waves lose shared state.")).toHaveCount(0);
 
     await page.getByLabel("Wave name, link, or ID").fill("https://6529.io/waves/49f0e595-ec7c-4235-8695-a527f61b69f4");
     expect(page.url()).not.toContain("/summarize");
     await expect(page.getByText("Selected wave 49f0e595-ec7c-4235-8695-a527f61b69f4")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Preview" })).toBeEnabled();
     await expect(page.getByRole("button", { name: "Generate" })).toBeEnabled();
   });
 
@@ -54,18 +53,18 @@ test.describe("operator and submission flows", () => {
   test("operator login can create a dev session when admin key is not configured", async ({ page }) => {
     await page.goto("/operator/login");
 
-    await expect(page.getByRole("heading", { name: "Sign in to The Doom Signal" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Sign in to The Doomed Signal" })).toBeVisible();
     await page.getByLabel("App access key").fill("dev-admin-key");
     await page.getByRole("button", { name: "Sign In" }).click();
     await expect(page).toHaveURL(/\/operator$/);
-    await expect(page.getByRole("heading", { name: "The Doom Signal Console" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "The Doomed Signal Console" })).toBeVisible();
     await expect(page.getByText("Open dev access")).toBeVisible();
   });
 
   test("operator console exposes the simple launch workflow", async ({ page }) => {
     await page.goto("/operator");
 
-    await expect(page.getByRole("heading", { name: "The Doom Signal Console" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "The Doomed Signal Console" })).toBeVisible();
     await expect(page.getByText("Production URL", { exact: true })).toBeVisible();
     await expect(page.getByText("Cron auth", { exact: true })).toBeVisible();
     await expect(page.getByText("Rate-limit salt", { exact: true })).toBeVisible();
@@ -208,8 +207,8 @@ test.describe("operator and submission flows", () => {
     });
     await page.getByLabel("Wave ID").fill("wave-1");
     await page.getByRole("button", { name: "Preview Sources" }).click();
-    await expect(page.getByRole("heading", { name: "Sources Preview" })).toBeVisible();
-    await expect(page.getByText("2 drops collected in recent mode after searching 3 messages.")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "What will be read" })).toBeVisible();
+    await expect(page.getByText("The check-in will use 2 drops collected in recent mode after searching 3 messages.")).toBeVisible();
     await expect(page.getByText("Est. cost")).toBeVisible();
     await expect(page.getByText("Est. input")).toBeVisible();
     await expect(page.getByText("1234")).toBeVisible();

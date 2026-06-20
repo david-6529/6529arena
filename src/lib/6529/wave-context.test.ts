@@ -167,6 +167,41 @@ describe("fetchWaveContext", () => {
     expect(getWaveDrops).toHaveBeenLastCalledWith("wave-long", expect.objectContaining({ serialNoLimit: 201 }));
   });
 
+  it("defaults recent context to a 10,000 searched-message cap", async () => {
+    const makeDrop = (serial: number) => ({
+      id: `busy-drop-${serial}`,
+      serial_no: serial,
+      created_at: Date.parse("2026-06-18T10:00:00.000Z") + serial,
+      content: `Busy drop ${serial}`,
+    });
+
+    vi.mocked(getWaveDrops).mockImplementation(
+      async (waveId: string, params?: { serialNoLimit?: number; limit?: number }) => {
+        const limit = params?.limit ?? 200;
+        const upperSerial = params?.serialNoLimit ? params.serialNoLimit - 1 : 12_000;
+
+        return {
+          wave: {
+            id: waveId,
+            name: "Busy Wave",
+            total_drops_count: 12_000,
+          },
+          drops: Array.from({ length: limit }, (_, index) => makeDrop(upperSerial - index)),
+        };
+      },
+    );
+
+    const context = await fetchWaveContext({
+      waveId: "wave-busy",
+    });
+
+    expect(context.drops).toHaveLength(10_000);
+    expect(context.context.maxMessages).toBe(10_000);
+    expect(context.context.searchedMessages).toBe(10_000);
+    expect(context.context.hitCap).toBe(true);
+    expect(getWaveDrops).toHaveBeenCalledTimes(50);
+  });
+
   it("rejects all-history requests that also include a date window", async () => {
     await expect(
       fetchWaveContext({

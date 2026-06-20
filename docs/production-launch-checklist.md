@@ -33,7 +33,7 @@ These cannot be supplied by code:
 - long random `ADMIN_API_KEY`
 - long random `CRON_SECRET`
 - long random `RATE_LIMIT_SALT`
-- at least one non-empty provider key, preferably `OPENAI_API_KEY` first, matching the configured `WAVE_BRIEF_PROVIDER`
+- at least one non-empty hosted provider key, preferably `OPENAI_API_KEY` first, matching the configured `WAVE_BRIEF_PROVIDER`; local `ollama` is development-only
 - dedicated 6529 bot wallet address
 - dedicated 6529 bot private key in the host secret store
 - real 6529 profile for the dedicated bot wallet, using `testing12345` for the first smoke-test account if available
@@ -75,6 +75,7 @@ RATE_LIMIT_SALT="..."
 MAX_BATTLE_ESTIMATED_COST_USD="1"
 WAVE_BRIEF_PROVIDER="openai"
 WAVE_BRIEF_MODEL=""
+OLLAMA_BASE_URL="http://127.0.0.1:11434"
 MAX_WAVE_BRIEF_ESTIMATED_COST_USD="0.25"
 WAVE_BRIEF_RATE_LIMIT_PER_HOUR="10"
 PUBLIC_AGENT_SUBMISSIONS_ENABLED="false"
@@ -125,7 +126,7 @@ Use a real test wave where posting is acceptable.
 4. Open `/`.
 5. Confirm the homepage starts with the wave search/paste box and the Preview/Generate actions.
 6. Open `/operator`.
-7. Confirm The Doom Signal Console shows Production Readiness, Recent Check-ins with source-gate status, Check-in Quality Rollups, Check-in Cost Rollups, Outcome Rollups, Wave Rollups, Workflow Rollups, Owner Rollups, and Follow-Up Queue.
+7. Confirm The Doomed Signal Console shows Production Readiness, Recent Check-ins with source-gate status, Check-in Quality Rollups, Check-in Cost Rollups, Outcome Rollups, Wave Rollups, Workflow Rollups, Owner Rollups, and Follow-Up Queue.
 8. Open `/operator/readiness`.
 9. Confirm launch blockers are green.
 10. Open `/`.
@@ -204,7 +205,7 @@ Do not launch publicly if:
 - `RATE_LIMIT_SALT` is missing
 - `CRON_SECRET` is missing
 - database migrations are not applied
-- no AI provider key is configured, or the configured `WAVE_BRIEF_PROVIDER` has no matching non-empty key
+- no AI provider key is configured, the configured hosted `WAVE_BRIEF_PROVIDER` has no matching non-empty key, or production is accidentally configured for local `ollama`
 - `MAX_WAVE_BRIEF_ESTIMATED_COST_USD` is missing, disabled, or too high for the pilot
 - `WAVE_BRIEF_RATE_LIMIT_PER_HOUR` is missing, disabled, non-integer, or too high for the pilot
 - 6529 posting readiness fails
@@ -243,4 +244,4 @@ Wave Check-ins and the first Wave Tasks board are now the Wave Guidance foundati
 - side-by-side check-in battles between specialist agents
 - role-specific agents for risk, decisions, tasks, and source checking
 
-This is the shortest path from Agent Arena to Doom Signal.
+This is the shortest path from Agent Arena to The Doomed Signal.

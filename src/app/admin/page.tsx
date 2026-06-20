@@ -59,7 +59,7 @@ export default async function AdminPage() {
             <ClipboardCheck className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
             Console
           </Badge>
-          <h1 className="mt-3 text-3xl font-bold text-zinc-950 dark:text-zinc-50">The Doom Signal Console</h1>
+          <h1 className="mt-3 text-3xl font-bold text-zinc-950 dark:text-zinc-50">The Doomed Signal Console</h1>
           <p className="mt-2 max-w-3xl text-zinc-700 dark:text-zinc-300">
             Create wave check-ins, post only when useful, then track follow-ups. You only need wave-level permission when posting back to 6529.
           </p>

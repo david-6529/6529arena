@@ -201,14 +201,14 @@ Body:
   "contextFrom": "optional ISO date",
   "contextTo": "optional ISO date",
   "includeAllHistory": false,
-  "maxMessages": 500,
+  "maxMessages": 10000,
   "provider": "openai",
   "modelName": "optional model override",
   "autoPost": false
 }
 ```
 
-Repeated events with the same `waveId` and `dropId` return the existing draft instead of creating a duplicate. Public posting still requires a human to check citations and explicitly post the draft. By default the route fetches recent context; set `includeAllHistory=true` to fetch every available page up to the 20,000-message safety cap, or use `contextFrom`/`contextTo` for a specific window. Do not combine `includeAllHistory=true` with date-window fields.
+Repeated events with the same `waveId` and `dropId` return the existing draft instead of creating a duplicate. Public posting still requires a human to check citations and explicitly post the draft. By default the route fetches recent context up to 10,000 searched messages and caches fetched drops locally; set `includeAllHistory=true` to fetch every available page up to the 20,000-message safety cap, or use `contextFrom`/`contextTo` for a specific window. Do not combine `includeAllHistory=true` with date-window fields.
 
 ### `GET /api/admin/jobs/process`
 
@@ -259,13 +259,13 @@ Body:
   "contextFrom": "optional ISO date",
   "contextTo": "optional ISO date",
   "includeAllHistory": false,
-  "maxMessages": 500,
+  "maxMessages": 10000,
   "provider": "openai",
   "modelName": "optional model override"
 }
 ```
 
-Without dates, check-ins use recent mode and fetch the last 24 hours up to 500 messages. Set `includeAllHistory=true` to fetch every available page up to the 20,000-message safety cap. Do not combine all-history mode with `contextFrom` or `contextTo`. Generated drafts store full source-wave coverage metadata and render an evidence coverage section; if a source hits the cap, raise `maxMessages` or narrow the date window before treating the result as complete-history analysis.
+Without dates, check-ins use recent mode and fetch the last 24 hours up to 10,000 searched messages. Set `includeAllHistory=true` to fetch every available page up to the 20,000-message safety cap. Do not combine all-history mode with `contextFrom` or `contextTo`. Generated drafts store full source-wave coverage metadata, cache fetched drops locally, and render an evidence coverage section; if a source hits the cap, raise `maxMessages` or narrow the date window before treating the result as complete-history analysis.
 
 ### `POST /api/admin/briefs/:id/review`
 
@@ -400,13 +400,15 @@ Body:
   "contextFrom": "optional ISO date",
   "contextTo": "optional ISO date",
   "includeAllHistory": false,
-  "maxMessages": 500,
+  "maxMessages": 10000,
   "provider": "openai",
   "modelName": "optional model override"
 }
 ```
 
 Response `preview.context.sources` lists each source wave, its label, available drop count when reported by 6529, searched messages, collected drop count, oldest/newest collected timestamps, and whether that source hit the safety cap. `sampleDrops` includes source-wave metadata for drops from related waves. When `requestText` is supplied, `preview.briefEstimate` includes provider/model, estimated input tokens, max output tokens, estimated cost when pricing is known, cost-cap status, prompt drop count, fetched drop count, and omitted prompt-drop count. Do not combine `includeAllHistory=true` with `contextFrom` or `contextTo`.
+
+Wave check-in provider values are `openai`, `anthropic`, `google`, and local-only `ollama`. Ollama estimates and recorded costs are zero-dollar local runtime costs.
 
 ### `GET /api/admin/6529/waves/search`
 

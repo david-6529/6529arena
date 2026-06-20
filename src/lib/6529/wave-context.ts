@@ -4,7 +4,7 @@ import type { JsonRecord, WaveDrop } from "@/lib/6529/types";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const WAVE_DROPS_PAGE_SIZE = 200;
-const DEFAULT_RECENT_CONTEXT_CAP = 500;
+const DEFAULT_RECENT_CONTEXT_CAP = 10_000;
 const DEFAULT_FULL_HISTORY_CONTEXT_CAP = 20_000;
 const MAX_RELATED_WAVES = 8;
 

@@ -37,4 +37,17 @@ describe("runProviderCall", () => {
       ),
     ).rejects.toThrow("provider/model timed out after 1ms.");
   });
+
+  it("uses a longer timeout for local Ollama calls", async () => {
+    process.env.AI_PROVIDER_RETRIES = "0";
+    process.env.AI_PROVIDER_TIMEOUT_MS = "1";
+    process.env.OLLAMA_PROVIDER_TIMEOUT_MS = "100";
+
+    await expect(
+      runProviderCall(
+        "ollama/qwen3:14b:wave-brief",
+        () => new Promise((resolve) => setTimeout(() => resolve("ok"), 20)),
+      ),
+    ).resolves.toBe("ok");
+  });
 });

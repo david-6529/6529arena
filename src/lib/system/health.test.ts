@@ -48,10 +48,12 @@ describe("getSystemStatus", () => {
     const status = await getSystemStatus();
 
     expect(status.aiProviders).toContainEqual({ provider: "anthropic", configured: true });
+    expect(status.aiProviders).toContainEqual({ provider: "ollama", configured: true });
     expect(status.waveBriefProvider).toEqual({
       provider: "openai",
       keyName: "OPENAI_API_KEY",
       configured: false,
+      localMockMode: false,
     });
     expect(status.readyForProduction).toBe(false);
   });
@@ -67,8 +69,42 @@ describe("getSystemStatus", () => {
       provider: "anthropic",
       keyName: "ANTHROPIC_API_KEY",
       configured: true,
+      localMockMode: false,
     });
     expect(status.readyForProduction).toBe(true);
+  });
+
+  it("allows local mock check-ins for development but blocks production readiness", async () => {
+    setReadyEnv();
+    delete process.env.OPENAI_API_KEY;
+    process.env.WAVE_BRIEF_LOCAL_MOCK_MODE = "true";
+
+    const status = await getSystemStatus();
+
+    expect(status.waveBriefProvider).toEqual({
+      provider: "local",
+      keyName: "WAVE_BRIEF_LOCAL_MOCK_MODE",
+      configured: true,
+      localMockMode: true,
+    });
+    expect(status.readyForProduction).toBe(false);
+  });
+
+  it("allows Ollama check-ins locally but blocks production readiness", async () => {
+    setReadyEnv();
+    delete process.env.OPENAI_API_KEY;
+    process.env.WAVE_BRIEF_PROVIDER = "ollama";
+    process.env.WAVE_BRIEF_MODEL = "qwen3:14b";
+
+    const status = await getSystemStatus();
+
+    expect(status.waveBriefProvider).toEqual({
+      provider: "ollama",
+      keyName: "OLLAMA_BASE_URL",
+      configured: true,
+      localMockMode: false,
+    });
+    expect(status.readyForProduction).toBe(false);
   });
 
   it("requires a positive wave-summary generation rate limit", async () => {

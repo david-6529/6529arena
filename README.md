@@ -1,14 +1,14 @@
-# The Doom Signal
+# The Doomed Signal
 
 ## ELI5
 
-The Doom Signal helps anyone in a 6529 wave find the signal inside noisy conversations.
+The Doomed Signal helps anyone in a 6529 wave find the signal inside noisy conversations.
 
-The problem is that important decisions, open questions, follow-ups, and facts get buried inside fast wave conversations. The Doom Signal is the simple wave check-in tool: paste or search for a wave, generate a sourced catch-up note, see what needs checking, and decide whether anything should be shared back.
+The problem is that important decisions, open questions, follow-ups, and facts get buried inside fast wave conversations. The Doomed Signal is the simple wave check-in tool: paste or search for a wave, generate a sourced catch-up note, see what needs checking, and decide whether anything should be shared back.
 
 Agents do the first pass. Humans stay in charge. A check-in can be read privately right away. Checks matter before posting, assigning follow-ups, or treating a claim as verified.
 
-6529 Agent Arena is the feature-gated evaluation layer under The Doom Signal. It can compare two agents on the same wave and update the leaderboard, but battles are infrastructure. The user-facing product is the wave assistant: show what changed, identify open questions, suggest follow-ups, and keep sources attached.
+6529 Agent Arena is the feature-gated evaluation layer under The Doomed Signal. It can compare two agents on the same wave and update the leaderboard, but battles are infrastructure. The user-facing product is the wave assistant: show what changed, identify open questions, suggest follow-ups, and keep sources attached.
 
 The simplest launch is this loop:
 
@@ -18,11 +18,11 @@ The simplest launch is this loop:
 4. Keep it private, share it with collaborators, or post a public recap back to the wave.
 5. Track useful follow-ups in the review queue, see when the same task comes up again, assign an owner, and record who claimed the work.
 
-Some 6529 work is split across a parent wave and subwaves. For example, a project can keep raw PR cards in one wave, readable summaries in another, and team coordination in a third. The Doom Signal supports that pattern by letting a user summarize one main wave plus related waves while keeping each cited drop tied to its source wave.
+Some 6529 work is split across a parent wave and subwaves. For example, a project can keep raw PR cards in one wave, readable summaries in another, and team coordination in a third. The Doomed Signal supports that pattern by letting a user summarize one main wave plus related waves while keeping each cited drop tied to its source wave.
 
 Battles, public agent submissions, wallet identity, and extra categories stay behind feature gates until the check-in loop works well in public.
 
-The broader Doom Signal path adds follow-up tracking, outcome evidence, assignments, specialist agents, a 6529 bot profile for mentions and DMs, project workspaces, a Chrome extension inside the 6529 app, and eventually safe external agent intake.
+The broader Doomed Signal path adds follow-up tracking, outcome evidence, assignments, specialist agents, a 6529 bot profile for mentions and DMs, project workspaces, a Chrome extension inside the 6529 app, and eventually safe external agent intake.
 
 
 ## Stack
@@ -53,11 +53,13 @@ SIMPLE_LAUNCH_MODE="true"
 OPENAI_API_KEY="..."
 ANTHROPIC_API_KEY="..."
 GOOGLE_API_KEY="..."
+OLLAMA_BASE_URL="http://127.0.0.1:11434"
 AI_PROVIDER_TIMEOUT_MS="45000"
+OLLAMA_PROVIDER_TIMEOUT_MS="120000"
 AI_PROVIDER_RETRIES="1"
 MAX_BATTLE_ESTIMATED_COST_USD="1"
-WAVE_BRIEF_PROVIDER="openai"
-WAVE_BRIEF_MODEL=""
+WAVE_BRIEF_PROVIDER="ollama"
+WAVE_BRIEF_MODEL="qwen3:14b"
 MAX_WAVE_BRIEF_ESTIMATED_COST_USD="0.25"
 WAVE_BRIEF_RATE_LIMIT_PER_HOUR="10"
 SELF_TEST_ENABLED="false"
@@ -85,9 +87,9 @@ Do not deploy without `ADMIN_API_KEY`. Operator pages redirect to `/operator/log
 
 ## Access And Posting Authority
 
-The Doom Signal keeps the `/admin` API namespace and `ADMIN_API_KEY` env var as technical names. The normal user path is `/`: paste or search for a wave, preview sources, generate a check-in, and decide what to do with it. The protected operations console stays at `/operator` for launch-readiness checks, exports, maintenance, and broader review tooling.
+The Doomed Signal keeps the `/admin` API namespace and `ADMIN_API_KEY` env var as technical names. The normal user path is `/`: paste or search for a wave, generate a check-in, and decide what to do with it. The protected operations console stays at `/operator` for launch-readiness checks, exports, maintenance, and broader review tooling.
 
-The user does not always need to be the 6529 wave admin. Anyone should eventually be able to use The Doom Signal privately to catch up. Posting a recap back to a wave, assigning public follow-ups, or running anything that spends money should require checked workspace access, and posting back to a 6529 wave should require either the wave admin, the wave creator, or someone they explicitly delegate.
+The user does not always need to be the 6529 wave admin. Anyone should eventually be able to use The Doomed Signal privately to catch up. Posting a recap back to a wave, assigning public follow-ups, or running anything that spends money should require checked workspace access, and posting back to a 6529 wave should require either the wave admin, the wave creator, or someone they explicitly delegate.
 
 Never paste private keys into chat, tickets, or commit history. Put the 6529 bot key only in `.env` locally and in the deployment provider's encrypted secret store.
 
@@ -112,14 +114,15 @@ SIMPLE_LAUNCH_MODE="true"
 
 In this mode the production workflow stays intentionally narrow:
 
-- public homepage starts with the product: one wave search/paste box, a Doom Signal-style spotlight, and same-page preview/generate actions
+- public homepage starts with the product: one wave search/paste box, a Doom Signal-style spotlight, and same-page generate action
 - public nav shows Signal and Safety
 - leaderboard is locked to Wave Summarization
-- `/` opens The Doom Signal flow
+- `/` opens The Doomed Signal flow
 - `/operator` remains the protected operations console for readiness, exports, maintenance, and broader review tooling
 - the compatibility route `/operator/briefs` opens the fuller check-in console
 - Wave Check-ins can include related wave URLs or IDs for parent/subwave workspaces such as PR firehose, digest, and team-chat flows
-- check-in generation defaults to recent context, supports explicit date windows, and has an all-history mode that fetches every available page up to a visible safety cap
+- check-in generation defaults to recent context, searches up to 10,000 recent messages, supports explicit date windows, and has an all-history mode that fetches every available page up to a visible 20,000-message safety cap
+- fetched check-in drops are cached in Postgres by wave, author, timestamp, and raw JSON so later cross-wave and user-activity questions can build on context we already saw
 - check-in previews and review cards show source-wave coverage, cap warnings, pre-generation cost/token estimates, cited-source checks, actual model cost, token usage, and human review status
 - operator-only Wave Tasks are available at `/operator/tasks`, including seen counts for repeated open follow-ups
 - the manual battle runner is hidden behind `SIMPLE_LAUNCH_MODE=false`
@@ -139,6 +142,34 @@ npm run dev
 
 Open `http://localhost:3000`.
 
+For local UI testing without OpenAI API credits, set:
+
+```bash
+WAVE_BRIEF_LOCAL_MOCK_MODE="true"
+```
+
+This still fetches real 6529 wave drops and saves a check-in, but the check-in is a deterministic extractive draft generated locally. Leave it `false` for production.
+
+For real local model testing on a Mac, install Ollama and pull the default local model:
+
+```bash
+brew install ollama
+brew services start ollama
+ollama pull qwen3:14b
+```
+
+Then set:
+
+```bash
+WAVE_BRIEF_PROVIDER="ollama"
+WAVE_BRIEF_MODEL="qwen3:14b"
+OLLAMA_BASE_URL="http://127.0.0.1:11434"
+OLLAMA_PROVIDER_TIMEOUT_MS="120000"
+WAVE_BRIEF_LOCAL_MOCK_MODE="false"
+```
+
+Ollama generation is treated as zero marginal API cost, but it is local-only and should not be used as the production readiness provider.
+
 For a richer local demo leaderboard with seeded battles, votes, and runs:
 
 ```bash
@@ -149,7 +180,7 @@ SEED_DEMO_DATA=true npm run db:seed
 
 Detailed setup: [docs/production-runbook.md](docs/production-runbook.md).
 Production launch checklist: [docs/production-launch-checklist.md](docs/production-launch-checklist.md).
-The Doom Signal roadmap: [docs/swarmops-roadmap.md](docs/swarmops-roadmap.md).
+The Doomed Signal roadmap: [docs/swarmops-roadmap.md](docs/swarmops-roadmap.md).
 Agent security model: [docs/agent-safety-model.md](docs/agent-safety-model.md).
 Backup and restore: [docs/backup-restore-runbook.md](docs/backup-restore-runbook.md).
 Non-Vercel deploy notes: [docs/non-vercel-deploy.md](docs/non-vercel-deploy.md).
@@ -159,7 +190,7 @@ API route reference: [docs/api-routes.md](docs/api-routes.md).
 - `ADMIN_API_KEY` is set.
 - `CRON_SECRET` is set.
 - `RATE_LIMIT_SALT` is set.
-- At least one AI provider key is set, and the key for `WAVE_BRIEF_PROVIDER` is non-empty.
+- At least one AI provider key is set, and the key for `WAVE_BRIEF_PROVIDER` is non-empty. Local Ollama is fine for development, but production readiness expects a hosted provider key.
 - Dedicated 6529 bot wallet address and private key are set in env or the host secret store.
 - The dedicated 6529 bot wallet has a real 6529 profile for live posting tests.
 - `NEXT_PUBLIC_APP_URL` points at the deployed site.
@@ -230,7 +261,7 @@ This is feature-gated evaluation infrastructure. Set `SIMPLE_LAUNCH_MODE=false` 
 1. Open `/operator`.
 2. Confirm Production Readiness checks.
 3. Enter a wave ID, category, request prompt, and optional context window.
-4. Preview context. By default the app uses the last 24 hours and searches up to 500 messages.
+4. Preview context. By default the app uses the last 24 hours and searches up to 500 messages for feature-gated battles.
 5. Create the battle to snapshot source drops.
 6. Select two different agents, queue the run, and process one job locally or through cron.
 7. Open the battle page to inspect Option A and Option B.
@@ -243,8 +274,8 @@ Successful end state: the operator creates an auditable battle from real 6529 co
 1. Open `/`.
 2. Search for a 6529 wave by name or enter a wave ID, then choose recent context, a date window, or all available history.
 3. Add related wave URLs or IDs when the work spans a parent wave and subwaves.
-4. Preview context to confirm source waves, drop counts, cap warnings, sample drops, estimated input tokens, and estimated model cost before generation.
-5. Generate a review-ready wave check-in with evidence coverage, changes since the last checked check-in, decisions, open questions, follow-ups, checks, suggested post, and source citations.
+4. Generate a review-ready wave check-in with evidence coverage, changes since the last checked check-in, decisions, open questions, follow-ups, checks, suggested post, and source citations. By default this searches the last 24 hours up to 10,000 messages and caches fetched drops locally.
+5. Open one check-in at a time on the main page to read it without turning the whole history into a wall of text.
 6. Edit the draft, add notes, score it 1-5, and mark it checked or discard it.
 7. Review missing-source warnings by section, then preview the 6529 post body.
 8. Post the checked check-in back into the wave only if a public recap is useful.
@@ -346,7 +377,7 @@ This flow is feature-gated evaluation infrastructure. Set `SIMPLE_LAUNCH_MODE=fa
 
 1. Open `/operator`.
 2. Enter a 6529 wave ID and request prompt.
-3. Optionally set a time window. Without one, the app fetches the last 24 hours and searches at most 500 messages.
+3. Optionally set a time window. Without one, the feature-gated battle flow fetches the last 24 hours and searches at most 500 messages.
 4. Click Preview to confirm real wave drops are being normalized correctly.
 5. Click Create to snapshot the wave context.
 6. Select two agents and click Queue Run.

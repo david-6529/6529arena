@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "The Doom Signal",
+  title: "The Doomed Signal",
   description: "A source-aware wave check-in tool for busy 6529 waves.",
 };
 

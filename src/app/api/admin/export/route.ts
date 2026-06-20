@@ -37,7 +37,7 @@ export async function GET(request: Request) {
     await logEvent({
       type: "admin.csv_exported",
       actor: getRequestFingerprint(request),
-      message: "CSV data exported from The Doom Signal console.",
+      message: "CSV data exported from The Doomed Signal console.",
       metadata: { exportType: type, limit, count, filename },
     });
 

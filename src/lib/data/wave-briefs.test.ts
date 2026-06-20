@@ -11,6 +11,7 @@ import { postDrop } from "@/lib/6529/client";
 import { fetchWaveContext } from "@/lib/6529/wave-context";
 import { runWaveBrief } from "@/lib/briefs/runBrief";
 import { createSuggestedTasksForBrief } from "@/lib/data/wave-tasks";
+import { cacheWaveDrops } from "@/lib/data/wave-drops";
 import { getPrisma } from "@/lib/db/prisma";
 import { logEvent } from "@/lib/observability/events";
 
@@ -28,6 +29,10 @@ vi.mock("@/lib/briefs/runBrief", () => ({
 
 vi.mock("@/lib/data/wave-tasks", () => ({
   createSuggestedTasksForBrief: vi.fn(),
+}));
+
+vi.mock("@/lib/data/wave-drops", () => ({
+  cacheWaveDrops: vi.fn(),
 }));
 
 vi.mock("@/lib/db/prisma", () => ({
@@ -73,6 +78,7 @@ beforeEach(() => {
   vi.mocked(postDrop).mockReset();
   vi.mocked(runWaveBrief).mockReset();
   vi.mocked(createSuggestedTasksForBrief).mockReset();
+  vi.mocked(cacheWaveDrops).mockReset();
   vi.mocked(logEvent).mockReset();
   waveBrief.count.mockReset();
   waveBrief.aggregate.mockReset();
@@ -95,6 +101,11 @@ beforeEach(() => {
     status: data.status ?? baseBrief.status,
   }));
   waveBrief.updateMany.mockResolvedValue({ count: 1 });
+  vi.mocked(cacheWaveDrops).mockResolvedValue({
+    attemptedCount: 1,
+    cachedCount: 1,
+    createdCount: 1,
+  });
 });
 
 describe("getWaveBriefReviewStats", () => {
@@ -624,6 +635,12 @@ describe("createWaveBriefDraft", () => {
         previousSummary: previousBrief,
       }),
     );
+    expect(cacheWaveDrops).toHaveBeenCalledWith([
+      expect.objectContaining({
+        id: "drop-1",
+        source_wave_id: "wave-firehose",
+      }),
+    ]);
     expect(waveBrief.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         previousBriefId: "brief-old",
@@ -646,6 +663,8 @@ describe("createWaveBriefDraft", () => {
         metadata: expect.objectContaining({
           previousBriefId: "brief-old",
           relatedWaveCount: 1,
+          cachedDropCount: 1,
+          newCachedDropCount: 1,
           suggestedTaskCount: 0,
           rementionedSuggestedTaskCount: 1,
           skippedSuggestedTaskCount: 0,

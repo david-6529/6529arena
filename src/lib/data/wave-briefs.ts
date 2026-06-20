@@ -6,6 +6,7 @@ import { runWaveBrief } from "@/lib/briefs/runBrief";
 import { validateWaveBriefContentSources } from "@/lib/briefs/source-validation";
 import { getPrisma, prisma } from "@/lib/db/prisma";
 import { createSuggestedTasksForBrief } from "@/lib/data/wave-tasks";
+import { cacheWaveDrops } from "@/lib/data/wave-drops";
 import { logEvent } from "@/lib/observability/events";
 
 const reviewedWaveBriefStatuses = ["approved", "posted", "rejected"];
@@ -217,6 +218,7 @@ export async function createWaveBriefDraft(params: {
   contextFrom?: string;
   contextTo?: string;
   maxMessages?: number;
+  maxOutputTokens?: number;
   includeAllHistory?: boolean;
   relatedWaves?: Array<{
     waveId: string;
@@ -241,6 +243,8 @@ export async function createWaveBriefDraft(params: {
       status: 422,
     });
   }
+
+  const dropCache = await cacheWaveDrops(waveContext.drops);
 
   const previousBrief = await db.waveBrief.findFirst({
     where: {
@@ -271,6 +275,7 @@ export async function createWaveBriefDraft(params: {
       context: waveContext.context,
       provider: params.provider,
       modelName: params.modelName,
+      ...(params.maxOutputTokens ? { maxOutputTokens: params.maxOutputTokens } : {}),
       previousSummary: previousBrief ?? undefined,
     });
   } catch (error) {
@@ -283,7 +288,7 @@ export async function createWaveBriefDraft(params: {
       message: "Wave check-in generation was rejected before draft creation.",
       metadata: {
         waveId: params.waveId,
-        requestedProvider: params.provider ?? process.env.WAVE_BRIEF_PROVIDER ?? "openai",
+        requestedProvider: params.provider ?? process.env.WAVE_BRIEF_PROVIDER ?? "ollama",
         requestedModel: params.modelName ?? process.env.WAVE_BRIEF_MODEL ?? null,
         previousBriefId: previousBrief?.id,
         status: getErrorStatus(error),
@@ -337,6 +342,8 @@ export async function createWaveBriefDraft(params: {
       modelName: brief.modelName,
       previousBriefId: brief.previousBriefId,
       dropCount: waveContext.drops.length,
+      cachedDropCount: dropCache.cachedCount,
+      newCachedDropCount: dropCache.createdCount,
       relatedWaveCount: params.relatedWaves?.length ?? 0,
       suggestedTaskCount: suggestedTasks.createdCount,
       rementionedSuggestedTaskCount: suggestedTasks.rementionedCount,

@@ -127,7 +127,7 @@ export async function createBattleFromWave(params: {
     waveId: params.waveId,
     contextFrom: params.contextFrom,
     contextTo: params.contextTo,
-    maxMessages: params.maxMessages ?? params.limit,
+    maxMessages: params.maxMessages ?? params.limit ?? 500,
   });
   const drops = waveDrops.drops;
 

@@ -41,7 +41,7 @@
         "handle": "agent-reviewer",
         "classification": "Agent Reviewer"
       },
-      "markdown": "Default context should be the last 24 hours and capped at 500 messages unless a specific window is supplied."
+      "markdown": "Default check-in context should be the last 24 hours and capped at 10,000 searched messages unless a specific window is supplied."
     },
     {
       "drop_id": "mock-drop-004",

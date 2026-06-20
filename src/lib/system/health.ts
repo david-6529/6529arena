@@ -25,13 +25,14 @@ export type SystemStatus = {
     readyToPost: boolean;
   };
   aiProviders: Array<{
-    provider: "openai" | "anthropic" | "google";
+    provider: "openai" | "anthropic" | "google" | "ollama";
     configured: boolean;
   }>;
   waveBriefProvider: {
-    provider: "openai" | "anthropic" | "google";
+    provider: "openai" | "anthropic" | "google" | "ollama" | "local";
     keyName: string;
     configured: boolean;
+    localMockMode: boolean;
   };
   costCaps: {
     waveBriefEstimatedCostUsd: number | null;
@@ -57,13 +58,29 @@ function positiveIntegerEnv(name: string, fallback?: number) {
   return Number.isInteger(value) && value > 0 ? value : null;
 }
 
-function configuredWaveBriefProvider(): "openai" | "anthropic" | "google" {
-  const provider = process.env.WAVE_BRIEF_PROVIDER;
-
-  return provider === "anthropic" || provider === "google" || provider === "openai" ? provider : "openai";
+function waveBriefLocalMockMode() {
+  return process.env.WAVE_BRIEF_LOCAL_MOCK_MODE === "true";
 }
 
-function providerKeyName(provider: "openai" | "anthropic" | "google") {
+function configuredWaveBriefProvider(): "openai" | "anthropic" | "google" | "ollama" | "local" {
+  if (waveBriefLocalMockMode()) {
+    return "local";
+  }
+
+  const provider = process.env.WAVE_BRIEF_PROVIDER;
+
+  return provider === "anthropic" || provider === "google" || provider === "ollama" || provider === "openai" ? provider : "ollama";
+}
+
+function providerKeyName(provider: "openai" | "anthropic" | "google" | "ollama" | "local") {
+  if (provider === "local") {
+    return "WAVE_BRIEF_LOCAL_MOCK_MODE";
+  }
+
+  if (provider === "ollama") {
+    return "OLLAMA_BASE_URL";
+  }
+
   if (provider === "anthropic") {
     return "ANTHROPIC_API_KEY";
   }
@@ -118,6 +135,7 @@ export async function getSystemStatus(): Promise<SystemStatus> {
     { provider: "openai" as const, configured: configuredSecret("OPENAI_API_KEY") },
     { provider: "anthropic" as const, configured: configuredSecret("ANTHROPIC_API_KEY") },
     { provider: "google" as const, configured: configuredSecret("GOOGLE_API_KEY") },
+    { provider: "ollama" as const, configured: true },
   ];
   const publicUrl = process.env.NEXT_PUBLIC_APP_URL?.trim() || null;
   const botWalletConfigured = configuredSecret("6529_BOT_WALLET_ADDRESS");
@@ -129,10 +147,17 @@ export async function getSystemStatus(): Promise<SystemStatus> {
   const readyToPost = botWalletConfigured && botPrivateKeyConfigured;
   const waveBriefProviderName = configuredWaveBriefProvider();
   const waveBriefProviderKey = providerKeyName(waveBriefProviderName);
+  const localMockMode = waveBriefLocalMockMode();
   const waveBriefProvider = {
     provider: waveBriefProviderName,
     keyName: waveBriefProviderKey,
-    configured: configuredSecret(waveBriefProviderKey),
+    configured:
+      waveBriefProviderName === "local"
+        ? localMockMode
+        : waveBriefProviderName === "ollama"
+          ? true
+          : configuredSecret(waveBriefProviderKey),
+    localMockMode,
   };
   const app = {
     publicUrl,
@@ -179,6 +204,8 @@ export async function getSystemStatus(): Promise<SystemStatus> {
       rateLimitSaltConfigured &&
       readyToPost &&
       waveBriefProvider.configured &&
+      !localMockMode &&
+      waveBriefProviderName !== "ollama" &&
       !mockMode &&
       costCaps.waveBriefEstimatedCostUsd !== null &&
       rateLimits.waveBriefPerHour !== null,

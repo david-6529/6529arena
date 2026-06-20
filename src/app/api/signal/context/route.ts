@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { buildWaveContextPreview, fetchWaveContext } from "@/lib/6529/wave-context";
-import { handleRouteError, json, parseJson, requireAdmin } from "@/lib/api";
+import { handleRouteError, json, parseJson } from "@/lib/api";
 import { estimateWaveBriefDraftCost } from "@/lib/briefs/runBrief";
 import { logEvent } from "@/lib/observability/events";
 
@@ -30,7 +30,6 @@ const previewSchema = z.object({
 
 export async function POST(request: Request) {
   try {
-    requireAdmin(request);
     const body = await parseJson(request, previewSchema);
     const waveContext = await fetchWaveContext(body);
     const preview = buildWaveContextPreview({
@@ -50,10 +49,10 @@ export async function POST(request: Request) {
       : null;
 
     await logEvent({
-      type: "admin.wave_context_previewed",
+      type: "signal.wave_context_previewed",
       entityType: "wave",
       entityId: body.waveId,
-      actor: "operator",
+      actor: "signal",
       message: "Signal user previewed 6529 wave context.",
       metadata: {
         dropCount: preview.dropCount,

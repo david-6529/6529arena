@@ -1,7 +1,7 @@
 import { z } from "zod";
-import { handleRouteError, json, parseJson, requireAdmin } from "@/lib/api";
+import { handleRouteError, json, parseJson } from "@/lib/api";
 import { checkWaveBriefGenerationConfig, consumeWaveBriefGenerationRateLimit } from "@/lib/briefs/request-gates";
-import { createWaveBriefDraft, listWaveBriefs } from "@/lib/data/wave-briefs";
+import { createWaveBriefDraft } from "@/lib/data/wave-briefs";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -28,25 +28,14 @@ const createBriefSchema = z.object({
   modelName: z.string().trim().min(1).max(120).optional(),
 });
 
-export async function GET(request: Request) {
-  try {
-    requireAdmin(request);
-
-    return json({ briefs: await listWaveBriefs() });
-  } catch (error) {
-    return handleRouteError(error, request);
-  }
-}
-
 export async function POST(request: Request) {
   try {
-    requireAdmin(request);
     const body = await parseJson(request, createBriefSchema);
     const configGate = await checkWaveBriefGenerationConfig({
       waveId: body.waveId,
       provider: body.provider,
       modelName: body.modelName,
-      actor: "operator",
+      actor: "signal",
       actorLabel: "Signal user",
     });
 
@@ -57,9 +46,9 @@ export async function POST(request: Request) {
     const rateLimitGate = await consumeWaveBriefGenerationRateLimit({
       request,
       waveId: body.waveId,
-      scope: "admin_wave_brief",
+      scope: "signal_wave_brief",
       limit: configGate.limit,
-      actor: "operator",
+      actor: "signal",
       actorLabel: "Signal user",
     });
 

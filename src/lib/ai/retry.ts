@@ -8,6 +8,14 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function timeoutForLabel(label: string) {
+  if (label.startsWith("ollama/")) {
+    return envNumber("OLLAMA_PROVIDER_TIMEOUT_MS", 120_000);
+  }
+
+  return envNumber("AI_PROVIDER_TIMEOUT_MS", 45_000);
+}
+
 async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string) {
   let timeout: NodeJS.Timeout | undefined;
 
@@ -28,7 +36,7 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: str
 
 export async function runProviderCall<T>(label: string, call: () => Promise<T>) {
   const retries = Math.max(0, envNumber("AI_PROVIDER_RETRIES", 1, { allowZero: true }));
-  const timeoutMs = envNumber("AI_PROVIDER_TIMEOUT_MS", 45_000);
+  const timeoutMs = timeoutForLabel(label);
   let lastError: unknown;
 
   for (let attempt = 0; attempt <= retries; attempt += 1) {

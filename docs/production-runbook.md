@@ -40,8 +40,10 @@ Required for first production:
 - `ANTHROPIC_API_KEY`: optional if Anthropic agents are active.
 - `GOOGLE_API_KEY`: optional if Gemini agents are active.
 - `MAX_BATTLE_ESTIMATED_COST_USD`: rejects evaluation battle runs whose selected agents' configured max costs exceed this cap.
-- `WAVE_BRIEF_PROVIDER`: optional provider for protected wave check-ins, default `openai`. The matching provider key must be non-empty before check-in generation; missing keys block generation before rate-limit buckets or model work.
+- `WAVE_BRIEF_PROVIDER`: optional provider for protected wave check-ins, default `ollama` for local development. Supported values are `openai`, `anthropic`, `google`, and local-only `ollama`. Production should explicitly set a hosted provider such as `openai`; the matching provider key must be non-empty before hosted-provider generation.
 - `WAVE_BRIEF_MODEL`: optional model override for protected wave check-ins.
+- `OLLAMA_BASE_URL`: optional local Ollama URL, default `http://127.0.0.1:11434`, used only when `WAVE_BRIEF_PROVIDER=ollama`.
+- `OLLAMA_PROVIDER_TIMEOUT_MS`: optional local Ollama timeout, default `120000`, used so local models have more time than hosted API calls.
 - `MAX_WAVE_BRIEF_ESTIMATED_COST_USD`: rejects protected wave check-ins before the provider call when estimated prompt plus max-output cost exceeds this cap, default `0.25`. Explicit invalid or non-positive values block generation before any model work.
 - `WAVE_BRIEF_RATE_LIMIT_PER_HOUR`: wave check-in generation limit per request fingerprint, default `10`. Explicit invalid, non-integer, or non-positive values block generation before any rate-limit bucket or model work.
 - `PUBLIC_AGENT_SUBMISSIONS_ENABLED`: enables `/submit` intake when set to `true`.
@@ -93,7 +95,7 @@ npx prisma migrate deploy
 npm run db:seed
 ```
 
-7. Open `/operator`, sign in with `ADMIN_API_KEY`, and confirm the Doom Signal Operator Console loads.
+7. Open `/operator`, sign in with `ADMIN_API_KEY`, and confirm The Doomed Signal operator console loads.
 8. Open `/operator/readiness` and confirm launch blockers are green.
 9. Open `/`, search for a wave by name or enter a wave ID, generate a test wave check-in, edit it, save edits before marking checked, previewing, or posting, add a human score, mark it checked only after the saved final-content source gate passes, confirm later title or content edits move the check-in back to draft until it is checked again, confirm the preview post source gate is clear, preview it, and post only after the final content source check passes.
 10. Generate a second test check-in for the same wave and confirm it links to the previous checked check-in and includes "What changed since last summary".
@@ -110,7 +112,7 @@ Optional evaluation smoke test:
 6. Use Preview Post to inspect the exact 6529 reply body.
 7. Post to 6529 only after the output is acceptable.
 
-For the simplest launch, keep the public product to The Doom Signal wave check-in assistant and keep battles as feature-gated evaluation infrastructure. Public submissions, wallet identity, builder self-tests, and multi-category navigation are hidden when `SIMPLE_LAUNCH_MODE` is enabled.
+For the simplest launch, keep the public product to The Doomed Signal wave check-in assistant and keep battles as feature-gated evaluation infrastructure. Public submissions, wallet identity, builder self-tests, and multi-category navigation are hidden when `SIMPLE_LAUNCH_MODE` is enabled.
 
 Use `/api/health` for public uptime checks. It returns only service health and coarse database status; detailed readiness stays behind `/operator`.
 
@@ -163,7 +165,7 @@ Exports are intended for operations and prompt/cost analysis. They intentionally
 After deploy:
 
 1. `/operator` redirects to `/operator/login` when `ADMIN_API_KEY` is configured.
-2. `/operator` shows The Doom Signal Console with Production Readiness, Recent Check-ins with source-gate status, Check-in Quality Rollups, Check-in Cost Rollups, Outcome Rollups, Wave Rollups, Workflow Rollups, Owner Rollups, and Follow-Up Queue.
+2. `/operator` shows The Doomed Signal Console with Production Readiness, Recent Check-ins with source-gate status, Check-in Quality Rollups, Check-in Cost Rollups, Outcome Rollups, Wave Rollups, Workflow Rollups, Owner Rollups, and Follow-Up Queue.
 3. `/operator/readiness` has database, production URL, app access key, cron secret, rate-limit salt, check-in cost cap, 6529 posting, and the selected check-in AI provider configured.
 4. `/` lets a reviewer search saved waves by name or paste a wave link/ID in one field, generates, edits, scores, blocks marking checked when saved final content cites drops outside stored context, moves checked check-ins back to draft when title or content changes, locks discarded check-in content so revisions require a new check-in, locks posting check-in content while the 6529 call is in flight, blocks checking/preview/post while title or content has unsaved edits, previews with source-gate metadata, claims posting before the 6529 call to prevent duplicate posts, and optionally posts a real test check-in after final content source checks pass.
 5. Missing-source warnings on `/` identify the exact check-in section that cited a drop outside stored context, and the visible source gate blocks marking checked and posting for final content that still cites missing drops.

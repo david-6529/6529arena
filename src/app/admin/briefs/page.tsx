@@ -4,6 +4,7 @@ import { WaveBriefAdmin } from "@/components/admin/wave-brief-admin";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
 import { PageFrame } from "@/components/site/shell";
+import { getWaveBriefProviderConfig } from "@/lib/briefs/runBrief";
 import { getParam, getWaveBriefRows } from "@/lib/briefs/page-data";
 
 export const dynamic = "force-dynamic";
@@ -15,6 +16,8 @@ type PageProps = {
 export default async function AdminBriefsPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const initialWaveInput = getParam(params, "wave") ?? "";
+  const providerConfig = getWaveBriefProviderConfig();
+  const initialProvider = providerConfig.provider === "local" ? "openai" : providerConfig.provider;
   const rows = await getWaveBriefRows(50);
 
   return (
@@ -36,7 +39,7 @@ export default async function AdminBriefsPage({ searchParams }: PageProps) {
         </div>
       </div>
 
-      <WaveBriefAdmin briefs={rows} initialWaveInput={initialWaveInput} />
+      <WaveBriefAdmin briefs={rows} initialWaveInput={initialWaveInput} initialProvider={initialProvider} />
     </PageFrame>
   );
 }

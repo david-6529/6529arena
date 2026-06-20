@@ -332,6 +332,33 @@ model WaveBrief {
   @@index([status, createdAt])
 }
 
+model CachedWaveDrop {
+  dropId        String    @id
+  waveId        String
+  waveName      String?
+  sourceRole    String?
+  serialNo      Int?
+  createdAt6529 DateTime?
+  updatedAt6529 DateTime?
+  authorHandle  String?
+  authorDisplay String?
+  authorWallet  String?
+  title         String?
+  content       String?
+  dropType      String?
+  rawJson       Json?
+  firstSeenAt   DateTime  @default(now())
+  fetchedAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([waveId, createdAt6529])
+  @@index([waveId, serialNo])
+  @@index([authorHandle, createdAt6529])
+  @@index([authorWallet, createdAt6529])
+  @@index([createdAt6529])
+  @@index([fetchedAt])
+}
+
 model WaveTask {
   id                String    @id @default(cuid())
   waveBriefId       String?

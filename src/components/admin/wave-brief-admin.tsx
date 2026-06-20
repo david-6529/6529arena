@@ -2,8 +2,8 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, Eye, FileText, KeyRound, Plus, Send, Star, XCircle } from "lucide-react";
-import { useEffect, useState } from "react";
+import { CheckCircle2, ChevronDown, Eye, FileText, KeyRound, Loader2, Plus, Send, Star, XCircle } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { EntityHistoryList, type EntityHistoryEventRow } from "@/components/admin/entity-history-list";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -166,6 +166,16 @@ type WaveSearchOption = {
   source: string;
 };
 
+type WaveBriefProviderOption = "openai" | "anthropic" | "google" | "ollama";
+
+const SIGNAL_BRIEFS_PER_PAGE = 20;
+const GENERATION_CLIENT_TIMEOUT_MS = 150_000;
+const OUTPUT_LENGTH_OPTIONS = [
+  { label: "Short", maxOutputTokens: 900 },
+  { label: "Normal", maxOutputTokens: 1800 },
+  { label: "Detailed", maxOutputTokens: 3200 },
+] as const;
+
 function extractWaveId(value: string) {
   const trimmed = value.trim();
   const waveUrlMatch = trimmed.match(/\/waves\/([^/?#\s]+)/);
@@ -279,18 +289,86 @@ function sourceWaveLabel(source: WaveBriefRow["sourceWaves"][number]) {
   return `${name}${role}${count}${cap}`;
 }
 
+function renderReadableMarkdown(content: string) {
+  const blocks: Array<{ heading: string | null; lines: string[] }> = [];
+  let current: { heading: string | null; lines: string[] } = { heading: null, lines: [] };
+
+  for (const rawLine of content.split(/\r?\n/)) {
+    const line = rawLine.trimEnd();
+    const heading = line.match(/^\*\*(.+?)\*\*$/);
+
+    if (heading) {
+      if (current.heading || current.lines.some((item) => item.trim())) {
+        blocks.push(current);
+      }
+
+      current = { heading: heading[1]?.trim() ?? "", lines: [] };
+      continue;
+    }
+
+    current.lines.push(line);
+  }
+
+  if (current.heading || current.lines.some((item) => item.trim())) {
+    blocks.push(current);
+  }
+
+  return blocks.map((block, blockIndex) => (
+    <section key={`${block.heading ?? "intro"}:${blockIndex}`} className={blockIndex ? "border-t border-zinc-800 pt-4" : ""}>
+      {block.heading ? <h3 className="text-sm font-semibold text-zinc-100">{block.heading}</h3> : null}
+      <div className="mt-2 space-y-2 text-sm leading-6 text-zinc-300">
+        {block.lines.filter((line) => line.trim()).map((line, lineIndex) => {
+          const bullet = line.match(/^-\s+(.*)$/);
+
+          return bullet ? (
+            <p key={`${line}:${lineIndex}`} className="pl-4 [text-indent:-1rem]">
+              <span className="text-zinc-500">- </span>
+              {bullet[1]}
+            </p>
+          ) : (
+            <p key={`${line}:${lineIndex}`}>{line}</p>
+          );
+        })}
+      </div>
+    </section>
+  ));
+}
+
+function loadingStatusText(loading: string, provider: WaveBriefProviderOption) {
+  if (loading === "generate") {
+    return provider === "ollama"
+      ? "Generating locally with Ollama. Local models can take about a minute."
+      : "Generating your check-in.";
+  }
+
+  if (loading === "context-preview") {
+    return "Reading wave drops.";
+  }
+
+  if (loading.includes(":")) {
+    return "Saving changes.";
+  }
+
+  return "Working.";
+}
+
 export function WaveBriefAdmin({
   briefs,
   initialWaveInput = "",
+  initialProvider = "openai",
   surface = "ops",
 }: {
   briefs: WaveBriefRow[];
   initialWaveInput?: string;
+  initialProvider?: WaveBriefProviderOption;
   surface?: "signal" | "ops";
 }) {
   const router = useRouter();
   const isSignalSurface = surface === "signal";
   const showAccessKey = !isSignalSurface;
+  const waveSearchUrl = isSignalSurface ? "/api/signal/waves/search" : "/api/admin/6529/waves/search";
+  const contextUrl = isSignalSurface ? "/api/signal/context" : "/api/admin/6529/context";
+  const briefsUrl = isSignalSurface ? "/api/signal/briefs" : "/api/admin/briefs";
   const normalizedInitialWaveInput = initialWaveInput.trim();
   const initialWaveId = waveIdFromInitialInput(normalizedInitialWaveInput);
   const [adminKey, setAdminKey] = useState("");
@@ -306,7 +384,8 @@ export function WaveBriefAdmin({
   const [contextTo, setContextTo] = useState("");
   const [includeAllHistory, setIncludeAllHistory] = useState(false);
   const [maxMessages, setMaxMessages] = useState("");
-  const [provider, setProvider] = useState("openai");
+  const [outputLengthIndex, setOutputLengthIndex] = useState(1);
+  const [provider, setProvider] = useState(initialProvider);
   const [modelName, setModelName] = useState("");
   const [reviewedBy, setReviewedBy] = useState("");
   const [drafts, setDrafts] = useState<Record<string, Draft>>(() =>
@@ -315,6 +394,10 @@ export function WaveBriefAdmin({
   const [contextPreview, setContextPreview] = useState<ContextPreview | null>(null);
   const [previewById, setPreviewById] = useState<Record<string, PostPreview>>({});
   const [state, setState] = useState<ApiState>({});
+  const [signalBriefPage, setSignalBriefPage] = useState(1);
+  const [openSignalBriefId, setOpenSignalBriefId] = useState<string | null>(null);
+  const generationAbortRef = useRef<AbortController | null>(null);
+  const selectedOutputLength = OUTPUT_LENGTH_OPTIONS[outputLengthIndex] ?? OUTPUT_LENGTH_OPTIONS[1];
   const currentEstimate = contextPreview?.briefEstimate;
   const isGenerationEstimateBlocked = Boolean(
     currentEstimate && (!currentEstimate.pricingAvailable || currentEstimate.costCapUsd == null || currentEstimate.costCapExceeded),
@@ -325,6 +408,13 @@ export function WaveBriefAdmin({
       ? briefs.filter((brief) => brief.waveId === selectedWaveId)
       : []
     : briefs;
+  const signalBriefPageCount = Math.max(1, Math.ceil(visibleBriefs.length / SIGNAL_BRIEFS_PER_PAGE));
+  const currentSignalBriefPage = Math.min(signalBriefPage, signalBriefPageCount);
+  const firstSignalBriefIndex = (currentSignalBriefPage - 1) * SIGNAL_BRIEFS_PER_PAGE;
+  const lastSignalBriefIndex = Math.min(firstSignalBriefIndex + SIGNAL_BRIEFS_PER_PAGE, visibleBriefs.length);
+  const paginatedBriefs = isSignalSurface
+    ? visibleBriefs.slice(firstSignalBriefIndex, lastSignalBriefIndex)
+    : visibleBriefs;
 
   function headers() {
     return {
@@ -345,7 +435,7 @@ export function WaveBriefAdmin({
       setWaveSearchState({ loading: "search" });
 
       try {
-        const response = await fetch(`/api/admin/6529/waves/search?q=${encodeURIComponent(query)}&limit=8`, {
+        const response = await fetch(`${waveSearchUrl}?q=${encodeURIComponent(query)}&limit=8`, {
           headers: adminKey ? { "x-admin-api-key": adminKey } : undefined,
           signal: controller.signal,
         });
@@ -371,7 +461,7 @@ export function WaveBriefAdmin({
       window.clearTimeout(timeout);
       controller.abort();
     };
-  }, [adminKey, waveQuery]);
+  }, [adminKey, waveQuery, waveSearchUrl]);
 
   function updateDraft(briefId: string, patch: Partial<Draft>) {
     if ("title" in patch || "content" in patch) {
@@ -408,6 +498,8 @@ export function WaveBriefAdmin({
     setWaveQuery(value);
     setWavePickerOpen(true);
     setWaveId(parsedWaveId);
+    setSignalBriefPage(1);
+    setOpenSignalBriefId(null);
     setContextPreview(null);
 
     if (value.trim().length < 2 || parsedWaveId) {
@@ -418,6 +510,8 @@ export function WaveBriefAdmin({
 
   function updateWaveIdInput(value: string) {
     setWaveId(extractWaveId(value));
+    setSignalBriefPage(1);
+    setOpenSignalBriefId(null);
     setContextPreview(null);
   }
 
@@ -425,6 +519,8 @@ export function WaveBriefAdmin({
     setSignalWaveInput(option.name);
     setWaveQuery(option.name);
     setWaveId(option.id);
+    setSignalBriefPage(1);
+    setOpenSignalBriefId(null);
     setContextPreview(null);
     setWavePickerOpen(false);
   }
@@ -440,6 +536,7 @@ export function WaveBriefAdmin({
       contextTo: contextTo ? new Date(contextTo).toISOString() : undefined,
       includeAllHistory,
       maxMessages: maxMessages ? Number(maxMessages) : undefined,
+      maxOutputTokens: selectedOutputLength.maxOutputTokens,
       provider,
       modelName: modelName || undefined,
     };
@@ -449,7 +546,7 @@ export function WaveBriefAdmin({
     setState({ loading: "context-preview" });
 
     try {
-      const response = await fetch("/api/admin/6529/context", {
+      const response = await fetch(contextUrl, {
         method: "POST",
         headers: headers(),
         body: JSON.stringify(contextPayload()),
@@ -472,12 +569,23 @@ export function WaveBriefAdmin({
   }
 
   async function generateBrief() {
+    generationAbortRef.current?.abort();
+
+    const controller = new AbortController();
+    let timedOut = false;
+    const timeout = window.setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, GENERATION_CLIENT_TIMEOUT_MS);
+
+    generationAbortRef.current = controller;
     setState({ loading: "generate" });
 
     try {
-      const response = await fetch("/api/admin/briefs", {
+      const response = await fetch(briefsUrl, {
         method: "POST",
         headers: headers(),
+        signal: controller.signal,
         body: JSON.stringify({
           ...contextPayload(),
           requestText,
@@ -492,10 +600,33 @@ export function WaveBriefAdmin({
       }
 
       setState({ message: `Generated check-in ${json.brief.id.slice(0, 8)}.` });
+      setSignalBriefPage(1);
+      setOpenSignalBriefId(json.brief.id);
       router.refresh();
     } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") {
+        setState({
+          error: timedOut
+            ? "Generation took too long and was stopped. Try Short length or fewer messages."
+            : "Generation cancelled. You can try again.",
+        });
+        return;
+      }
+
       setState({ error: error instanceof Error ? error.message : "Check-in generation failed." });
+    } finally {
+      window.clearTimeout(timeout);
+
+      if (generationAbortRef.current === controller) {
+        generationAbortRef.current = null;
+      }
     }
+  }
+
+  function cancelGenerateBrief() {
+    generationAbortRef.current?.abort();
+    generationAbortRef.current = null;
+    setState({ message: "Generation stopped. You can try again." });
   }
 
   async function reviewBrief(brief: WaveBriefRow, action: "approve" | "reject" | "update") {
@@ -646,7 +777,7 @@ export function WaveBriefAdmin({
                 </div>
               </div>
               <h1 className="mt-3 text-3xl font-semibold tracking-normal text-zinc-50 sm:text-4xl lg:text-5xl">
-                The Doom Signal.
+                The Doomed Signal
               </h1>
               <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-zinc-400">
                 Keep noisy 6529 waves from losing the plot. Paste a wave link or search by name.
@@ -669,25 +800,20 @@ export function WaveBriefAdmin({
                 <div className="flex gap-2 sm:shrink-0">
                   <Button
                     type="button"
-                    variant="secondary"
-                    size="lg"
-                    className="flex-1 border-zinc-700 bg-zinc-900 text-zinc-100 hover:bg-zinc-800 sm:flex-none"
-                    onClick={previewContext}
-                    disabled={state.loading !== undefined || !selectedWaveId}
-                  >
-                    <Eye className="h-5 w-5" aria-hidden="true" />
-                    {state.loading === "context-preview" ? "Previewing" : "Preview"}
-                  </Button>
-                  <Button
-                    type="button"
                     size="lg"
                     className="flex-1 sm:flex-none"
                     onClick={generateBrief}
-                    disabled={state.loading !== undefined || !selectedWaveId || isGenerationEstimateBlocked}
+                    disabled={state.loading !== undefined || !selectedWaveId}
                   >
                     <Plus className="h-5 w-5" aria-hidden="true" />
                     {state.loading === "generate" ? "Generating" : "Generate"}
                   </Button>
+                  {state.loading === "generate" ? (
+                    <Button type="button" variant="secondary" size="lg" onClick={cancelGenerateBrief}>
+                      <XCircle className="h-5 w-5" aria-hidden="true" />
+                      Cancel
+                    </Button>
+                  ) : null}
                 </div>
               </div>
               {wavePickerMenu}
@@ -699,53 +825,18 @@ export function WaveBriefAdmin({
               </p>
             ) : null}
 
-            <details className="mt-5 rounded-md border border-zinc-800 bg-zinc-950/70 p-4">
-              <summary className="cursor-pointer text-sm font-semibold text-zinc-300">Options</summary>
-              <div className="mt-4 grid gap-4 lg:grid-cols-4">
-                <label className="block text-sm font-semibold text-zinc-200 lg:col-span-4">
-                  <span className="mb-1 block">Related waves</span>
-                  <Textarea
-                    className="min-h-24"
-                    value={relatedWavesText}
-                    onChange={(event) => {
-                      setRelatedWavesText(event.target.value);
-                      setContextPreview(null);
-                    }}
-                    placeholder="Raw PR feed | https://6529.io/waves/..."
-                  />
-                </label>
-                <label className="block text-sm font-semibold text-zinc-200">
-                  <span className="mb-1 block">Provider</span>
-                  <Select
-                    value={provider}
-                    onChange={(event) => {
-                      setProvider(event.target.value);
-                      setContextPreview(null);
-                    }}
-                  >
-                    <option value="openai">OpenAI</option>
-                    <option value="anthropic">Anthropic</option>
-                    <option value="google">Google Gemini</option>
-                  </Select>
-                </label>
-                <label className="block text-sm font-semibold text-zinc-200">
-                  <span className="mb-1 block">Model override</span>
-                  <Input
-                    value={modelName}
-                    onChange={(event) => {
-                      setModelName(event.target.value);
-                      setContextPreview(null);
-                    }}
-                    placeholder="default for provider"
-                  />
-                </label>
-                <label className="block text-sm font-semibold text-zinc-200">
-                  <span className="mb-1 block">Your name</span>
-                  <Input value={reviewedBy} onChange={(event) => setReviewedBy(event.target.value)} placeholder="optional handle" />
-                </label>
-                <label className="block text-sm font-semibold text-zinc-200 lg:col-span-4">
+            <details className="mt-4 rounded-md border border-zinc-800 bg-zinc-950/70 p-3">
+              <summary className="cursor-pointer text-sm font-semibold text-zinc-300">
+                Options
+                <span className="ml-2 text-xs font-medium text-zinc-500">
+                  {selectedOutputLength.label} · {maxMessages || "10000"} messages
+                </span>
+              </summary>
+              <div className="mt-3 grid gap-3 lg:grid-cols-4">
+                <label className="block text-sm font-semibold text-zinc-200 lg:col-span-2">
                   <span className="mb-1 block">Check-in request</span>
                   <Textarea
+                    className="min-h-16"
                     value={requestText}
                     onChange={(event) => {
                       setRequestText(event.target.value);
@@ -753,7 +844,46 @@ export function WaveBriefAdmin({
                     }}
                   />
                 </label>
-                <label className="flex cursor-pointer items-start gap-3 rounded-md border border-zinc-800 p-3 text-sm font-semibold text-zinc-200 lg:col-span-4">
+                <label className="block text-sm font-semibold text-zinc-200">
+                  <span className="mb-1 flex items-center justify-between gap-3">
+                    <span>Length</span>
+                    <span className="rounded-full border border-zinc-700 px-2 py-0.5 text-xs text-zinc-400">
+                      {selectedOutputLength.label}
+                    </span>
+                  </span>
+                  <input
+                    type="range"
+                    min={0}
+                    max={OUTPUT_LENGTH_OPTIONS.length - 1}
+                    step={1}
+                    value={outputLengthIndex}
+                    onChange={(event) => {
+                      setOutputLengthIndex(Number(event.target.value));
+                      setContextPreview(null);
+                    }}
+                    className="w-full cursor-pointer accent-cyan-400"
+                  />
+                  <div className="mt-1 flex justify-between text-xs font-medium text-zinc-500">
+                    {OUTPUT_LENGTH_OPTIONS.map((option) => (
+                      <span key={option.label}>{option.label}</span>
+                    ))}
+                  </div>
+                </label>
+                <label className="block text-sm font-semibold text-zinc-200">
+                  <span className="mb-1 block">Max messages</span>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={20000}
+                    value={maxMessages}
+                    onChange={(event) => {
+                      setMaxMessages(event.target.value);
+                      setContextPreview(null);
+                    }}
+                    placeholder={includeAllHistory ? "20000" : "10000"}
+                  />
+                </label>
+                <label className="flex cursor-pointer items-center gap-3 rounded-md border border-zinc-800 px-3 py-2 text-sm font-semibold text-zinc-200 lg:col-span-4">
                   <input
                     type="checkbox"
                     checked={includeAllHistory}
@@ -767,53 +897,81 @@ export function WaveBriefAdmin({
                         setContextTo("");
                       }
                     }}
-                    className="mt-1 h-4 w-4 cursor-pointer accent-cyan-500"
+                    className="h-4 w-4 cursor-pointer accent-cyan-500"
                   />
-                  <span>
-                    <span className="block">Use all available wave history</span>
-                    <span className="mt-1 block text-xs font-medium leading-5 text-zinc-500">
-                      Leave this off for a recent catch-up, or use dates for a specific window.
-                    </span>
-                  </span>
+                  <span>Use all available wave history</span>
                 </label>
-                <label className="block text-sm font-semibold text-zinc-200">
-                  <span className="mb-1 block">From</span>
-                  <Input
-                    type="datetime-local"
-                    value={contextFrom}
-                    disabled={includeAllHistory}
-                    onChange={(event) => {
-                      setContextFrom(event.target.value);
-                      setContextPreview(null);
-                    }}
-                  />
-                </label>
-                <label className="block text-sm font-semibold text-zinc-200">
-                  <span className="mb-1 block">To</span>
-                  <Input
-                    type="datetime-local"
-                    value={contextTo}
-                    disabled={includeAllHistory}
-                    onChange={(event) => {
-                      setContextTo(event.target.value);
-                      setContextPreview(null);
-                    }}
-                  />
-                </label>
-                <label className="block text-sm font-semibold text-zinc-200">
-                  <span className="mb-1 block">Max messages total</span>
-                  <Input
-                    type="number"
-                    min={1}
-                    max={20000}
-                    value={maxMessages}
-                    onChange={(event) => {
-                      setMaxMessages(event.target.value);
-                      setContextPreview(null);
-                    }}
-                    placeholder={includeAllHistory ? "20000 total" : "500 total"}
-                  />
-                </label>
+                <details className="rounded-md border border-zinc-800 p-3 lg:col-span-4">
+                  <summary className="cursor-pointer text-sm font-semibold text-zinc-400">Advanced</summary>
+                  <div className="mt-3 grid gap-3 lg:grid-cols-4">
+                    <label className="block text-sm font-semibold text-zinc-200 lg:col-span-4">
+                      <span className="mb-1 block">Related waves</span>
+                      <Textarea
+                        className="min-h-16"
+                        value={relatedWavesText}
+                        onChange={(event) => {
+                          setRelatedWavesText(event.target.value);
+                          setContextPreview(null);
+                        }}
+                        placeholder="Raw PR feed | https://6529.io/waves/..."
+                      />
+                    </label>
+                    <label className="block text-sm font-semibold text-zinc-200">
+                      <span className="mb-1 block">Provider</span>
+                      <Select
+                        value={provider}
+                        onChange={(event) => {
+                          setProvider(event.target.value as WaveBriefProviderOption);
+                          setContextPreview(null);
+                        }}
+                      >
+                        <option value="openai">OpenAI</option>
+                        <option value="anthropic">Anthropic</option>
+                        <option value="google">Google Gemini</option>
+                        <option value="ollama">Ollama local</option>
+                      </Select>
+                    </label>
+                    <label className="block text-sm font-semibold text-zinc-200">
+                      <span className="mb-1 block">Model</span>
+                      <Input
+                        value={modelName}
+                        onChange={(event) => {
+                          setModelName(event.target.value);
+                          setContextPreview(null);
+                        }}
+                        placeholder="default"
+                      />
+                    </label>
+                    <label className="block text-sm font-semibold text-zinc-200">
+                      <span className="mb-1 block">Your name</span>
+                      <Input value={reviewedBy} onChange={(event) => setReviewedBy(event.target.value)} placeholder="optional" />
+                    </label>
+                    <label className="block text-sm font-semibold text-zinc-200">
+                      <span className="mb-1 block">From</span>
+                      <Input
+                        type="datetime-local"
+                        value={contextFrom}
+                        disabled={includeAllHistory}
+                        onChange={(event) => {
+                          setContextFrom(event.target.value);
+                          setContextPreview(null);
+                        }}
+                      />
+                    </label>
+                    <label className="block text-sm font-semibold text-zinc-200">
+                      <span className="mb-1 block">To</span>
+                      <Input
+                        type="datetime-local"
+                        value={contextTo}
+                        disabled={includeAllHistory}
+                        onChange={(event) => {
+                          setContextTo(event.target.value);
+                          setContextPreview(null);
+                        }}
+                      />
+                    </label>
+                  </div>
+                </details>
               </div>
             </details>
           </>
@@ -842,7 +1000,7 @@ export function WaveBriefAdmin({
               ) : null}
             </div>
 
-            <div className="grid gap-4 lg:grid-cols-4">
+            <div className="grid gap-3 lg:grid-cols-4">
               <div className="relative block text-sm font-semibold text-zinc-800 dark:text-zinc-200">
                 <label htmlFor="wave-search" className="mb-1 block">Wave name</label>
                 <Input
@@ -872,7 +1030,7 @@ export function WaveBriefAdmin({
               <label className="block text-sm font-semibold text-zinc-800 dark:text-zinc-200 lg:col-span-4">
                 <span className="mb-1 block">Related waves</span>
                 <Textarea
-                  className="min-h-24"
+                  className="min-h-16"
                   value={relatedWavesText}
                   onChange={(event) => {
                     setRelatedWavesText(event.target.value);
@@ -880,22 +1038,20 @@ export function WaveBriefAdmin({
                   }}
                   placeholder="Raw PR feed | https://6529.io/waves/..."
                 />
-                <span className="mt-1 block text-xs font-medium text-zinc-500 dark:text-zinc-400">
-                  Optional. Add one wave URL or ID per line; use <code>label | wave URL</code> when the source needs a role.
-                </span>
               </label>
               <label className="block text-sm font-semibold text-zinc-800 dark:text-zinc-200">
                 <span className="mb-1 block">Provider</span>
                 <Select
                   value={provider}
                   onChange={(event) => {
-                    setProvider(event.target.value);
+                    setProvider(event.target.value as WaveBriefProviderOption);
                     setContextPreview(null);
                   }}
                 >
                   <option value="openai">OpenAI</option>
                   <option value="anthropic">Anthropic</option>
                   <option value="google">Google Gemini</option>
+                  <option value="ollama">Ollama local</option>
                 </Select>
               </label>
               <label className="block text-sm font-semibold text-zinc-800 dark:text-zinc-200">
@@ -912,6 +1068,7 @@ export function WaveBriefAdmin({
               <label className="block text-sm font-semibold text-zinc-800 dark:text-zinc-200 lg:col-span-4">
                 <span className="mb-1 block">Check-in request</span>
                 <Textarea
+                  className="min-h-16"
                   value={requestText}
                   onChange={(event) => {
                     setRequestText(event.target.value);
@@ -919,7 +1076,7 @@ export function WaveBriefAdmin({
                   }}
                 />
               </label>
-              <label className="flex cursor-pointer items-start gap-3 rounded-md border border-zinc-200 p-3 text-sm font-semibold text-zinc-800 dark:border-zinc-800 dark:text-zinc-200 lg:col-span-4">
+              <label className="flex cursor-pointer items-center gap-3 rounded-md border border-zinc-200 px-3 py-2 text-sm font-semibold text-zinc-800 dark:border-zinc-800 dark:text-zinc-200 lg:col-span-4">
                 <input
                   type="checkbox"
                   checked={includeAllHistory}
@@ -933,14 +1090,9 @@ export function WaveBriefAdmin({
                       setContextTo("");
                     }
                   }}
-                  className="mt-1 h-4 w-4 cursor-pointer accent-cyan-500"
+                  className="h-4 w-4 cursor-pointer accent-cyan-500"
                 />
-                <span>
-                  <span className="block">Use all available wave history</span>
-                  <span className="mt-1 block text-xs font-medium leading-5 text-zinc-500 dark:text-zinc-400">
-                    Pull every available page up to the safety cap. Leave this off for a recent catch-up or use dates for a specific window.
-                  </span>
-                </span>
+                <span>Use all available wave history</span>
               </label>
               <label className="block text-sm font-semibold text-zinc-800 dark:text-zinc-200">
                 <span className="mb-1 block">From</span>
@@ -977,8 +1129,33 @@ export function WaveBriefAdmin({
                     setMaxMessages(event.target.value);
                     setContextPreview(null);
                   }}
-                  placeholder={includeAllHistory ? "20000 total" : "500 total"}
+                  placeholder={includeAllHistory ? "20000 total" : "10000 total"}
                 />
+              </label>
+              <label className="block text-sm font-semibold text-zinc-800 dark:text-zinc-200 lg:col-span-2">
+                <span className="mb-1 flex items-center justify-between gap-3">
+                  <span>Summary length</span>
+                  <span className="rounded-full border border-zinc-200 px-2 py-0.5 text-xs text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
+                    {selectedOutputLength.label}
+                  </span>
+                </span>
+                <input
+                  type="range"
+                  min={0}
+                  max={OUTPUT_LENGTH_OPTIONS.length - 1}
+                  step={1}
+                  value={outputLengthIndex}
+                  onChange={(event) => {
+                    setOutputLengthIndex(Number(event.target.value));
+                    setContextPreview(null);
+                  }}
+                  className="w-full cursor-pointer accent-cyan-500"
+                />
+                <div className="mt-1 flex justify-between text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                  {OUTPUT_LENGTH_OPTIONS.map((option) => (
+                    <span key={option.label}>{option.label}</span>
+                  ))}
+                </div>
               </label>
             </div>
 
@@ -995,6 +1172,12 @@ export function WaveBriefAdmin({
                 <Plus className="h-4 w-4" aria-hidden="true" />
                 {state.loading === "generate" ? "Generating" : "Generate Check-in"}
               </Button>
+              {state.loading === "generate" ? (
+                <Button type="button" variant="secondary" onClick={cancelGenerateBrief}>
+                  <XCircle className="h-4 w-4" aria-hidden="true" />
+                  Cancel
+                </Button>
+              ) : null}
               <label className="block min-w-64 text-sm font-semibold text-zinc-800 dark:text-zinc-200">
                 <span className="mb-1 block">Your name</span>
                 <Input value={reviewedBy} onChange={(event) => setReviewedBy(event.target.value)} placeholder="optional handle" />
@@ -1003,6 +1186,24 @@ export function WaveBriefAdmin({
           </>
         )}
 
+        {state.loading ? (
+          <div
+            role="status"
+            aria-live="polite"
+            className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-md border border-cyan-900/70 bg-cyan-950/25 p-3 text-sm text-cyan-100"
+          >
+            <span className="flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+              {loadingStatusText(state.loading, provider)}
+            </span>
+            {state.loading === "generate" ? (
+              <Button type="button" variant="secondary" size="sm" onClick={cancelGenerateBrief}>
+                <XCircle className="h-4 w-4" aria-hidden="true" />
+                Cancel
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
         {state.error ? (
           <p className="mt-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-950/30 dark:text-red-200">
             {state.error}
@@ -1014,14 +1215,14 @@ export function WaveBriefAdmin({
             {state.message}
           </p>
         ) : null}
-        {contextPreview ? (
+        {!isSignalSurface && contextPreview ? (
           <div className="mt-5 border-t border-zinc-200 pt-4 dark:border-zinc-800">
             <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-end">
               <div>
-                <h3 className="font-semibold text-zinc-950 dark:text-zinc-50">Sources Preview</h3>
+                <h3 className="font-semibold text-zinc-950 dark:text-zinc-50">What will be read</h3>
                 <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-                  {contextPreview.dropCount} drops collected in {contextPreview.context.mode ?? "recent"} mode after searching{" "}
-                  {contextPreview.context.searchedMessages} messages.
+                  Checked the 6529 source data before generating. The check-in will use {contextPreview.dropCount} drops collected in{" "}
+                  {contextPreview.context.mode ?? "recent"} mode after searching {contextPreview.context.searchedMessages} messages.
                   {contextPreview.context.from && contextPreview.context.to
                     ? ` Window ${formatDate(contextPreview.context.from)} to ${formatDate(contextPreview.context.to)}.`
                     : ""}
@@ -1115,7 +1316,37 @@ export function WaveBriefAdmin({
       </section>
 
       <section className={isSignalSurface ? "mx-auto grid max-w-5xl gap-4" : "grid gap-4"}>
-        {visibleBriefs.map((brief) => {
+        {isSignalSurface && visibleBriefs.length > SIGNAL_BRIEFS_PER_PAGE ? (
+          <div className="flex flex-col gap-3 rounded-md border border-zinc-800 bg-zinc-950/70 p-3 text-sm text-zinc-400 sm:flex-row sm:items-center sm:justify-between">
+            <p>
+              Showing {firstSignalBriefIndex + 1}-{lastSignalBriefIndex} of {visibleBriefs.length} check-ins
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                disabled={currentSignalBriefPage === 1}
+                onClick={() => setSignalBriefPage((current) => Math.max(1, current - 1))}
+              >
+                Previous
+              </Button>
+              <span className="min-w-20 text-center text-xs font-semibold text-zinc-500">
+                Page {currentSignalBriefPage} of {signalBriefPageCount}
+              </span>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                disabled={currentSignalBriefPage === signalBriefPageCount}
+                onClick={() => setSignalBriefPage((current) => Math.min(signalBriefPageCount, current + 1))}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+        ) : null}
+        {paginatedBriefs.map((brief) => {
           const draft = drafts[brief.id] ?? defaultDraft(brief);
           const preview = previewById[brief.id];
           const isRejected = brief.status === "rejected";
@@ -1134,6 +1365,113 @@ export function WaveBriefAdmin({
             finalMissingSourceCount: brief.contentSourceCheck.missingDropIds.length,
             hasUnsavedContentChanges: hasUnsavedPostChanges,
           });
+
+          if (isSignalSurface) {
+            const isOpen = openSignalBriefId === brief.id;
+
+            return (
+              <article key={brief.id} className="rounded-md border border-zinc-800 bg-zinc-900 shadow-sm shadow-black/20">
+                <button
+                  type="button"
+                  aria-expanded={isOpen}
+                  onClick={() => setOpenSignalBriefId((current) => (current === brief.id ? null : brief.id))}
+                  className="flex w-full cursor-pointer flex-col gap-3 p-4 text-left transition hover:bg-zinc-800/45 md:flex-row md:items-center md:justify-between"
+                >
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge
+                        className={
+                          brief.sourceCheck.missingDropIds.length
+                            ? "border-red-800 bg-red-950/40 text-red-200"
+                            : "border-emerald-800 bg-emerald-950/40 text-emerald-200"
+                        }
+                      >
+                        {brief.sourceCheck.missingDropIds.length
+                          ? `${brief.sourceCheck.missingDropIds.length} missing citations`
+                          : "citations ok"}
+                      </Badge>
+                      <Badge className={qualityClass(brief.quality.label)}>quality {brief.quality.score}</Badge>
+                      <Badge>{brief.provider}/{brief.modelName}</Badge>
+                    </div>
+                    <h2 className="mt-2 truncate text-base font-bold text-zinc-50 sm:text-lg">{brief.title}</h2>
+                    <p className="mt-1 truncate text-xs font-medium text-zinc-400">
+                      Wave {brief.waveId} · {formatDate(brief.createdAt)}
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-between gap-3 md:shrink-0">
+                    <div className="grid grid-cols-2 gap-2 text-sm text-zinc-300 sm:grid-cols-4">
+                      <Metric label="Cost" value={formatUsd(brief.costUsd)} />
+                      <Metric label="Latency" value={formatLatency(brief.latencyMs)} />
+                      <Metric label="Input" value={brief.promptTokens == null ? "n/a" : String(brief.promptTokens)} />
+                      <Metric label="Output" value={brief.completionTokens == null ? "n/a" : String(brief.completionTokens)} />
+                    </div>
+                    <ChevronDown
+                      className={`h-5 w-5 text-zinc-500 transition ${isOpen ? "rotate-180" : ""}`}
+                      aria-hidden="true"
+                    />
+                  </div>
+                </button>
+
+                {isOpen ? (
+                  <div className="space-y-3 border-t border-zinc-800 p-4">
+                    {brief.sourceWaves.length ? (
+                      <div className="flex flex-wrap gap-2">
+                        {brief.sourceWaves.map((source) => (
+                          <a
+                            key={source.waveId}
+                            href={`https://6529.io/waves/${source.waveId}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="cursor-pointer rounded-md border border-zinc-800 px-2 py-1 text-xs font-semibold text-zinc-300 transition hover:border-zinc-700 hover:bg-zinc-950"
+                          >
+                            {sourceWaveLabel(source)}
+                          </a>
+                        ))}
+                      </div>
+                    ) : null}
+                    <div>
+                      <h3 className="text-sm font-semibold text-zinc-200">Check-in</h3>
+                      {brief.provider === "local" ? (
+                        <p className="mt-1 text-sm leading-6 text-amber-200">
+                          Local test output. It is useful for testing the product flow, but use a real model before posting or relying on the analysis.
+                        </p>
+                      ) : null}
+                    </div>
+                    <div className="space-y-4 rounded-md border border-zinc-800 bg-black p-4">
+                      {renderReadableMarkdown(brief.content)}
+                    </div>
+                    {brief.sourceCheck.missingDropIds.length ? (
+                      <div className="rounded-md border border-red-800 bg-red-950/30 p-3 text-sm text-red-200">
+                        <p className="font-semibold">Some cited drops were not found in the stored source context.</p>
+                        <ul className="mt-2 space-y-1">
+                          {brief.sourceCheck.missingReferences.map((reference) => (
+                            <li key={`${reference.path}:${reference.dropId}`}>
+                              {reference.dropId} in {reference.section}
+                              <span className="block text-xs text-red-300">{reference.path}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : (
+                      <p className="rounded-md border border-emerald-800 bg-emerald-950/30 p-3 text-sm text-emerald-200">
+                        {brief.sourceCheck.references.length} citation references found in {brief.sourceCheck.totalDrops} stored source drops.
+                      </p>
+                    )}
+                    {brief.quality.blockers.length ? (
+                      <div className="rounded-md border border-amber-800 bg-amber-950/30 p-3 text-sm text-amber-200">
+                        <p className="font-semibold">Things to double-check</p>
+                        <ul className="mt-1 list-inside list-disc space-y-1">
+                          {brief.quality.blockers.map((blocker) => (
+                            <li key={blocker}>{blocker}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
+              </article>
+            );
+          }
 
           return (
             <article id={brief.id} key={brief.id} className="rounded-md border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
