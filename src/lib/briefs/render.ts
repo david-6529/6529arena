@@ -12,6 +12,26 @@ function renderDropIds(ids: string[]) {
   return ids.length ? ` Sources: ${ids.join(", ")}` : "";
 }
 
+function renderSections(brief: WaveBriefPayload) {
+  return brief.sections
+    .filter((section) => section.bullets.length)
+    .map(
+      (section) => `**${section.title}**
+${section.bullets.map((bullet) => `- ${bullet.text}${renderDropIds(bullet.source_drop_ids)}`).join("\n")}`,
+    )
+    .join("\n\n");
+}
+
+function renderFollowUps(brief: WaveBriefPayload) {
+  const items = [
+    ...brief.decisions_needed.map((item) => `- Decide: ${item.title}${item.why ? `: ${item.why}` : ""}${renderDropIds(item.source_drop_ids)}`),
+    ...brief.open_questions.map((item) => `- Question: ${item.question}${renderDropIds(item.source_drop_ids)}`),
+    ...brief.action_items.map((item) => `- Follow up: ${item.task}${item.suggested_owner ? ` Owner: ${item.suggested_owner}.` : ""}${renderDropIds(item.source_drop_ids)}`),
+  ];
+
+  return items.length ? items.join("\n") : "";
+}
+
 export function renderWaveBrief(brief: WaveBriefPayload) {
   const evidenceLimitations = brief.evidence_coverage.limitations.length
     ? brief.evidence_coverage.limitations.map((item) => `- ${item}`).join("\n")
@@ -44,6 +64,30 @@ export function renderWaveBrief(brief: WaveBriefPayload) {
   const citations = brief.citations.length
     ? brief.citations.map((citation) => `- ${citation.drop_id}: ${citation.reason}`).join("\n")
     : "- No citations supplied.";
+  const tailoredSections = renderSections(brief);
+  const followUps = renderFollowUps(brief);
+
+  if (tailoredSections) {
+    return `**${brief.title}**
+
+**Wave type**
+${brief.wave_type_label}
+
+**Catch-up**
+${brief.executive_summary}
+
+${brief.changes_since_previous.length ? `**Changed since last check-in**\n${changes}\n\n` : ""}${tailoredSections}
+
+${followUps ? `**Follow-ups**\n${followUps}\n\n` : ""}${brief.risks.length ? `**Risks / objections**\n${risks}\n\n` : ""}${brief.suggested_post ? `**Possible post**\n${brief.suggested_post}\n\n` : ""}**Evidence**
+${brief.evidence_coverage.summary || "No evidence coverage supplied."}
+
+${evidenceLimitations}
+
+**Citations**
+${citations}
+
+Confidence: ${Math.round(brief.confidence * 100)}%`;
+  }
 
   return `**${brief.title}**
 

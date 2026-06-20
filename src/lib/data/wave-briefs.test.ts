@@ -577,11 +577,19 @@ describe("createWaveBriefDraft", () => {
       rawOutput: "{}",
       structured: {
         title: "New summary",
+        wave_type: "project_ops",
+        wave_type_label: "Project ops",
         executive_summary: "New update happened.",
         evidence_coverage: {
           summary: "Fetched one related wave drop.",
           limitations: [],
         },
+        sections: [
+          {
+            title: "Current state",
+            bullets: [{ text: "New update happened.", source_drop_ids: ["drop-1"] }],
+          },
+        ],
         summary_bullets: ["New update"],
         changes_since_previous: [{ change: "The plan changed.", source_drop_ids: ["drop-1"] }],
         decisions_needed: [],

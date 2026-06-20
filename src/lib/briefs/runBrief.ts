@@ -240,9 +240,91 @@ function selectDrops(drops: WaveDrop[], patterns: RegExp[], limit: number) {
   ).slice(0, limit);
 }
 
+function classifyLocalWaveType(drops: WaveDrop[]): Pick<WaveBriefPayload, "wave_type" | "wave_type_label"> {
+  const text = drops.map((drop) => `${drop.title ?? ""} ${drop.content ?? ""}`).join("\n").toLowerCase();
+
+  if (/\b(pr|pull request|deploy|deployment|staging|prod|production|branch|commit|merge|build|bug|incident|release)\b/.test(text)) {
+    return { wave_type: "engineering_release", wave_type_label: "Engineering release" };
+  }
+
+  if (/\b(vote|proposal|governance|approve|approval|consensus|policy|rubric|rep|delegate)\b/.test(text)) {
+    return { wave_type: "governance_decision", wave_type_label: "Governance decision" };
+  }
+
+  if (/\b(art|artist|meme|mint|drop|pfp|collection|collector|curation|gallery)\b/.test(text)) {
+    return { wave_type: "creative_drop", wave_type_label: "Creative drop" };
+  }
+
+  if (/\b(task|owner|follow[- ]?up|roadmap|plan|launch|workstream|blocked|next step|ship)\b/.test(text)) {
+    return { wave_type: "project_ops", wave_type_label: "Project ops" };
+  }
+
+  return { wave_type: "community_chat", wave_type_label: "Community chat" };
+}
+
+function sectionTitleForType(type: WaveBriefPayload["wave_type"], kind: "signal" | "questions" | "work" | "risks") {
+  const titles = {
+    community_chat: {
+      signal: "Main thread",
+      questions: "Open loops",
+      work: "Useful follow-ups",
+      risks: "Watch-outs",
+    },
+    project_ops: {
+      signal: "Current state",
+      questions: "Decisions or questions",
+      work: "Next work",
+      risks: "Blockers",
+    },
+    engineering_release: {
+      signal: "Release state",
+      questions: "Validation questions",
+      work: "Next deploy move",
+      risks: "Release risks",
+    },
+    governance_decision: {
+      signal: "Proposal state",
+      questions: "Unresolved points",
+      work: "Decision path",
+      risks: "Governance risks",
+    },
+    creative_drop: {
+      signal: "What was shared",
+      questions: "Open reactions",
+      work: "Creative next steps",
+      risks: "Context to check",
+    },
+  } satisfies Record<WaveBriefPayload["wave_type"], Record<"signal" | "questions" | "work" | "risks", string>>;
+
+  return titles[type][kind];
+}
+
 function renderDropLine(drop: WaveDrop) {
   const serial = drop.serial_no == null ? "" : `#${drop.serial_no} `;
   return `${serial}@${authorName(drop)}: ${sentenceFromDrop(drop)}`;
+}
+
+function buildLocalSections(params: {
+  type: WaveBriefPayload["wave_type"];
+  citedDrops: WaveDrop[];
+  questionDrops: WaveDrop[];
+  actionDrops: WaveDrop[];
+  riskDrops: WaveDrop[];
+}) {
+  return [
+    { title: sectionTitleForType(params.type, "signal"), drops: params.citedDrops.slice(0, 4) },
+    { title: sectionTitleForType(params.type, "questions"), drops: params.questionDrops },
+    { title: sectionTitleForType(params.type, "work"), drops: params.actionDrops },
+    { title: sectionTitleForType(params.type, "risks"), drops: params.riskDrops },
+  ]
+    .filter((section) => section.drops.length)
+    .map((section) => ({
+      title: section.title,
+      bullets: section.drops.map((drop) => ({
+        text: renderDropLine(drop),
+        source_drop_ids: [drop.id],
+      })),
+    }));
 }
 
 function buildLocalWaveBrief(params: {
@@ -269,6 +351,14 @@ function buildLocalWaveBrief(params: {
     3,
   );
   const decisionDrops = selectDrops(newest, [/\b(decide|decision|choose|pick|approve|ship|merge|cutoff|policy|plan)\b/i], 3);
+  const waveType = classifyLocalWaveType(params.drops);
+  const sections = buildLocalSections({
+    type: waveType.wave_type,
+    citedDrops,
+    questionDrops,
+    actionDrops,
+    riskDrops,
+  });
   const window =
     params.context?.from || params.context?.to
       ? ` Window: ${params.context.from ?? "start"} to ${params.context.to ?? "now"}.`
@@ -283,6 +373,7 @@ function buildLocalWaveBrief(params: {
 
   return {
     title: "Local test check-in",
+    ...waveType,
     executive_summary: [
       `Local test mode read ${params.drops.length} fetched drops and produced an extractive check-in without calling an AI provider.`,
       citedDrops.length
@@ -293,6 +384,7 @@ function buildLocalWaveBrief(params: {
       summary: `Fetched ${params.drops.length} drops in ${params.context?.mode ?? "unknown"} mode.${window}`,
       limitations: [...capLimitations, ...promptLimitations],
     },
+    sections,
     summary_bullets: citedDrops.slice(0, 5).map(renderDropLine),
     changes_since_previous: params.previousSummary
       ? citedDrops.slice(0, 3).map((drop) => ({

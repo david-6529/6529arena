@@ -26,6 +26,7 @@ export function scoreWaveBriefQuality(briefJson: unknown, dropsJson: unknown): W
 
   const brief = parsed.data;
   const sourceCheck = validateWaveBriefSources(briefJson, dropsJson);
+  const sectionBulletCount = brief.sections.reduce((count, section) => count + section.bullets.length, 0);
   const blockers: string[] = [];
   const strengths: string[] = [];
   let score = 100;
@@ -42,14 +43,17 @@ export function scoreWaveBriefQuality(briefJson: unknown, dropsJson: unknown): W
     blockers.push("No source drops are cited.");
   }
 
-  if (!brief.decisions_needed.length && !brief.action_items.length && !brief.open_questions.length) {
+  if (!brief.decisions_needed.length && !brief.action_items.length && !brief.open_questions.length && !sectionBulletCount) {
     score -= 25;
-    blockers.push("No decisions, tasks, or questions were extracted.");
+    blockers.push("No useful wave-specific sections or follow-ups were extracted.");
   } else {
-    strengths.push("Contains follow-up items.");
+    strengths.push(sectionBulletCount ? "Contains wave-specific sections." : "Contains follow-up items.");
   }
 
-  if (!brief.risks.length) {
+  if (
+    !brief.risks.length &&
+    (brief.wave_type === "project_ops" || brief.wave_type === "engineering_release" || brief.wave_type === "governance_decision")
+  ) {
     score -= 10;
     blockers.push("No risks or objections were listed.");
   }

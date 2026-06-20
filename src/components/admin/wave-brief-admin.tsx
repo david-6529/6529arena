@@ -221,6 +221,40 @@ function parseRelatedWaves(value: string) {
     .filter((wave) => wave.waveId);
 }
 
+function directWaveOption(value: string): WaveSearchOption | null {
+  const waveId = waveIdFromInitialInput(value);
+
+  return waveId
+    ? {
+        id: waveId,
+        name: `Wave ${waveId.slice(0, 8)}`,
+        description: null,
+        source: "direct",
+      }
+    : null;
+}
+
+function waveChipLabel(wave: WaveSearchOption) {
+  return wave.name && !wave.name.startsWith("Wave ") ? wave.name : wave.id.slice(0, 8);
+}
+
+function mergeRelatedWaves(primaryWaveId: string, selectedWaves: WaveSearchOption[], relatedWavesText: string) {
+  const seen = new Set([primaryWaveId]);
+  const waves = [
+    ...selectedWaves.slice(1).map((wave) => ({ label: wave.name, waveId: wave.id })),
+    ...parseRelatedWaves(relatedWavesText),
+  ];
+
+  return waves.filter((wave) => {
+    if (!wave.waveId || seen.has(wave.waveId)) {
+      return false;
+    }
+
+    seen.add(wave.waveId);
+    return true;
+  });
+}
+
 function defaultDraft(brief: WaveBriefRow): Draft {
   return {
     title: brief.title,
@@ -373,7 +407,10 @@ export function WaveBriefAdmin({
   const initialWaveId = waveIdFromInitialInput(normalizedInitialWaveInput);
   const [adminKey, setAdminKey] = useState("");
   const [waveId, setWaveId] = useState(initialWaveId);
-  const [signalWaveInput, setSignalWaveInput] = useState(normalizedInitialWaveInput || initialWaveId);
+  const [selectedSignalWaves, setSelectedSignalWaves] = useState<WaveSearchOption[]>(() =>
+    initialWaveId ? [directWaveOption(initialWaveId)!] : [],
+  );
+  const [signalWaveInput, setSignalWaveInput] = useState(initialWaveId ? "" : normalizedInitialWaveInput);
   const [waveQuery, setWaveQuery] = useState(initialWaveId ? "" : normalizedInitialWaveInput);
   const [waveOptions, setWaveOptions] = useState<WaveSearchOption[]>([]);
   const [wavePickerOpen, setWavePickerOpen] = useState(Boolean(normalizedInitialWaveInput && !initialWaveId));
@@ -402,7 +439,9 @@ export function WaveBriefAdmin({
   const isGenerationEstimateBlocked = Boolean(
     currentEstimate && (!currentEstimate.pricingAvailable || currentEstimate.costCapUsd == null || currentEstimate.costCapExceeded),
   );
-  const selectedWaveId = waveId.trim();
+  const selectedWaveId = isSignalSurface ? (selectedSignalWaves[0]?.id ?? "") : waveId.trim();
+  const effectiveMaxMessages = maxMessages ? Number(maxMessages) : provider === "ollama" ? 1000 : undefined;
+  const displayedMaxMessages = maxMessages || (provider === "ollama" ? "1000" : "10000");
   const visibleBriefs = isSignalSurface
     ? selectedWaveId
       ? briefs.filter((brief) => brief.waveId === selectedWaveId)
@@ -492,17 +531,19 @@ export function WaveBriefAdmin({
   }
 
   function updateSignalWaveInput(value: string) {
-    const parsedWaveId = waveIdFromInitialInput(value);
+    const directWave = directWaveOption(value);
+
+    if (directWave) {
+      addSignalWave(directWave);
+      return;
+    }
 
     setSignalWaveInput(value);
     setWaveQuery(value);
     setWavePickerOpen(true);
-    setWaveId(parsedWaveId);
-    setSignalBriefPage(1);
-    setOpenSignalBriefId(null);
     setContextPreview(null);
 
-    if (value.trim().length < 2 || parsedWaveId) {
+    if (value.trim().length < 2) {
       setWaveOptions([]);
       setWaveSearchState({});
     }
@@ -515,7 +556,57 @@ export function WaveBriefAdmin({
     setContextPreview(null);
   }
 
+  function addSignalWave(option: WaveSearchOption) {
+    const next = selectedSignalWaves.some((wave) => wave.id === option.id) ? selectedSignalWaves : [...selectedSignalWaves, option];
+
+    setSelectedSignalWaves(next);
+    setWaveId(next[0]?.id ?? "");
+    setSignalWaveInput("");
+    setWaveQuery("");
+    setSignalBriefPage(1);
+    setOpenSignalBriefId(null);
+    setContextPreview(null);
+    setWaveOptions([]);
+    setWaveSearchState({});
+    setWavePickerOpen(false);
+  }
+
+  function removeSignalWave(waveIdToRemove: string) {
+    const next = selectedSignalWaves.filter((wave) => wave.id !== waveIdToRemove);
+
+    setSelectedSignalWaves(next);
+    setWaveId(next[0]?.id ?? "");
+    setSignalBriefPage(1);
+    setOpenSignalBriefId(null);
+    setContextPreview(null);
+  }
+
+  function handleSignalWaveKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (event.key === "Backspace" && !signalWaveInput && selectedSignalWaves.length) {
+      event.preventDefault();
+      removeSignalWave(selectedSignalWaves[selectedSignalWaves.length - 1]!.id);
+      return;
+    }
+
+    if (event.key !== "Enter") {
+      return;
+    }
+
+    const directWave = directWaveOption(signalWaveInput);
+    const firstOption = waveOptions.find((option) => !selectedSignalWaves.some((wave) => wave.id === option.id));
+
+    if (directWave || firstOption) {
+      event.preventDefault();
+      addSignalWave(directWave ?? firstOption!);
+    }
+  }
+
   function selectWave(option: WaveSearchOption) {
+    if (isSignalSurface) {
+      addSignalWave(option);
+      return;
+    }
+
     setSignalWaveInput(option.name);
     setWaveQuery(option.name);
     setWaveId(option.id);
@@ -526,16 +617,19 @@ export function WaveBriefAdmin({
   }
 
   function contextPayload() {
-    const relatedWaves = parseRelatedWaves(relatedWavesText);
+    const primaryWaveId = selectedWaveId;
+    const relatedWaves = isSignalSurface
+      ? mergeRelatedWaves(primaryWaveId, selectedSignalWaves, relatedWavesText)
+      : parseRelatedWaves(relatedWavesText);
 
     return {
-      waveId,
+      waveId: primaryWaveId,
       requestText,
       relatedWaves: relatedWaves.length ? relatedWaves : undefined,
       contextFrom: contextFrom ? new Date(contextFrom).toISOString() : undefined,
       contextTo: contextTo ? new Date(contextTo).toISOString() : undefined,
       includeAllHistory,
-      maxMessages: maxMessages ? Number(maxMessages) : undefined,
+      maxMessages: effectiveMaxMessages,
       maxOutputTokens: selectedOutputLength.maxOutputTokens,
       provider,
       modelName: modelName || undefined,
@@ -702,7 +796,31 @@ export function WaveBriefAdmin({
     }
   }
 
-  const wavePickerMenu =
+  const unselectedWaveOptions = waveOptions.filter((option) => !selectedSignalWaves.some((wave) => wave.id === option.id));
+  const signalWavePickerMenu =
+    wavePickerOpen && (waveSearchState.loading === "search" || waveSearchState.error || unselectedWaveOptions.length > 0) ? (
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        {waveSearchState.loading === "search" ? (
+          <span className="rounded-full border border-zinc-800 px-3 py-1 text-xs font-medium text-zinc-500">Searching waves</span>
+        ) : null}
+        {waveSearchState.error ? (
+          <span className="rounded-full border border-red-900/70 px-3 py-1 text-xs font-medium text-red-300">{waveSearchState.error}</span>
+        ) : null}
+        {unselectedWaveOptions.slice(0, 8).map((option) => (
+          <button
+            key={option.id}
+            type="button"
+            className="max-w-72 cursor-pointer truncate rounded-full border border-zinc-700 px-3 py-1 text-left text-xs font-semibold text-zinc-300 transition hover:border-cyan-500 hover:text-cyan-100"
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={() => selectWave(option)}
+            title={`${option.name} ${option.id}`}
+          >
+            + {option.name}
+          </button>
+        ))}
+      </div>
+    ) : null;
+  const dropdownWavePickerMenu =
     wavePickerOpen && (waveSearchState.loading === "search" || waveSearchState.error || waveOptions.length > 0) ? (
       <div className="absolute z-20 mt-2 max-h-72 w-full overflow-auto rounded-md border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-zinc-950">
         {waveSearchState.loading === "search" ? (
@@ -732,6 +850,7 @@ export function WaveBriefAdmin({
         ))}
       </div>
     ) : null;
+  const wavePickerMenu = isSignalSurface ? signalWavePickerMenu : dropdownWavePickerMenu;
 
   return (
     <div className="space-y-6">
@@ -787,16 +906,36 @@ export function WaveBriefAdmin({
             <div className="relative mt-6 rounded-xl border border-zinc-700 bg-zinc-950 p-2 shadow-lg shadow-black/20">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                 <label htmlFor="signal-wave-input" className="sr-only">Wave name, link, or ID</label>
-                <Input
-                  id="signal-wave-input"
-                  value={signalWaveInput}
-                  onChange={(event) => updateSignalWaveInput(event.target.value)}
-                  onFocus={() => setWavePickerOpen(true)}
-                  onBlur={() => window.setTimeout(() => setWavePickerOpen(false), 120)}
-                  placeholder="Wave name, link, or ID"
-                  autoComplete="off"
-                  className="h-12 flex-1 border-0 bg-transparent px-3 text-base text-zinc-50 placeholder:text-zinc-500 focus:border-transparent focus:ring-0 dark:bg-transparent"
-                />
+                <div className="flex min-h-12 flex-1 flex-wrap items-center gap-2 px-2">
+                  {selectedSignalWaves.map((wave, index) => (
+                    <span
+                      key={wave.id}
+                      className="inline-flex max-w-56 items-center gap-1 rounded-full border border-zinc-700 bg-zinc-900 px-2.5 py-1 text-xs font-semibold text-zinc-200"
+                      title={wave.id}
+                    >
+                      <span className="truncate">{index === 0 ? `${waveChipLabel(wave)} primary` : waveChipLabel(wave)}</span>
+                      <button
+                        type="button"
+                        className="cursor-pointer rounded-full p-0.5 text-zinc-500 transition hover:bg-zinc-800 hover:text-zinc-100"
+                        onClick={() => removeSignalWave(wave.id)}
+                        aria-label={`Remove ${wave.name}`}
+                      >
+                        <XCircle className="h-3.5 w-3.5" aria-hidden="true" />
+                      </button>
+                    </span>
+                  ))}
+                  <input
+                    id="signal-wave-input"
+                    value={signalWaveInput}
+                    onChange={(event) => updateSignalWaveInput(event.target.value)}
+                    onKeyDown={handleSignalWaveKeyDown}
+                    onFocus={() => setWavePickerOpen(true)}
+                    onBlur={() => window.setTimeout(() => setWavePickerOpen(false), 120)}
+                    placeholder={selectedSignalWaves.length ? "Add another wave" : "Wave name, link, or ID"}
+                    autoComplete="off"
+                    className="h-9 min-w-48 flex-1 bg-transparent text-base text-zinc-50 outline-none placeholder:text-zinc-500"
+                  />
+                </div>
                 <div className="flex gap-2 sm:shrink-0">
                   <Button
                     type="button"
@@ -821,7 +960,8 @@ export function WaveBriefAdmin({
 
             {selectedWaveId ? (
               <p className="mx-auto mt-3 max-w-4xl truncate text-center text-xs font-medium text-zinc-500">
-                Selected wave <span className="font-mono text-zinc-300">{selectedWaveId}</span>
+                {selectedSignalWaves.length} wave{selectedSignalWaves.length === 1 ? "" : "s"} selected
+                {selectedSignalWaves.length > 1 ? " · first chip is primary" : ""}
               </p>
             ) : null}
 
@@ -829,7 +969,7 @@ export function WaveBriefAdmin({
               <summary className="cursor-pointer text-sm font-semibold text-zinc-300">
                 Options
                 <span className="ml-2 text-xs font-medium text-zinc-500">
-                  {selectedOutputLength.label} · {maxMessages || "10000"} messages
+                  {selectedOutputLength.label} · {displayedMaxMessages} messages
                 </span>
               </summary>
               <div className="mt-3 grid gap-3 lg:grid-cols-4">
@@ -880,7 +1020,7 @@ export function WaveBriefAdmin({
                       setMaxMessages(event.target.value);
                       setContextPreview(null);
                     }}
-                    placeholder={includeAllHistory ? "20000" : "10000"}
+                    placeholder={includeAllHistory ? "20000" : displayedMaxMessages}
                   />
                 </label>
                 <label className="flex cursor-pointer items-center gap-3 rounded-md border border-zinc-800 px-3 py-2 text-sm font-semibold text-zinc-200 lg:col-span-4">

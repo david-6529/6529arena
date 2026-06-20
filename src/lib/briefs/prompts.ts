@@ -7,11 +7,21 @@ const MAX_PROMPT_CONTEXT_CHARS = 140_000;
 const jsonContract = `Return strict JSON with this exact shape:
 {
   "title": "string",
+  "wave_type": "community_chat|project_ops|engineering_release|governance_decision|creative_drop",
+  "wave_type_label": "string",
   "executive_summary": "string",
   "evidence_coverage": {
     "summary": "string",
     "limitations": ["string"]
   },
+  "sections": [
+    {
+      "title": "string",
+      "bullets": [
+        { "text": "string", "source_drop_ids": ["string"] }
+      ]
+    }
+  ],
   "summary_bullets": ["string"],
   "changes_since_previous": [
     { "change": "string", "source_drop_ids": ["string"] }
@@ -256,8 +266,23 @@ Your job is to help anyone in the wave catch up quickly. Turn wave discussion in
 
 When source waves include raw bot feeds, bot digests, and human coordination chats, keep those layers distinct. Explain what appears automated, what appears human-reviewed or human-coordinated, and what cannot be proven from the provided drops.
 
+First classify the wave into exactly one wave_type:
+- community_chat: social discussion, onboarding, broad conversation, morale, casual questions.
+- project_ops: planning, tasks, owners, roadmaps, workstream coordination.
+- engineering_release: PRs, deploys, incidents, bugs, branches, staging, production, validation.
+- governance_decision: proposals, votes, policy, consensus, tradeoffs, approvals.
+- creative_drop: art, memes, mints, collecting, PFPs, curation, creator feedback.
+
+Then use sections that fit that type instead of forcing every wave into the same buckets:
+- community_chat sections should focus on main thread, notable replies, open loops, and useful context.
+- project_ops sections should focus on current state, owners or work, blockers, and next move.
+- engineering_release sections should focus on shipped or queued work, deploy state, validation, blockers, and release risk.
+- governance_decision sections should focus on proposal, positions, unresolved points, and decision path.
+- creative_drop sections should focus on what was shared, reactions, opportunities, and next action.
+Use 3 to 5 sections. Each section should have 1 to 4 short bullets. Do not add empty sections. Do not create fake decisions, tasks, or risks just to fill legacy fields.
+
 Use evidence_coverage to state what was fetched and what was not directly in the model prompt. If prompt_omitted_drops is greater than 0, say older stored drops should be checked before treating the note as complete-history analysis.
-Use "check-in" language for the user-facing note. Checks are for citations, follow-ups, and posting safety; the note itself can be read privately without approval. The JSON field names are legacy names, but the output should read like a check-in note.
+Use "check-in" language for the user-facing note. Checks are for citations, follow-ups, and posting safety; the note itself can be read privately without approval. The JSON field names for decisions, questions, action_items, risks, and suggested_post are legacy machine fields. Fill them only when that content is actually present.
 
 ${jsonContract}`,
     userPrompt: `Wave ID: ${params.waveId}
@@ -275,6 +300,6 @@ ${previousSummaryContext}
 Recent wave drops:
 ${promptContext.text || "No drops were returned for this wave."}
 
-Generate a concise but actionable wave check-in. Focus on what changed since the previous checked check-in, what happened, what needs a decision, what follow-ups emerged, what risks exist, and what public recap someone could send back into the wave if useful. If a previous check-in exists, fill changes_since_previous with material changes supported by current source drops. If no previous check-in exists, keep changes_since_previous empty and use summary_bullets for the first catch-up.`,
+Generate a concise but actionable wave check-in. Classify the wave_type, then organize the visible sections around that wave type. If a previous check-in exists, fill changes_since_previous with material changes supported by current source drops. If no previous check-in exists, keep changes_since_previous empty and use summary_bullets for the first catch-up.`,
   };
 }

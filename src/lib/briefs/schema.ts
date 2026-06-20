@@ -10,11 +10,26 @@ const evidenceCoverage = z
     summary: "",
     limitations: [],
   });
+const waveType = z.enum(["community_chat", "project_ops", "engineering_release", "governance_decision", "creative_drop"]);
+const sectionBullet = z.object({
+  text: z.string().min(1),
+  source_drop_ids: sourceDropIds,
+});
 
 export const waveBriefSchema = z.object({
   title: z.string().min(1),
+  wave_type: waveType.default("community_chat"),
+  wave_type_label: z.string().default("Community chat"),
   executive_summary: z.string().min(1),
   evidence_coverage: evidenceCoverage,
+  sections: z
+    .array(
+      z.object({
+        title: z.string().min(1),
+        bullets: z.array(sectionBullet).default([]),
+      }),
+    )
+    .default([]),
   summary_bullets: z.array(z.string()).default([]),
   changes_since_previous: z
     .array(

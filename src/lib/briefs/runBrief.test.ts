@@ -196,6 +196,8 @@ describe("runWaveBrief", () => {
     expect(result.provider).toBe("local");
     expect(result.modelName).toBe("extractive-check-in");
     expect(result.costUsd).toBe(0);
+    expect(result.structured.wave_type).toBe("engineering_release");
+    expect(result.structured.sections.map((section) => section.title)).toContain("Release state");
     expect(result.structured.citations.map((citation) => citation.drop_id)).toEqual(["drop-2", "drop-1"]);
     expect(result.renderedOutput).toContain("Local test mode read 2 fetched drops");
     expect(generateWithOpenAI).not.toHaveBeenCalled();

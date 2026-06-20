@@ -160,6 +160,8 @@ describe("parseWaveBrief", () => {
     expect(brief.action_items).toEqual([]);
     expect(brief.risks).toEqual([]);
     expect(brief.evidence_coverage).toEqual({ summary: "", limitations: [] });
+    expect(brief.wave_type).toBe("community_chat");
+    expect(brief.sections).toEqual([]);
     expect(brief.confidence).toBe(0.5);
   });
 });
@@ -168,11 +170,19 @@ describe("renderWaveBrief", () => {
   it("renders summary sections and citations", () => {
     const output = renderWaveBrief({
       title: "Daily wave summary",
+      wave_type: "engineering_release",
+      wave_type_label: "Engineering release",
       executive_summary: "The wave aligned on next steps.",
       evidence_coverage: {
         summary: "Fetched recent wave context.",
         limitations: ["Older drops were not requested."],
       },
+      sections: [
+        {
+          title: "Release state",
+          bullets: [{ text: "Deploy lane is clear.", source_drop_ids: ["drop-6"] }],
+        },
+      ],
       summary_bullets: ["A summary was requested."],
       changes_since_previous: [{ change: "The owner changed.", source_drop_ids: ["drop-5"] }],
       decisions_needed: [{ title: "Pick owners", why: "Tasks need accountability", source_drop_ids: ["drop-1"] }],
@@ -185,12 +195,15 @@ describe("renderWaveBrief", () => {
     });
 
     expect(output).toContain("**Daily wave summary**");
-    expect(output).toContain("**Evidence coverage**");
+    expect(output).toContain("**Wave type**");
+    expect(output).toContain("Engineering release");
+    expect(output).toContain("**Release state**");
+    expect(output).toContain("Deploy lane is clear. Sources: drop-6");
+    expect(output).toContain("**Evidence**");
     expect(output).toContain("Fetched recent wave context.");
-    expect(output).toContain("**What changed since last summary**");
+    expect(output).toContain("**Changed since last check-in**");
     expect(output).toContain("The owner changed. Sources: drop-5");
-    expect(output).toContain("**What happened**");
-    expect(output).toContain("**Decisions needed**");
+    expect(output).toContain("**Follow-ups**");
     expect(output).toContain("Pick owners");
     expect(output).toContain("Owner: admin.");
     expect(output).toContain("[medium] Consensus is still weak");
@@ -326,7 +339,7 @@ describe("scoreWaveBriefQuality", () => {
     expect(quality.blockers).toEqual([]);
   });
 
-  it("penalizes missing sources and missing follow-up", () => {
+  it("penalizes missing sources and missing wave-specific content", () => {
     const quality = scoreWaveBriefQuality(
       {
         title: "Thin summary",
@@ -339,7 +352,7 @@ describe("scoreWaveBriefQuality", () => {
 
     expect(quality.label).toBe("weak");
     expect(quality.blockers).toContain("1 cited source drops are missing.");
-    expect(quality.blockers).toContain("No decisions, tasks, or questions were extracted.");
+    expect(quality.blockers).toContain("No useful wave-specific sections or follow-ups were extracted.");
     expect(quality.blockers).toContain("Model confidence is low.");
   });
 

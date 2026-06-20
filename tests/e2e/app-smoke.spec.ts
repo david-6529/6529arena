@@ -14,7 +14,8 @@ test.describe("public pages", () => {
 
     await page.getByLabel("Wave name, link, or ID").fill("https://6529.io/waves/49f0e595-ec7c-4235-8695-a527f61b69f4");
     expect(page.url()).not.toContain("/summarize");
-    await expect(page.getByText("Selected wave 49f0e595-ec7c-4235-8695-a527f61b69f4")).toBeVisible();
+    await expect(page.getByText("49f0e595 primary")).toBeVisible();
+    await expect(page.getByText("1 wave selected")).toBeVisible();
     await expect(page.getByRole("button", { name: "Generate" })).toBeEnabled();
   });
 
